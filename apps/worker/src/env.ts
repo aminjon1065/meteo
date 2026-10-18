@@ -47,6 +47,15 @@ const schema = z.object({
   INTEGRATION_CIRCUIT_MAX_COOLDOWN_MIN: z.coerce.number().int().positive().default(240),
   /** Дополнительные адреса для служебных уведомлений (через запятую), помимо администраторов портала. */
   ADMIN_ALERT_EMAILS: z.string().optional(),
+  /** Ключ шифрования учётных данных источников станций (station_sources); иначе BETTER_AUTH_SECRET. */
+  STATION_SOURCES_KEY: z.string().optional(),
+  BETTER_AUTH_SECRET: z.string().optional(),
+  /** Pull‑адаптер станций: таймаут соединения, предел размера файла, глубина первого прохода. */
+  STATION_PULL_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  STATION_PULL_MAX_FILE_MB: z.coerce.number().positive().default(20),
+  STATION_PULL_LOOKBACK_DAYS: z.coerce.number().int().positive().default(7),
+  /** Через сколько минут без автоматического приёма (ingest API) уведомлять администраторов. */
+  STATION_INGEST_STALE_MIN: z.coerce.number().int().positive().default(180),
 });
 
 const parsed = schema.safeParse(process.env);

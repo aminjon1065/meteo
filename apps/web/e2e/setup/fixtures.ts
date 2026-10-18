@@ -11,6 +11,10 @@ import * as s from "@meteo/db/schema";
 export const E2E = {
   station: { code: "E2E-DU-01", slug: "e2e-dushanbe-center" },
   station2: { code: "E2E-KT-01", slug: "e2e-bokhtar-south" },
+  /** Район Душанбе с геометрией — для /api/v1/districts и контуров районов на карте. */
+  district: { code: "E2E-DU-D1" },
+  /** Названия областей из seed — для попапа слоя границ. */
+  regionName: { KT: { ru: "Хатлонская область" } },
   capIdentifier: "e2e.cap.2026.0001",
   capHeadline: {
     ru: "Сильный ветер в Душанбе (E2E)",
@@ -33,6 +37,8 @@ const PNG_1X1 = Buffer.from(
 );
 
 const floorHour = (d: Date) => new Date(Math.floor(d.getTime() / HOUR) * HOUR);
+/** Час суток по Душанбе (UTC+5, без перехода на летнее время). */
+const dushanbeHour = (d: Date) => (((d.getTime() / HOUR + 5) % 24) + 24) % 24;
 const localMidnightUtc = (d: Date) => {
   const shifted = new Date(d.getTime() + 5 * HOUR);
   return new Date(
@@ -64,6 +70,50 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
       return v;
     };
 
+    // --- границы: прямоугольники областей (Душанбе — «дыра» внутри РРП) и один район Душанбе -------
+    // Реальные полигоны грузит infra/data/load-boundaries.ts; в E2E нужны лишь предсказуемые
+    // контуры для /api/v1/regions, /api/v1/districts и попапа слоя границ.
+    const ring = (w: number, s: number, e: number, n: number) =>
+      `(${w} ${s}, ${e} ${s}, ${e} ${n}, ${w} ${n}, ${w} ${s})`;
+    const dushanbeRing = ring(68.65, 38.45, 68.95, 38.65);
+    const regionWkt: Record<string, string> = {
+      SU: `MULTIPOLYGON((${ring(68.0, 39.4, 70.5, 41.0)}))`,
+      RRP: `MULTIPOLYGON((${ring(68.0, 38.3, 70.5, 39.4)}, ${dushanbeRing}))`,
+      DU: `MULTIPOLYGON((${dushanbeRing}))`,
+      KT: `MULTIPOLYGON((${ring(68.0, 36.9, 70.5, 38.3)}))`,
+      GB: `MULTIPOLYGON((${ring(70.5, 36.9, 75.0, 41.0)}))`,
+    };
+    for (const [code, wkt] of Object.entries(regionWkt)) {
+      await db.execute(sql`
+        update regions
+           set geom = ST_GeomFromText(${wkt}, 4326),
+               centroid = ST_PointOnSurface(ST_GeomFromText(${wkt}, 4326))
+         where code = ${code}`);
+    }
+    const [district] = await db
+      .insert(s.districts)
+      .values({
+        regionId: need(rid, "DU"),
+        code: E2E.district.code,
+        name: { tg: "Ноҳияи Сино (E2E)", ru: "Район Сино (E2E)", en: "Sino district (E2E)" },
+        geom: {
+          type: "MultiPolygon",
+          coordinates: [
+            [
+              [
+                [68.7, 38.5],
+                [68.85, 38.5],
+                [68.85, 38.6],
+                [68.7, 38.6],
+                [68.7, 38.5],
+              ],
+            ],
+          ],
+        },
+      })
+      .returning({ id: s.districts.id });
+    if (!district) throw new Error("[e2e] район не создан");
+
     // --- станции ------------------------------------------------------------------------------
     const [station] = await db
       .insert(s.stations)
@@ -78,6 +128,7 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
         kind: "air",
         geom: { x: 68.78, y: 38.56 },
         regionId: need(rid, "DU"),
+        districtId: district.id,
         status: "active",
         dataSource: "sensor",
         sampling: "continuous",
@@ -137,7 +188,10 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
         value: Math.round((24 + 8 * wave) * 10) / 10,
       });
     }
-    const suspectTime = floorHour(new Date(now.getTime() - 3 * HOUR));
+    // Подозрительное значение ≈ 3 часа назад, но не в 07:00 по Душанбе: этот час перезаписывает сценарий
+    // ручного ввода (e2e/admin/measurements.spec.ts), и при прогоне в 10:00–11:00 очередь QC оказывалась пустой.
+    let suspectTime = floorHour(new Date(now.getTime() - 3 * HOUR));
+    if (dushanbeHour(suspectTime) === 7) suspectTime = new Date(suspectTime.getTime() - HOUR);
     for (const r of rows) {
       if (
         r.pollutantId === need(pid, E2E.suspectPollutant) &&

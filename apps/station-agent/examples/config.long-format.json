@@ -1,0 +1,20 @@
+{
+  "portalUrl": "https://portal.meteo.tj",
+  "stationCode": "SU-01",
+  "apiKey": "mst_replace-with-the-station-key",
+  "watchDir": "/var/lib/airmon/export",
+  "filePattern": "SU-01_*.csv",
+  "pollIntervalSec": 0,
+  "mapping": {
+    "delimiter": ",",
+    "encoding": "utf-8",
+    "headerRow": 1,
+    "layout": "long",
+    "time": { "column": "timestamp", "timezone": "UTC" },
+    "pollutantColumn": "parameter",
+    "valueColumn": "value",
+    "unitColumn": "unit",
+    "flagColumn": "status",
+    "pollutantAliases": { "Ozone 1h": "O3", "Nitrogen dioxide": "NO2", "Sulfur dioxide": "SO2" }
+  }
+}

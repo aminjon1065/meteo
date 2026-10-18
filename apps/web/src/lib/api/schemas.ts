@@ -363,6 +363,23 @@ export const NewsResponseSchema = z
   })
   .describe("Published news in the requested language");
 
+const BoundaryPropertiesSchema = z.object({
+  id: z.int(),
+  code: z.string(),
+  name: I18nTextSchema,
+  stationsCount: z.int().describe("Public stations located inside the unit"),
+  level: z
+    .int()
+    .min(0)
+    .max(5)
+    .describe("Worst current index level among the unit's stations; 0 — no data or stale"),
+});
+
+const MultiPolygonSchema = z.object({
+  type: z.literal("MultiPolygon"),
+  coordinates: z.array(z.any()),
+});
+
 export const RegionsResponseSchema = z
   .object({
     type: z.literal("FeatureCollection"),
@@ -370,17 +387,137 @@ export const RegionsResponseSchema = z
       z.object({
         type: z.literal("Feature"),
         id: z.int(),
-        geometry: z.object({ type: z.literal("MultiPolygon"), coordinates: z.array(z.any()) }),
-        properties: z.object({
-          id: z.int(),
-          code: z.string(),
-          name: I18nTextSchema,
+        geometry: MultiPolygonSchema,
+        properties: BoundaryPropertiesSchema.extend({
           sortOrder: z.int(),
           centroid: z.tuple([z.number(), z.number()]).nullable(),
         }),
       }),
     ),
   })
-  .describe("Administrative regions (oblasts, Dushanbe, RRP) as simplified GeoJSON");
+  .describe(
+    "Administrative regions (oblasts, Dushanbe, RRP) as simplified GeoJSON (ST_SimplifyPreserveTopology 0.002°) with station counts and the current index level",
+  );
+
+export const DistrictsResponseSchema = z
+  .object({
+    type: z.literal("FeatureCollection"),
+    features: z.array(
+      z.object({
+        type: z.literal("Feature"),
+        id: z.int(),
+        geometry: MultiPolygonSchema,
+        properties: BoundaryPropertiesSchema.extend({
+          regionId: z.int().describe("Parent region id"),
+          regionCode: z.string().describe("Parent region code (DU, RRP, SU, KT, GB)"),
+        }),
+      }),
+    ),
+  })
+  .describe(
+    "Districts and cities of regional subordination as simplified GeoJSON with station counts and the current index level",
+  );
 
 export const newsRssQuery = z.object({ locale: z.enum(["tg", "ru", "en"]).default("tg") });
+
+// ---------------------------------------------------------------------------
+// Приём данных станций: POST /api/v1/ingest/{code} (ключ станции в Authorization: Bearer)
+// ---------------------------------------------------------------------------
+
+export const IngestRecordSchema = z
+  .object({
+    time: z
+      .union([z.string().max(40), z.number()])
+      .describe(
+        "Measurement time: ISO 8601 with offset (2026-10-18T07:00:00Z), local Asia/Dushanbe time without offset (2026-10-18 12:00, 18.10.2026 12:00) or Unix epoch seconds",
+      ),
+    pollutant: z
+      .string()
+      .max(64)
+      .describe(
+        "Pollutant code (PM25, PM10, NO2, SO2, CO, O3) or a vendor synonym (pm2.5, Ozone, NO₂ …)",
+      ),
+    value: z
+      .union([z.number(), z.string().max(32), z.null()])
+      .describe(
+        "Concentration: number, numeric string with comma decimal, '<5' (below detection limit) or null with flag=missing",
+      ),
+    unit: z
+      .string()
+      .max(16)
+      .nullable()
+      .optional()
+      .describe(
+        "Input unit: µg/m³, mg/m³, ppb or ppm; default — the station's input unit for the pollutant",
+      ),
+    flag: z
+      .union([z.string().max(32), z.int().min(0).max(5)])
+      .nullable()
+      .optional()
+      .describe(
+        "Vendor quality flag: valid, suspect, invalid, missing (or QC code 0–5); unknown values are treated as valid",
+      ),
+    averagingMin: z
+      .int()
+      .min(1)
+      .max(1440)
+      .nullable()
+      .optional()
+      .describe(
+        "Averaging period, minutes; default 60 for continuous stations and 20 for discrete samples",
+      ),
+  })
+  .describe("One measurement of the station");
+
+const ingestRecords = z
+  .array(IngestRecordSchema)
+  .min(1)
+  .max(1000)
+  .describe("Up to 1000 measurements per request");
+
+export const IngestRequestSchema = z
+  .union([ingestRecords, z.object({ measurements: ingestRecords })])
+  .describe("JSON array of measurements (or an object with a measurements array)");
+
+export const IngestResponseSchema = z
+  .object({
+    station: z.object({ id: z.int(), code: z.string(), slug: z.string() }),
+    received: z.int().describe("Records in the request"),
+    accepted: z.int().describe("Records stored (distinct time/pollutant/averaging keys)"),
+    rejected: z.int().describe("Records rejected; see errors"),
+    inserted: z.int().describe("New rows"),
+    updated: z.int().describe("Existing rows overwritten (idempotent re-sends)"),
+    skippedLocked: z.int().describe("Rows kept as decided by an operator (qc_locked)"),
+    invalidRange: z
+      .int()
+      .describe("Accepted values outside the QC range, stored with flag invalid"),
+    duplicates: z.int().describe("Records superseded by a later record with the same key"),
+    from: z.iso.datetime({ offset: true }).nullable(),
+    to: z.iso.datetime({ offset: true }).nullable(),
+    pollutants: z.array(z.string()).describe("Pollutant codes of accepted records"),
+    errors: z
+      .array(
+        z.object({
+          index: z.int().describe("Index of the record in the request array"),
+          message: z
+            .string()
+            .describe(
+              "Reason: time, futureTime, tooOld, unknownPollutant:X, pollutantNotConfigured:X, emptyValue, value:X, unit:X, unitConversion:X, averagingMin:X, duplicate",
+            ),
+        }),
+      )
+      .describe("Per-record reasons for rejected and superseded records"),
+  })
+  .describe("Ingest result; HTTP 200 when at least one record was accepted, 422 when none");
+
+export const IngestErrorSchema = z
+  .object({
+    error: z
+      .string()
+      .describe(
+        "unauthorized | station_inactive | invalid_json | validation | payload_too_large | rate_limited",
+      ),
+    message: z.string().optional(),
+    issues: z.array(z.object({ path: z.string(), message: z.string() })).optional(),
+  })
+  .describe("Error response");

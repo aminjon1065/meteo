@@ -169,7 +169,15 @@
       "never": "no measurements yet",
       "fresh": "fresh",
       "stale": "stale",
-      "missing": "no data"
+      "missing": "no data",
+      "ingest": "Automatic intake",
+      "ingestNever": "nothing received yet",
+      "ingestStaleCount": "No automatic intake for over {minutes} min: {count}",
+      "source": {
+        "api": "API",
+        "pull": "SFTP/FTP"
+      },
+      "sourcesFailed": "failed sources: {count}"
     },
     "outbox": {
       "title": "Mail queue",
@@ -304,6 +312,99 @@
       "confirmTitle": "Decommission this station?",
       "confirmText": "Status changes to “decommissioned” as of {date}.",
       "done": "Station decommissioned"
+    },
+    "ingest": {
+      "title": "Automatic data intake",
+      "state": {
+        "fresh": "data arriving",
+        "stale": "no data for a long time",
+        "never": "not connected yet"
+      },
+      "lastAt": "Last intake {relative} ({time}) · {source}",
+      "never": "The station has not sent data automatically yet: connect a logger, the station agent or an SFTP/FTP/HTTP source below.",
+      "source": {
+        "api": "via API (logger or station agent)",
+        "pull": "file pull (SFTP/FTP/HTTP)"
+      },
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "invalidRange": "Outside QC range",
+      "pollutants": "Pollutants",
+      "period": "Data period",
+      "endpoint": "Intake endpoint:",
+      "noKey": "create the API key below first",
+      "docs": "API reference"
+    },
+    "sources": {
+      "title": "File sources (SFTP / FTP / HTTP)",
+      "hint": "Every 10 minutes the worker fetches new export files of the vendor software, parses them by the column mapping and stores them as station measurements. Passwords are stored encrypted.",
+      "add": "Add source",
+      "empty": "No sources. If the station computer can send data itself, use the station agent (apps/station-agent) or the API key.",
+      "saved": "Source saved",
+      "deleted": "Source deleted",
+      "confirmDelete": "Delete the source?",
+      "runNow": "Check now",
+      "runQueued": "Job queued: the result appears here within a minute",
+      "summary": "Last run: files {files}, accepted {accepted}, rejected {rejected}",
+      "lastRun": "Run",
+      "lastSuccess": "Success",
+      "lastData": "Data",
+      "status": {
+        "never": "not run yet",
+        "ok": "working",
+        "failed": "failed",
+        "disabled": "disabled"
+      },
+      "kinds": {
+        "sftp": "SFTP (SSH)",
+        "ftp": "FTP",
+        "ftps": "FTPS (FTP over TLS)",
+        "http": "HTTP(S) — file by URL"
+      },
+      "fields": {
+        "kind": "Type",
+        "label": "Name",
+        "host": "Server",
+        "port": "Port",
+        "username": "User",
+        "password": "Password",
+        "httpSecret": "Password or token",
+        "privateKey": "SSH private key (PEM)",
+        "hostFingerprint": "Server key fingerprint",
+        "path": "Directory on the server",
+        "url": "File address (URL)",
+        "filePattern": "File mask",
+        "mapping": "Column mapping (JSON)",
+        "template": "Template:",
+        "staleAfterMin": "Notify when no data for longer than, min",
+        "enabled": "Enabled"
+      },
+      "hints": {
+        "filePattern": "For example *.csv or DU-01_*.txt; new and changed files are processed.",
+        "passwordKeep": "leave empty to keep; “-” to remove",
+        "secret": "Stored encrypted (STATION_SOURCES_KEY). You can enter env:NAME — an environment variable of the worker.",
+        "hostFingerprint": "SHA256:… from ssh-keyscan host | ssh-keygen -lf -. Empty — no host key check.",
+        "mapping": "Same format as the station agent config: delimiter, time column and format, pollutant columns or long layout. The templates above are starting points.",
+        "staleAfterMin": "E-mail to administrators when the source delivers no values within this time."
+      },
+      "templates": {
+        "wide": "column per pollutant",
+        "long": "pollutant per row",
+        "split": "separate date and time"
+      },
+      "errors": {
+        "validation": "Check the form fields",
+        "notFound": "Source not found",
+        "insert": "Could not save",
+        "noKey": "Encryption key STATION_SOURCES_KEY (or BETTER_AUTH_SECRET) is not set — the password cannot be stored",
+        "queueUnavailable": "Job queue unavailable (Redis). The job will run on schedule.",
+        "required": "Required field",
+        "max": "Too long",
+        "range": "Out of range",
+        "url": "An http:// or https:// address is required",
+        "json": "Invalid JSON",
+        "mapping": "Column mapping error"
+      }
     }
   },
   "map": {
@@ -311,6 +412,11 @@
     "subtitle": "Monitoring stations, SILAM forecast and warnings",
     "layers": "Layers",
     "stations": "Stations",
+    "regions": "Region boundaries",
+    "regionsFill": "Levels by region",
+    "regionsHint": "Districts appear when zoomed in; the fill colour is the worst index level among the region’s stations.",
+    "regionStations": "Stations",
+    "regionOpen": "Station list",
     "silam": "SILAM forecast",
     "warnings": "Warnings",
     "legend": "Legend",
@@ -543,6 +649,18 @@
       "recoveredSubject": "Integration {name} recovered",
       "recoveredBody": "The source “{name}” is responding again ({at}). The outage lasted since {since}.",
       "button": "Open the dashboard"
+    },
+    "stationData": {
+      "staleSubject": "No data from station {station} for over {minutes} min",
+      "staleBody": "Station “{station}” ({code}) has not sent data since {since}. Channel: {channel}. Check the station computer, the network and the source settings in the station card.",
+      "lastError": "Last source error: {error}",
+      "recoveredSubject": "Data from station {station} is arriving again",
+      "recoveredBody": "Station “{station}” ({code}) is sending data again ({at}). The gap lasted since {since}.",
+      "channel": {
+        "api": "API (logger or station agent)",
+        "pull": "file pull (SFTP/FTP/HTTP)"
+      },
+      "button": "Open the station card"
     }
   },
   "qc": {
@@ -1584,7 +1702,12 @@
       },
       "regions": {
         "title": "Administrative boundaries",
-        "description": "Regions, Dushanbe and the Districts of Republican Subordination with simplified polygons (GeoJSON).",
+        "description": "Regions, Dushanbe and the RRP with simplified polygons, station counts and the current index level (GeoJSON).",
+        "updates": "rarely"
+      },
+      "districts": {
+        "title": "District boundaries",
+        "description": "Districts and cities of regional subordination with simplified polygons linked to their region (GeoJSON).",
         "updates": "rarely"
       }
     },
@@ -1608,12 +1731,12 @@
   },
   "apiDocs": {
     "title": "API for developers",
-    "intro": "Public REST API version 1: read-only, no keys, JSON by default. The OpenAPI 3.1 specification is generated from the same schemas that validate server responses.",
+    "intro": "Public REST API version 1: reads without keys, JSON by default; station data intake — POST with a station key. The OpenAPI 3.1 specification is generated from the same schemas that validate server requests and responses.",
     "download": "Download OpenAPI 3.1 (JSON)",
     "backToData": "← Open data",
     "baseUrl": "Base URL",
     "auth": "Authentication",
-    "authHint": "Not required. Rate limit: 60 requests per minute per IP.",
+    "authHint": "Not required for reads (limit 120 requests per minute per IP). Station data intake: Authorization: Bearer <station key> header, separate limit of 60 requests per minute per station.",
     "cors": "CORS",
     "corsHint": "Requests from any website are allowed (Access-Control-Allow-Origin: *).",
     "contents": "Contents",
@@ -1633,7 +1756,13 @@
       "capXml": "Original CAP 1.2 message",
       "rss": "RSS 2.0",
       "badRequest": "Invalid parameters",
-      "notFound": "Object not found"
+      "notFound": "Object not found",
+      "ingestOk": "At least one record accepted (reasons for rejected ones in errors)",
+      "ingestRejected": "No record accepted — see errors",
+      "unauthorized": "Missing Authorization header or the key does not match the station code",
+      "stationInactive": "Station is suspended or decommissioned",
+      "payloadTooLarge": "Body larger than 2 MB",
+      "rateLimited": "Station request limit exceeded (see Retry-After)"
     },
     "licenseNote": "Data is licensed under CC BY 4.0 with attribution; FMI forecasts must credit the Finnish Meteorological Institute.",
     "embedNote": "For websites without development there are iframe widgets /embed/aqi, /embed/forecast and /embed/alerts (see Open data).",
@@ -1647,7 +1776,8 @@
       "weather": "Forecasts",
       "warnings": "Warnings",
       "content": "News",
-      "geo": "Geography"
+      "geo": "Geography",
+      "ingest": "Station data intake"
     },
     "endpoints": {
       "stations": {
@@ -1731,10 +1861,25 @@
         }
       },
       "regions": {
-        "summary": "Administrative boundaries",
-        "description": "Regions, Dushanbe and the Districts of Republican Subordination with simplified polygons and centroids."
+        "summary": "Administrative boundaries: regions",
+        "description": "Regions, Dushanbe and the RRP with simplified polygons, centroids, station counts and the worst current index level (0 — no data). Cached for 10 minutes, ETag."
+      },
+      "districts": {
+        "summary": "Administrative boundaries: districts",
+        "description": "Districts and cities of regional subordination with simplified polygons, region code, station counts and the worst current index level. Units without loaded geometry are omitted."
+      },
+      "ingest": {
+        "summary": "Measurement intake from a station",
+        "description": "A logger, the station agent or vendor software sends a JSON array of measurements (up to 1000 per request). Time — ISO 8601 with offset or local (Asia/Dushanbe); pollutants — codes PM25, PM10, NO2, SO2, CO, O3 or synonyms; the default unit is the station's input unit. Values are converted to the pollutant unit, pass the QC range rule and are stored by the time/pollutant/averaging key — re-sending is idempotent and operator decisions are kept. The response lists accepted and rejected counts with per-record reasons. After storing, the index and alert rules are recomputed.",
+        "params": {
+          "code": "Station code from the registry (e.g. DU-01)"
+        }
       }
     },
-    "responsesTitle": "Responses"
+    "responsesTitle": "Responses",
+    "requestBody": "Request body",
+    "security": {
+      "stationApiKey": "Station API key from the station card in the admin panel; sent as Authorization: Bearer <key>. Only the key hash is stored in the database."
+    }
   }
 }

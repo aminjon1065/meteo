@@ -15,7 +15,8 @@
       "!**/build",
       "!**/.turbo",
       "!**/drizzle/meta",
-      "!**/*.docx"
+      "!**/*.docx",
+      "!apps/station-agent/station-agent.mjs"
     ]
   },
   "formatter": {
@@ -56,7 +57,7 @@
   },
   "overrides": [
     {
-      "includes": ["apps/worker/**", "packages/db/**"],
+      "includes": ["apps/worker/**", "packages/db/**", "apps/station-agent/**"],
       "linter": {
         "rules": {
           "suspicious": {

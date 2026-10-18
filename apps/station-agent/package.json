@@ -1,0 +1,21 @@
+{
+  "name": "@meteo/station-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Агент станционного компьютера: следит за папкой экспорта вендорского ПО и отправляет новые измерения на POST /api/v1/ingest (один файл station-agent.mjs, Node 22, без зависимостей)",
+  "scripts": {
+    "build": "node build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@meteo/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "esbuild": "^0.27.5",
+    "typescript": "^5.9.3",
+    "vitest": "5.0.4"
+  }
+}

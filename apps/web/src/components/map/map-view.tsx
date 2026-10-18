@@ -7,7 +7,7 @@ import { Checkbox } from "@meteo/ui/components/checkbox";
 import { NativeSelect, NativeSelectOption } from "@meteo/ui/components/native-select";
 import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import type { SilamOverlay } from "./station-map";
+import type { BoundariesLayer, SilamOverlay } from "./station-map";
 import { StationMapLazy } from "./station-map.lazy";
 
 export interface SilamFrame {
@@ -38,10 +38,17 @@ export interface MapViewProps {
   openLabel: string;
   statusLabels: Record<string, string>;
   stationHrefPrefix: string;
+  /** Ссылка из попапа области на список станций (с локалью). */
+  regionsHref: string;
   labels: {
     title: string;
     layers: string;
     stations: string;
+    regions: string;
+    regionsFill: string;
+    regionsHint: string;
+    regionStations: string;
+    regionOpen: string;
     silam: string;
     warnings: string;
     soon: string;
@@ -80,7 +87,10 @@ function nearestFrameIndex(frames: SilamFrame[], now: number): number {
   return best;
 }
 
-/** Карта с панелью слоёв: станции, растровый прогноз SILAM с выбором вещества и ползунком времени. */
+/**
+ * Карта с панелью слоёв: станции, границы регионов (с опциональной заливкой по уровню индекса),
+ * растровый прогноз SILAM с выбором вещества и ползунком времени, предупреждения CAP.
+ */
 export function MapView({
   locale,
   catalog,
@@ -88,12 +98,26 @@ export function MapView({
   openLabel,
   statusLabels,
   stationHrefPrefix,
+  regionsHref,
   labels,
   legend,
 }: MapViewProps) {
   const available = catalog.run !== null && catalog.pollutants.length > 0;
   const [silamOn, setSilamOn] = useState(false);
   const [warningsOn, setWarningsOn] = useState(warnings.count > 0);
+  const [regionsOn, setRegionsOn] = useState(true);
+  const [regionsFill, setRegionsFill] = useState(false);
+  const boundaries = useMemo<BoundariesLayer>(
+    () => ({
+      regionsUrl: "/api/v1/regions",
+      districtsUrl: "/api/v1/districts",
+      visible: regionsOn,
+      fill: regionsFill,
+      href: regionsHref,
+      labels: { stations: labels.regionStations, open: labels.regionOpen },
+    }),
+    [regionsOn, regionsFill, regionsHref, labels.regionStations, labels.regionOpen],
+  );
   const [code, setCode] = useState(catalog.pollutants[0]?.code ?? "");
   const pollutant = useMemo(
     () => catalog.pollutants.find((p) => p.code === code) ?? catalog.pollutants[0],
@@ -169,6 +193,7 @@ export function MapView({
         warningsUrl={warningsOn ? warnings.url : null}
         warningsHref={warnings.href}
         warningsOpenLabel={labels.warningsOpen}
+        boundaries={boundaries}
         unsupportedLabel={labels.unsupported}
       />
       <aside className="absolute top-4 left-4 z-10 flex w-72 max-w-[calc(100%-2rem)] flex-col gap-3 rounded-xl border bg-background/90 p-4 text-sm shadow-md backdrop-blur">
@@ -179,6 +204,31 @@ export function MapView({
             <Checkbox id="layer-stations" checked disabled />
             <label htmlFor="layer-stations">{labels.stations}</label>
           </div>
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="layer-regions"
+              checked={regionsOn}
+              onCheckedChange={(checked) => setRegionsOn(checked === true)}
+            />
+            <label htmlFor="layer-regions" className="flex-1">
+              {labels.regions}
+            </label>
+          </div>
+          {regionsOn ? (
+            <div className="flex flex-col gap-1.5 rounded-lg border bg-card/60 p-2 text-xs">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="layer-regions-fill"
+                  checked={regionsFill}
+                  onCheckedChange={(checked) => setRegionsFill(checked === true)}
+                />
+                <label htmlFor="layer-regions-fill" className="flex-1">
+                  {labels.regionsFill}
+                </label>
+              </div>
+              <p className="text-[11px] leading-snug text-muted-foreground">{labels.regionsHint}</p>
+            </div>
+          ) : null}
           <div className="flex items-center gap-2">
             <Checkbox
               id="layer-silam"

@@ -134,8 +134,42 @@ Click "Add station" and fill in the form.
 ![Figure 9. Existing station card: form, API key and decommissioning](../img/admin-station-edit.png)
 
 - All fields are edited as when creating; changes are written to the audit log (before/after).
-- **Station API key** is reserved for automatic submission of measurements from sensors. The key is shown once; only its hash is stored; "Rotate key" replaces the old one. In the current portal version API ingestion is not yet enabled — sensor data is loaded through CSV import or the archive import script (see the runbook).
+- **Station API key** is needed for automatic measurement uploads (station agent, logger or vendor software → `POST /api/v1/ingest/{code}`). The key is shown once; only its hash is stored; "Rotate key" replaces the old one, which stops working immediately. How to connect a station — section 4.3.
+- **Automatic data intake** (block above the form): when the station last sent data, through which channel (API or file pull), how many records were accepted and rejected, the data period. The state "no data for a long time" means there was no intake for longer than the threshold (3 hours by default).
+- **File sources (SFTP / FTP / HTTP)** (block below the form): pulling export files from a vendor server — section 4.3.
 - **Decommissioning**: the station disappears from the portal; the measurement history is kept and stays available in data browsing and the archive API. The action cannot be undone from the interface; if needed, the IT service changes the status.
+
+### 4.3. Connecting a station: automatic data intake
+
+The portal receives station data in three ways; none depends on the equipment vendor — the file or request format is described by settings.
+
+| Method | When it fits | What the administrator configures |
+|---|---|---|
+| Station agent | the station software writes CSV/TSV files to a folder on the station computer | the API key in the card; the IT service installs the agent on the station (runbook, section 9.4) |
+| Direct API upload | the logger or station software can send `POST /api/v1/ingest/{code}` requests | the API key in the card; format reference — the portal page "API for developers" (`/data/api`) |
+| File pull (SFTP / FTP / FTPS / HTTP) | the data is already published on a vendor's or the Agency's server | a source in the "File sources" block of the station card |
+
+**Before connecting**, tick the measured pollutants and input units in the station card: values for pollutants not ticked for the station are rejected with the reason `pollutantNotConfigured`. In "Data source" choose "API" or "Automatic sensor" — then the dashboard and administrator e-mails watch for gaps in the intake.
+
+**API key** ("Station API key" block): "Generate key" → copy the key immediately, it is not shown again. Hand it to the IT service for the agent or logger setup. If the key may have leaked — "Rotate key": the old one stops working at once. Suspending the station (status "suspended") also closes the intake (response 403).
+
+**File source**: "Add source" → fill in the fields:
+
+| Field | How to fill |
+|---|---|
+| Type | SFTP (SSH), FTP, FTPS or HTTP(S) — file by URL |
+| Server, port, user, password | access to the vendor server; the password is stored encrypted and never shown again (an empty field when editing keeps it, "-" removes it). Instead of a password you can enter `env:NAME` — an environment variable of the portal server (IT service) |
+| SSH private key, server key fingerprint | for key-based SFTP; the `SHA256:…` fingerprint protects against server spoofing (empty — no check) |
+| Directory on the server, file mask | the export folder and a mask such as `*.csv` or `DU-01_*.txt`; for HTTP — the full file address |
+| Column mapping (JSON) | the file format: delimiter, encoding, time column and date format, pollutant columns (wide layout) or "pollutant / value / unit" columns (long layout). The template buttons insert typical mappings — replace the column names with those in the file. The format is the same as in the station agent config (`apps/station-agent/README.md`) |
+| Notify when no data for longer than, min | after how many minutes without accepted values the administrators get an e-mail (180 by default) |
+| Enabled | a disabled source is not polled; its settings are kept |
+
+After saving click "Check now": within a minute the source row shows the status ("working" / "failed" with the error text), the times of the last run, success and data, and the last run summary (files, accepted, rejected, first errors with line numbers). From then on the portal fetches new and changed files every 10 minutes; re-processing a file is safe — values are updated by the "time + pollutant" key and operator decisions in the QC queue are not overwritten.
+
+**How to verify that data flows**: the "Automatic data intake" block in the card (time and channel of the last intake, accepted/rejected), the "Automatic intake" column on the dashboard (section 3), `measurements.ingest` and `measurements.pull` entries by `station:<code>` in the audit log (section 6). Rejected records are not lost silently: the reason for each (`unknownPollutant`, `unit`, `time`, `futureTime` …) is returned to the sender and appears in the source summary.
+
+**E-mails to administrators**: when a source delivers no value for longer than its threshold or a station with API intake stays silent for more than 3 hours, all administrators (and the `ADMIN_ALERT_EMAILS` addresses) receive "No data from station…"; when data resumes — "Data is arriving again".
 
 ## 5. Measurements
 

@@ -22,6 +22,7 @@ import {
   QC_FLAG,
   regions,
   settings,
+  stationSources,
   stations,
   users,
 } from "@meteo/db/schema";
@@ -40,9 +41,23 @@ export interface StationFreshness {
   name: I18nText;
   status: string;
   sampling: string;
+  dataSource: string;
   region: I18nText | null;
   lastAt: Date | null;
   state: FreshnessState;
+  /** Последний автоматический приём (ingest API / station-pull) и его состояние. */
+  ingestAt: Date | null;
+  ingestSource: "api" | "pull" | null;
+  ingestState: FreshnessState;
+  /** Настроенные pull‑источники: всего / со сбоем в последнем запуске. */
+  sources: number;
+  sourcesFailed: number;
+}
+
+/** Через сколько минут без автоматического приёма станция считается устаревшей (STATION_INGEST_STALE_MIN). */
+export function ingestStaleAfterMin(): number {
+  const raw = Number(process.env.STATION_INGEST_STALE_MIN);
+  return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 180;
 }
 
 export interface IntegrationRow {
@@ -70,6 +85,9 @@ export interface DashboardData {
   heartbeatStale: boolean;
   freshness: StationFreshness[];
   withoutData24h: number;
+  /** Автоматических станций (api/sensor или с pull‑источниками) без приёма дольше порога. */
+  ingestStale: number;
+  ingestStaleAfterMin: number;
   integrations: IntegrationRow[];
   outbox: {
     pending: number;
@@ -113,6 +131,7 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
     states,
     stationRows,
     lastByStation,
+    sourceStats,
     outboxByStatus,
     outboxSent24h,
     outboxLastSent,
@@ -144,8 +163,11 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
         name: stations.name,
         status: stations.status,
         sampling: stations.sampling,
+        dataSource: stations.dataSource,
         region: regions.name,
         regionOrder: regions.sortOrder,
+        lastIngestAt: stations.lastIngestAt,
+        lastIngestSource: stations.lastIngestSource,
       })
       .from(stations)
       .leftJoin(regions, eq(regions.id, stations.regionId))
@@ -155,6 +177,17 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
       .select({ stationId: measurements.stationId, lastAt: sql<Date>`max(${measurements.time})` })
       .from(measurements)
       .groupBy(measurements.stationId),
+    db
+      .select({
+        stationId: stationSources.stationId,
+        total: count(),
+        failed: sql<number>`count(*) filter (where ${stationSources.status} = 'failed')`.mapWith(
+          Number,
+        ),
+      })
+      .from(stationSources)
+      .where(eq(stationSources.enabled, true))
+      .groupBy(stationSources.stationId),
     db
       .select({ status: emailOutbox.status, n: count() })
       .from(emailOutbox)
@@ -198,11 +231,20 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
   const hbAt = hb?.at ? new Date(hb.at) : null;
 
   const lastMap = new Map(lastByStation.map((r) => [r.stationId, new Date(r.lastAt)]));
+  const sourcesMap = new Map(sourceStats.map((r) => [r.stationId, r]));
+  const staleMin = ingestStaleAfterMin();
   const freshness: StationFreshness[] = stationRows.map((s) => {
     const lastAt = lastMap.get(s.id) ?? null;
     const state: FreshnessState = !lastAt
       ? "missing"
       : now.getTime() - lastAt.getTime() <= DAY
+        ? "fresh"
+        : "stale";
+    const src = sourcesMap.get(s.id);
+    const automated = s.dataSource === "api" || s.dataSource === "sensor" || Boolean(src);
+    const ingestState: FreshnessState = !s.lastIngestAt
+      ? "missing"
+      : now.getTime() - s.lastIngestAt.getTime() <= staleMin * 60_000
         ? "fresh"
         : "stale";
     return {
@@ -212,11 +254,23 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
       name: s.name,
       status: s.status,
       sampling: s.sampling,
+      dataSource: automated ? (src ? "pull" : s.dataSource) : s.dataSource,
       region: s.region,
       lastAt,
       state,
+      ingestAt: s.lastIngestAt,
+      ingestSource: s.lastIngestSource,
+      ingestState,
+      sources: src?.total ?? 0,
+      sourcesFailed: src?.failed ?? 0,
     };
   });
+  const ingestStale = freshness.filter(
+    (f) =>
+      (f.dataSource === "api" || f.dataSource === "sensor" || f.sources > 0) &&
+      f.ingestState !== "fresh" &&
+      f.status === "active",
+  ).length;
   const order: Record<FreshnessState, number> = { missing: 0, stale: 1, fresh: 2 };
   freshness.sort(
     (a, b) =>
@@ -274,6 +328,8 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
     heartbeatStale: hbAt ? now.getTime() - hbAt.getTime() > 3 * 60_000 : true,
     freshness,
     withoutData24h: freshness.filter((f) => f.state !== "fresh").length,
+    ingestStale,
+    ingestStaleAfterMin: staleMin,
     integrations,
     outbox: {
       pending: byStatus.pending ?? 0,

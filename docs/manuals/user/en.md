@@ -105,6 +105,7 @@ The "Map" section (`/map`) shows stations, the SILAM air‑quality forecast and 
 Layer panel:
 
 - **Stations** — points coloured by level; click a station to see its index and open its page. When zoomed out, nearby stations merge into clusters with a count.
+- **Region boundaries** — outlines of the regions, Dushanbe and the RRP (on by default); when zoomed in, thin dashed district boundaries appear. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. The **"Levels by region"** checkbox fills each region with the colour of the worst current index level among its stations (grey fill — no data). The same outlines are shown on the home page map and in the "Air quality" section.
 - **SILAM forecast** — a coloured grid of concentrations for the selected pollutant (drop‑down `PM2.5 · µg/m³` etc.). The time slider and the "‹ ›" buttons step through the forecast by hour for 5 days ahead; "▶" starts the animation. Below the slider — the country maximum and the model run time; cell colours follow the public scale by hourly concentration.
 - **Warnings** — polygons of active warnings coloured by danger level with a counter of active ones; the "All warnings" link opens the section.
 - **Legend** — the five index levels.

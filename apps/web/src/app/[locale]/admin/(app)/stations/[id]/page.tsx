@@ -1,18 +1,32 @@
 import { can } from "@meteo/core";
-import { eq } from "@meteo/db";
+import { eq, listStationSources } from "@meteo/db";
 import { stationPollutants, stations } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { notFound } from "next/navigation";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { StationDangerZone } from "@/components/admin/stations/station-danger-zone";
 import { StationForm } from "@/components/admin/stations/station-form";
+import { StationIngestCard } from "@/components/admin/stations/station-ingest-card";
+import {
+  StationSources,
+  type StationSourceView,
+} from "@/components/admin/stations/station-sources";
 import { StationStatusBadge } from "@/components/admin/stations/station-status-badge";
+import { ingestStaleAfterMin } from "@/lib/admin/dashboard";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 import { requireAdminSession } from "@/lib/session";
 import type { StationInput } from "@/lib/validation/station";
+import type { StationSourceInput } from "@/lib/validation/station-source";
 import { loadStationFormOptions } from "../_data";
-import { decommissionStation, rotateStationApiKey, updateStation } from "../actions";
+import {
+  decommissionStation,
+  deleteStationSource,
+  rotateStationApiKey,
+  runStationSource,
+  saveStationSource,
+  updateStation,
+} from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -29,12 +43,21 @@ export default async function EditStationPage({
   const db = getDb();
   const station = await db.query.stations.findFirst({ where: eq(stations.id, id) });
   if (!station) notFound();
-  const [t, options, pollutantRows] = await Promise.all([
+  const [t, options, pollutantRows, sourceRows] = await Promise.all([
     getTranslations("stations"),
     loadStationFormOptions(),
     db.select().from(stationPollutants).where(eq(stationPollutants.stationId, id)),
+    listStationSources(db, { stationId: id }),
   ]);
   const canWrite = can(session.user.role, "stations.write");
+  // Секреты источников клиенту не отдаются — только признак их наличия.
+  const sources: StationSourceView[] = sourceRows.map(
+    ({ secret, privateKey, station: _station, ...rest }) => ({
+      ...rest,
+      hasSecret: Boolean(secret),
+      hasPrivateKey: Boolean(privateKey),
+    }),
+  );
 
   const initial: Partial<StationInput> & { id: number } = {
     id: station.id,
@@ -82,6 +105,18 @@ export default async function EditStationPage({
     "use server";
     return rotateStationApiKey(locale, id);
   }
+  async function saveSource(raw: StationSourceInput) {
+    "use server";
+    return saveStationSource(locale, id, raw);
+  }
+  async function removeSource(sourceId: number) {
+    "use server";
+    return deleteStationSource(locale, id, sourceId);
+  }
+  async function runSource(sourceId: number) {
+    "use server";
+    return runStationSource(locale, id, sourceId);
+  }
 
   return (
     <>
@@ -96,6 +131,14 @@ export default async function EditStationPage({
         </div>
         <StationStatusBadge status={station.status} label={t(`status.${station.status}`)} />
       </div>
+      <StationIngestCard
+        stationCode={station.code}
+        lastIngestAt={station.lastIngestAt}
+        lastIngestSource={station.lastIngestSource}
+        summary={station.lastIngestSummary}
+        staleAfterMin={ingestStaleAfterMin()}
+        hasApiKey={Boolean(station.apiKeyHash)}
+      />
       {canWrite ? (
         <>
           <StationForm options={options} initial={initial} action={action} />
@@ -109,6 +152,14 @@ export default async function EditStationPage({
       ) : (
         <p className="text-muted-foreground">{t("readOnly")}</p>
       )}
+      <StationSources
+        stationCode={station.code}
+        sources={sources}
+        canWrite={canWrite}
+        save={saveSource}
+        remove={removeSource}
+        run={runSource}
+      />
     </>
   );
 }

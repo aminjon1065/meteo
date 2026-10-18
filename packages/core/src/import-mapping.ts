@@ -173,7 +173,8 @@ export function validateMapping(m: unknown): string[] {
   return errors;
 }
 
-function columnLookup(header: string[]): (ref: ColumnRef) => number {
+/** Поиск индекса колонки по имени заголовка (без учёта регистра) или по индексу с 0. */
+export function columnIndexer(header: string[]): (ref: ColumnRef) => number {
   const byName = new Map<string, number>();
   header.forEach((h, i) => {
     const key = normalizeHeader(h);
@@ -444,7 +445,7 @@ export function mapHistoryRows(
 ): HistoryImportResult {
   const problems = validateMapping(mapping);
   if (problems.length) throw new Error(`Некорректный маппинг: ${problems.join("; ")}`);
-  const col = columnLookup(table.header);
+  const col = columnIndexer(table.header);
   const now = ctx.now ?? new Date();
   const missing = new Set(
     (mapping.missingValues ?? DEFAULT_MISSING).map((m) => m.trim().toLowerCase()),

@@ -206,6 +206,31 @@ export async function computeStationIndexes(
   return { stations: stationIds.length, hourlyRows, monthlyRows };
 }
 
+/**
+ * Пересчёт индекса за произвольный период: окно [from − 24 ч, to + 1 ч] по месячным частям,
+ * чтобы массовый приём архива не грузил всё в память одним запросом.
+ */
+export async function computeStationIndexesRange(
+  db: Database,
+  stationIds: number[],
+  from: Date,
+  to: Date,
+): Promise<ComputeSummary> {
+  const MONTH = 31 * 24 * HOUR;
+  const total: ComputeSummary = { stations: 0, hourlyRows: 0, monthlyRows: 0 };
+  let since = new Date(from.getTime() - 24 * HOUR);
+  const end = new Date(to.getTime() + HOUR);
+  while (since < end) {
+    const until = new Date(Math.min(since.getTime() + MONTH, end.getTime()));
+    const part = await computeStationIndexes(db, { stationIds, since, until });
+    total.stations = Math.max(total.stations, part.stations);
+    total.hourlyRows += part.hourlyRows;
+    total.monthlyRows += part.monthlyRows;
+    since = until;
+  }
+  return total;
+}
+
 async function computeMonthlyIza(
   db: Database,
   config: IndexConfig,

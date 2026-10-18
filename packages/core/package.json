@@ -18,7 +18,10 @@
     "./resilience": "./src/resilience.ts",
     "./csv": "./src/csv.ts",
     "./xlsx": "./src/xlsx.ts",
-    "./import-mapping": "./src/import-mapping.ts"
+    "./import-mapping": "./src/import-mapping.ts",
+    "./ingest": "./src/ingest.ts",
+    "./station-feed": "./src/station-feed.ts",
+    "./secret-box": "./src/secret-box.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

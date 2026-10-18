@@ -11,7 +11,7 @@ import {
 } from "./rate-limit";
 
 export interface RateLimitGroup {
-  name: "api" | "auth";
+  name: "api" | "auth" | "ingest";
   rule: RateLimitRule;
 }
 
@@ -26,12 +26,20 @@ function perMinute(name: string, fallback: number): number {
 
 /**
  * Группы ограничений по пути (на IP, окно 1 минута):
+ *  - /api/v1/ingest/* — приём данных станций (RATE_LIMIT_INGEST_PER_MINUTE, по умолчанию 60;
+ *                  ключ — код станции + IP, чтобы один логгер не исчерпывал лимит остальных);
  *  - /api/v1/*   — публичный JSON API (RATE_LIMIT_API_PER_MINUTE, по умолчанию 120);
  *  - /api/auth/* — better-auth (RATE_LIMIT_AUTH_PER_MINUTE, по умолчанию 30; внутри better-auth
  *                  действуют свои лимиты на вход и проверку кода 2FA — 5/мин).
  * Значение 0 выключает ограничение (нагрузочные проверки).
  */
 export function rateLimitGroupFor(pathname: string): RateLimitGroup | null {
+  if (pathname.startsWith("/api/v1/ingest/")) {
+    return {
+      name: "ingest",
+      rule: { limit: perMinute("RATE_LIMIT_INGEST_PER_MINUTE", 60), windowMs: WINDOW_MS },
+    };
+  }
   if (pathname.startsWith("/api/v1/")) {
     return {
       name: "api",
@@ -65,13 +73,24 @@ function primaryStore(): RateLimitStore {
   return globalRef.__meteoRateLimitRedis ?? memoryStore();
 }
 
+/** Ключ счётчика: группа + IP; для ingest — ещё код станции из пути. */
+export function rateLimitKey(group: RateLimitGroup, pathname: string, ip: string): string {
+  if (group.name === "ingest") {
+    const code = decodeURIComponent(pathname.split("/")[4] ?? "")
+      .toUpperCase()
+      .slice(0, 32);
+    return `ingest:${code}:${ip}`;
+  }
+  return `${group.name}:${ip}`;
+}
+
 /** Проверяет лимит для запроса к API; возвращает 429 или пропускает дальше с заголовками X-RateLimit-*. */
 export async function enforceRateLimit(request: NextRequest): Promise<NextResponse> {
   const group = rateLimitGroupFor(request.nextUrl.pathname);
   if (!group) return NextResponse.next();
   const result = await checkRateLimit(
     primaryStore(),
-    `${group.name}:${clientIp(request.headers)}`,
+    rateLimitKey(group, request.nextUrl.pathname, clientIp(request.headers)),
     group.rule,
     memoryStore(),
   );

@@ -102,10 +102,16 @@ export default async function MapPage({ params }: { params: Promise<{ locale: st
           decommissioned: ts("status.decommissioned"),
         }}
         stationHrefPrefix={prefix}
+        regionsHref={`${localePrefix}/air`}
         labels={{
           title: t("title"),
           layers: t("layers"),
           stations: t("stations"),
+          regions: t("regions"),
+          regionsFill: t("regionsFill"),
+          regionsHint: t("regionsHint"),
+          regionStations: t("regionStations"),
+          regionOpen: t("regionOpen"),
           silam: t("silam"),
           warnings: t("warnings"),
           soon: t("soon"),

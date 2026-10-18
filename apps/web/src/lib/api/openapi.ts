@@ -8,11 +8,15 @@ import {
   AlertsGeoJsonSchema,
   AlertsResponseSchema,
   alertsQuery,
+  DistrictsResponseSchema,
   ErrorSchema,
   ExceedancesResponseSchema,
   ForecastResponseSchema,
   forecastQuery,
   IndexCurrentResponseSchema,
+  IngestErrorSchema,
+  IngestRequestSchema,
+  IngestResponseSchema,
   indexQuery,
   MeasurementsResponseSchema,
   measurementsQuery,
@@ -44,19 +48,37 @@ export interface ApiResponse {
   descriptionKey: string;
 }
 
+export interface ApiRequestBody {
+  contentType: string;
+  schema: JsonSchema;
+  /** Пример тела для документации (JSON). */
+  example: string;
+}
+
 export interface ApiEndpoint {
   id: string;
-  method: "GET";
+  method: "GET" | "POST";
   path: string;
   tag: string;
   summary: string;
   description: string;
   params: ApiParam[];
   responses: ApiResponse[];
-  /** Пример запроса для документации. */
+  /** Пример запроса для документации (GET — путь; POST — путь с кодом станции). */
   example: string;
   cache?: string;
+  requestBody?: ApiRequestBody;
+  /** Схема авторизации OpenAPI (components.securitySchemes). */
+  security?: "stationApiKey";
 }
+
+/** Пример тела запроса ingest (документация и OpenAPI). */
+export const INGEST_EXAMPLE_BODY = [
+  { time: "2026-10-18T07:00:00Z", pollutant: "PM25", value: 42.5 },
+  { time: "2026-10-18 12:00", pollutant: "pm2.5", value: "12,5", unit: "µg/m³" },
+  { time: "2026-10-18T07:00:00Z", pollutant: "NO2", value: 10, unit: "ppb", flag: "valid" },
+  { time: "2026-10-18T07:00:00Z", pollutant: "CO", value: null, flag: "missing" },
+];
 
 export type Translate = (key: string, values?: Record<string, string | number>) => string;
 
@@ -150,6 +172,67 @@ export function listEndpoints(t: Translate): ApiEndpoint[] {
     example,
     cache,
   });
+
+  const ingest: ApiEndpoint = {
+    id: "ingest",
+    method: "POST",
+    path: "/api/v1/ingest/{code}",
+    tag: "ingest",
+    summary: t("endpoints.ingest.summary"),
+    description: t("endpoints.ingest.description"),
+    params: [pathParam("code", t, "ingest")],
+    responses: [
+      {
+        status: 200,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestResponseSchema),
+        descriptionKey: "responses.ingestOk",
+      },
+      {
+        status: 400,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestErrorSchema),
+        descriptionKey: "responses.badRequest",
+      },
+      {
+        status: 401,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestErrorSchema),
+        descriptionKey: "responses.unauthorized",
+      },
+      {
+        status: 403,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestErrorSchema),
+        descriptionKey: "responses.stationInactive",
+      },
+      {
+        status: 413,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestErrorSchema),
+        descriptionKey: "responses.payloadTooLarge",
+      },
+      {
+        status: 422,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestResponseSchema),
+        descriptionKey: "responses.ingestRejected",
+      },
+      {
+        status: 429,
+        contentType: JSON_TYPE,
+        schema: toJsonSchema(IngestErrorSchema),
+        descriptionKey: "responses.rateLimited",
+      },
+    ],
+    example: "/api/v1/ingest/DU-01",
+    requestBody: {
+      contentType: JSON_TYPE,
+      schema: toJsonSchema(IngestRequestSchema),
+      example: JSON.stringify(INGEST_EXAMPLE_BODY, null, 2),
+    },
+    security: "stationApiKey",
+  };
 
   return [
     ep(
@@ -272,8 +355,18 @@ export function listEndpoints(t: Translate): ApiEndpoint[] {
       [],
       [ok(RegionsResponseSchema)],
       "/api/v1/regions",
-      "3600 s",
+      "600 s",
     ),
+    ep(
+      "districts",
+      "/api/v1/districts",
+      "geo",
+      [],
+      [ok(DistrictsResponseSchema)],
+      "/api/v1/districts",
+      "600 s",
+    ),
+    ingest,
   ];
 }
 
@@ -286,7 +379,8 @@ export function buildOpenApi(opts: { baseUrl: string; locale: string; t: Transla
   const paths: Record<string, Record<string, unknown>> = {};
   for (const e of endpoints) {
     paths[e.path] = {
-      get: {
+      ...paths[e.path],
+      [e.method.toLowerCase()]: {
         operationId: e.id,
         tags: [e.tag],
         summary: e.summary,
@@ -298,6 +392,20 @@ export function buildOpenApi(opts: { baseUrl: string; locale: string; t: Transla
           schema: p.schema,
           ...(p.description ? { description: p.description } : {}),
         })),
+        ...(e.requestBody
+          ? {
+              requestBody: {
+                required: true,
+                content: {
+                  [e.requestBody.contentType]: {
+                    schema: e.requestBody.schema,
+                    example: JSON.parse(e.requestBody.example) as unknown,
+                  },
+                },
+              },
+            }
+          : {}),
+        ...(e.security ? { security: [{ [e.security]: [] }] } : {}),
         responses: Object.fromEntries(
           groupResponses(e.responses).map(([status, list]) => [
             String(status),
@@ -327,7 +435,16 @@ export function buildOpenApi(opts: { baseUrl: string; locale: string; t: Transla
     servers: [{ url: opts.baseUrl }],
     tags,
     paths,
-    components: { schemas: { Error: toJsonSchema(ErrorSchema) } },
+    components: {
+      schemas: { Error: toJsonSchema(ErrorSchema), IngestError: toJsonSchema(IngestErrorSchema) },
+      securitySchemes: {
+        stationApiKey: {
+          type: "http",
+          scheme: "bearer",
+          description: opts.t("security.stationApiKey"),
+        },
+      },
+    },
     "x-cache": Object.fromEntries(endpoints.filter((e) => e.cache).map((e) => [e.path, e.cache])),
   };
 }

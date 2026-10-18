@@ -1,0 +1,28 @@
+{
+  "portalUrl": "http://localhost:3000",
+  "stationCode": "DU-01",
+  "apiKeyEnv": "METEO_STATION_API_KEY",
+  "watchDir": "data",
+  "filePattern": "*.csv",
+  "pollIntervalSec": 0,
+  "lookbackDays": 0,
+  "settleSec": 0,
+  "stateFile": "../.local/station-agent.state.json",
+  "mapping": {
+    "delimiter": ";",
+    "headerRow": 1,
+    "layout": "wide",
+    "time": { "column": "Дата/время", "format": "DD.MM.YYYY HH:mm", "timezone": "Asia/Dushanbe" },
+    "pollutants": {
+      "PM2.5": { "column": "PM2.5 (мкг/м3)" },
+      "PM10": { "column": "PM10 (мкг/м3)" },
+      "NO2": { "column": "NO2 (мкг/м3)" },
+      "SO2": { "column": "SO2 (мкг/м3)" },
+      "CO": { "column": "CO (мг/м3)", "unit": "mg/m³" },
+      "O3": { "column": "O3 (мкг/м3)" }
+    },
+    "statusColumn": "Статус",
+    "invalidStatuses": ["CAL", "ERR", "MAINT"],
+    "missingValues": ["", "-", "-999", "NaN"]
+  }
+}

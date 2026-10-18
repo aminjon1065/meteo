@@ -90,4 +90,6 @@ await queue.add("smartmet-sync", {}, { jobId: `smartmet-sync:boot:${process.pid}
 await queue.add("silam-sync", {}, { jobId: `silam-sync:boot:${process.pid}` });
 // Предупреждения CAP: первая синхронизация сразу после старта.
 await queue.add("cap-sync", {}, { jobId: `cap-sync:boot:${process.pid}` });
+// Источники станций (SFTP/FTP/HTTP): первый забор файлов и проверка «долго нет данных».
+await queue.add("station-pull", {}, { jobId: `station-pull:boot:${process.pid}` });
 logger.info({ env: env.NODE_ENV }, "worker started");

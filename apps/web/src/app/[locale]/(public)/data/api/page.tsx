@@ -152,19 +152,49 @@ export default async function ApiDocsPage({ params }: { params: Promise<{ locale
                   </div>
                 ) : null}
 
+                {e.security === "stationApiKey" ? (
+                  <p className="rounded-lg border border-brand/30 bg-brand/5 p-3 text-sm">
+                    <span className="font-medium">{t("auth")}: </span>
+                    {t("security.stationApiKey")}
+                  </p>
+                ) : null}
+
+                {e.requestBody ? (
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs font-medium text-muted-foreground uppercase">
+                      {t("requestBody")}
+                    </p>
+                    <code className="font-mono text-xs text-muted-foreground">
+                      {e.requestBody.contentType}
+                    </code>
+                    <SchemaTree schema={e.requestBody.schema} requiredLabel={t("required")} />
+                  </div>
+                ) : null}
+
                 <div className="flex flex-col gap-1">
                   <p className="text-xs font-medium text-muted-foreground uppercase">
                     {t("example")}
                   </p>
                   <pre className="overflow-x-auto rounded-lg bg-muted p-3 text-xs">
-                    <code>{`curl "${base}${e.example}"`}</code>
+                    <code>
+                      {e.method === "POST"
+                        ? [
+                            `curl -X POST "${base}${e.example}" \\`,
+                            `  -H "Authorization: Bearer <station-api-key>" \\`,
+                            `  -H "Content-Type: application/json" \\`,
+                            `  -d '${e.requestBody?.example ?? "[]"}'`,
+                          ].join("\n")
+                        : `curl "${base}${e.example}"`}
+                    </code>
                   </pre>
-                  <a
-                    href={e.example}
-                    className="w-fit text-xs text-brand underline-offset-4 hover:underline"
-                  >
-                    {t("try")}
-                  </a>
+                  {e.method === "GET" ? (
+                    <a
+                      href={e.example}
+                      className="w-fit text-xs text-brand underline-offset-4 hover:underline"
+                    >
+                      {t("try")}
+                    </a>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-col gap-3">

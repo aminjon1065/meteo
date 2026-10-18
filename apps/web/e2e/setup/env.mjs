@@ -35,6 +35,17 @@ export function deriveE2eDatabaseUrl(databaseUrl) {
   return withDbName(databaseUrl, (name) => (name.endsWith("_e2e") ? name : `${name}_e2e`));
 }
 
+/**
+ * redis://host:6379 → redis://host:6379/1: отдельная логическая база Redis для кэша API и rate limit
+ * сервера E2E. Ключи кэша (`meteo:cache:*`) общие для всех экземпляров web, поэтому без этого
+ * сервер E2E читал бы ответы, закэшированные dev-сервером с другой базой PostgreSQL.
+ */
+export function deriveE2eRedisUrl(redisUrl) {
+  const url = new URL(redisUrl);
+  if (!url.pathname || url.pathname === "/" || url.pathname === "/0") url.pathname = "/1";
+  return url.toString();
+}
+
 /** Основная база (из которой выполняются CREATE/DROP DATABASE): суффикс _e2e снимается, если он уже есть. */
 export function deriveAdminDatabaseUrl(databaseUrl) {
   return withDbName(databaseUrl, (name) => name.replace(/_e2e$/, ""));
@@ -54,7 +65,9 @@ export function resolveE2eEnv() {
     /** БД, из которой выполняются CREATE/DROP DATABASE (основная база разработки или CI). */
     adminDatabaseUrl: process.env.E2E_ADMIN_DATABASE_URL ?? baseDatabaseUrl,
     databaseUrl: process.env.E2E_DATABASE_URL ?? deriveE2eDatabaseUrl(baseDatabaseUrl),
-    redisUrl: process.env.REDIS_URL ?? "redis://localhost:6379",
+    redisUrl:
+      process.env.E2E_REDIS_URL ??
+      deriveE2eRedisUrl(process.env.REDIS_URL ?? "redis://localhost:6379"),
     adminEmail: process.env.E2E_ADMIN_EMAIL ?? "admin@meteo.tj",
     adminPassword: process.env.E2E_ADMIN_PASSWORD ?? "E2E-admin-password-2026",
     authSecret:

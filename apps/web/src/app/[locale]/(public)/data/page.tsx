@@ -32,6 +32,7 @@ const DATASETS = [
   { key: "alerts", href: "/api/v1/alerts?active=1", page: "/warnings" },
   { key: "news", href: "/api/v1/news", page: "/news" },
   { key: "regions", href: "/api/v1/regions", page: "/map" },
+  { key: "districts", href: "/api/v1/districts", page: "/map" },
 ] as const;
 
 /** Открытые данные: наборы, форматы, лицензия и ссылки на API и виджеты. */

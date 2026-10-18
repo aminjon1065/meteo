@@ -1,5 +1,6 @@
+import { createHash } from "node:crypto";
 import { eq } from "@meteo/db";
-import { stationPollutants, stations } from "@meteo/db/schema";
+import { stationPollutants, stationSources, stations } from "@meteo/db/schema";
 import { expect, test } from "@playwright/test";
 import { closeE2eDb, e2eDb } from "../helpers/db";
 import { t } from "../helpers/messages";
@@ -62,4 +63,80 @@ test("дубликат кода станции отклоняется с оши�
   await page.getByRole("button", { name: t("ru", "common.actions.save") }).click();
   await expect(page.locator("#code")).toHaveAttribute("aria-invalid", "true");
   await expect(page).toHaveURL(/\/admin\/stations\/new$/);
+});
+
+test("карточка станции: блок автоматического приёма и источник SFTP с зашифрованным паролем", async ({
+  page,
+  request,
+}) => {
+  const db = e2eDb();
+  const [station] = await db
+    .select({ id: stations.id })
+    .from(stations)
+    .where(eq(stations.code, "E2E-DU-01"));
+  const apiKey = "mst_e2e-admin-card-key-0123456789";
+  await db
+    .update(stations)
+    .set({ apiKeyHash: createHash("sha256").update(apiKey).digest("hex") })
+    .where(eq(stations.id, station?.id ?? -1));
+  const posted = await request.post("/api/v1/ingest/E2E-DU-01", {
+    headers: { Authorization: `Bearer ${apiKey}` },
+    data: [{ time: new Date(Date.now() - 3_600_000).toISOString(), pollutant: "PM25", value: 21 }],
+  });
+  expect(posted.status()).toBe(200);
+
+  await page.goto(`/ru/admin/stations/${station?.id}`);
+  const ingestCard = page.getByTestId("station-ingest-card");
+  await expect(ingestCard).toContainText(t("ru", "stations.ingest.title"));
+  await expect(ingestCard).toContainText(t("ru", "stations.ingest.state.fresh"));
+  await expect(ingestCard).toContainText("POST /api/v1/ingest/E2E-DU-01");
+
+  // Источник SFTP: форма → запись в station_sources, пароль зашифрован, в ответе страницы его нет.
+  await page.getByRole("button", { name: t("ru", "stations.sources.add") }).click();
+  const form = page.getByTestId("station-source-form");
+  await form.locator("#src-kind").selectOption("sftp");
+  await form.locator("#src-label").fill("E2E SFTP");
+  await form.locator("#src-host").fill("sftp.e2e.local");
+  await form.locator("#src-username").fill("station");
+  await form.locator("#src-password").fill("s3cret-password");
+  await form.locator("#src-path").fill("/export/DU-01");
+  await form.locator("#src-pattern").fill("*.csv");
+  await form.locator("#src-mapping").fill(
+    JSON.stringify({
+      layout: "wide",
+      time: { column: "Time" },
+      pollutants: { PM25: { column: "PM2.5" } },
+    }),
+  );
+  await form.getByRole("button", { name: t("ru", "common.actions.save") }).click();
+  await expect(page.getByText(t("ru", "stations.sources.saved")).first()).toBeVisible();
+  await expect(page.getByText("E2E SFTP")).toBeVisible();
+
+  const [source] = await db
+    .select()
+    .from(stationSources)
+    .where(eq(stationSources.stationId, station?.id ?? -1));
+  expect(source?.kind).toBe("sftp");
+  expect(source?.host).toBe("sftp.e2e.local");
+  expect(source?.secret?.startsWith("enc:v1:")).toBe(true);
+  expect(source?.secret).not.toContain("s3cret-password");
+  expect(source?.mapping).toMatchObject({ layout: "wide" });
+  const html = await page.content();
+  expect(html).not.toContain("s3cret-password");
+  expect(html).not.toContain("enc:v1:");
+
+  // Ошибка маппинга показывается у поля.
+  await page
+    .getByRole("button", { name: t("ru", "common.actions.edit") })
+    .first()
+    .click();
+  await page.getByTestId("station-source-form").locator("#src-mapping").fill('{"layout":"wide"}');
+  await page
+    .getByTestId("station-source-form")
+    .getByRole("button", { name: t("ru", "common.actions.save") })
+    .click();
+  await expect(page.getByTestId("station-source-form").locator("#src-mapping")).toHaveAttribute(
+    "aria-invalid",
+    "true",
+  );
 });

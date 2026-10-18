@@ -183,7 +183,7 @@ export async function runIntegration<T>(
 }
 
 /** Получатели служебных уведомлений: администраторы портала + ADMIN_ALERT_EMAILS. */
-async function recipients(): Promise<Array<{ email: string; locale: string }>> {
+export async function adminAlertRecipients(): Promise<Array<{ email: string; locale: string }>> {
   const admins = await listAdminRecipients(db);
   const extra = (env.ADMIN_ALERT_EMAILS ?? "")
     .split(",")
@@ -211,7 +211,7 @@ async function notifyAdmins(
   state: IntegrationState,
   at: Date,
 ): Promise<void> {
-  const to = await recipients();
+  const to = await adminAlertRecipients();
   if (to.length === 0) {
     logger.warn({ integration: state.name, kind }, "no admin recipients for integration alert");
     return;

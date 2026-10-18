@@ -1,7 +1,7 @@
 /**
  * Ручной запуск фоновой задачи: pnpm --filter @meteo/worker enqueue <job> '<json>'
  * Примеры: enqueue silam-sync '{"force":true}', enqueue smartmet-sync '{"slugs":["dushanbe"]}',
- * enqueue cap-sync '{"force":true}'.
+ * enqueue cap-sync '{"force":true}', enqueue station-pull '{"sourceId":1,"force":true}'.
  */
 import { Queue } from "bullmq";
 import IORedis from "ioredis";
@@ -10,7 +10,7 @@ import { env } from "../src/env";
 const name = process.argv[2];
 if (!name) {
   console.error(
-    "Укажите имя задачи: heartbeat | smartmet-sync | silam-sync | cap-sync | index-compute | qc-batch | threshold-eval | mailer",
+    "Укажите имя задачи: heartbeat | smartmet-sync | silam-sync | cap-sync | station-pull | index-compute | qc-batch | threshold-eval | mailer",
   );
   process.exit(1);
 }

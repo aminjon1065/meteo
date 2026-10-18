@@ -1,0 +1,26 @@
+{
+  "portalUrl": "https://portal.meteo.tj",
+  "stationCode": "KT-01",
+  "apiKeyEnv": "METEO_STATION_API_KEY",
+  "watchDir": "D:\\Logger\\Out",
+  "filePattern": "*.txt",
+  "recursive": true,
+  "pollIntervalSec": 120,
+  "batchSize": 1000,
+  "mapping": {
+    "delimiter": "tab",
+    "encoding": "utf-8",
+    "headerRow": 1,
+    "skipRows": 1,
+    "commentPrefix": "#",
+    "layout": "wide",
+    "time": { "column": "DateTime", "timezone": "UTC" },
+    "pollutants": {
+      "PM25": { "column": "PM2.5", "flagColumn": "PM2.5_Flag" },
+      "PM10": { "column": "PM10", "flagColumn": "PM10_Flag" },
+      "NO2": { "column": "NO2", "unit": "ppb" },
+      "O3": { "column": "O3", "unit": "ppb" }
+    },
+    "averagingMin": 60
+  }
+}

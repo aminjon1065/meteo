@@ -17,6 +17,25 @@ export interface SilamOverlay {
   bounds: { west: number; south: number; east: number; north: number };
 }
 
+export interface BoundariesLayer {
+  /** GeoJSON областей (/api/v1/regions). */
+  regionsUrl: string;
+  /** GeoJSON районов (/api/v1/districts); null — районы не показывать. */
+  districtsUrl?: string | null;
+  /** Контуры областей (и районов при зуме ≥ 8) видимы. */
+  visible: boolean;
+  /** Заливка областей цветом худшего текущего уровня индекса. */
+  fill: boolean;
+  /** Ссылка в попапе области (список станций, с локалью). */
+  href: string;
+  labels: {
+    /** Подпись числа станций в попапе («Станции»). */
+    stations: string;
+    /** Текст ссылки в попапе. */
+    open: string;
+  };
+}
+
 export interface StationMapProps {
   locale: Locale;
   /** Растровый слой SILAM поверх подложки (null — выключен). */
@@ -26,6 +45,8 @@ export interface StationMapProps {
   /** Ссылка и подпись кнопки в попапе предупреждения. */
   warningsHref?: string;
   warningsOpenLabel?: string;
+  /** Границы областей и районов (FR6.3); null — слой не добавляется. */
+  boundaries?: BoundariesLayer | null;
   /** Текст ссылки в попапе. */
   openLabel: string;
   /** Подписи статусов для попапа. */
@@ -43,6 +64,31 @@ export interface StationMapProps {
   /** Текст вместо карты, если браузер не поддерживает WebGL2 (старые телефоны, headless). */
   unsupportedLabel?: string;
 }
+
+/** Контейнер карты с экземпляром MapLibre для диагностики в E2E (apps/web/e2e/public/map.spec.ts). */
+export interface MapDiagnosticsElement extends HTMLElement {
+  __maplibreMap?: maplibregl.Map;
+}
+
+/**
+ * Порядок оверлеев снизу вверх. Все они вставляются под подписи подложки (первый symbol‑слой
+ * стиля), станции добавляются поверх всего: подложка → заливка областей → SILAM → контуры
+ * районов и областей → предупреждения → станции.
+ */
+const OVERLAY_ORDER = [
+  "regions-fill",
+  "silam-raster",
+  "districts-line",
+  "regions-line",
+  "warnings-fill",
+  "warnings-line",
+] as const;
+
+/** Районы рисуются с зума 8; их GeoJSON запрашивается чуть раньше, чтобы контуры не «догоняли» карту. */
+const DISTRICTS_MIN_ZOOM = 8;
+const DISTRICTS_PREFETCH_ZOOM = 7;
+
+const HOVERED: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "hover"], false];
 
 function levelColorExpression(property: string): maplibregl.ExpressionSpecification {
   return [
@@ -64,6 +110,24 @@ function levelColorExpression(property: string): maplibregl.ExpressionSpecificat
   ];
 }
 
+/** Заливка областей: с режимом «уровни» — цвет уровня (без данных бледнее), иначе только подсветка при наведении. */
+function regionFillOpacity(fill: boolean): maplibregl.ExpressionSpecification {
+  return fill
+    ? ["case", HOVERED, 0.5, ["==", ["get", "level"], 0], 0.12, 0.32]
+    : ["case", HOVERED, 0.12, 0];
+}
+
+function regionFillColor(
+  fill: boolean,
+  dark: boolean,
+): maplibregl.ExpressionSpecification | string {
+  return fill ? levelColorExpression("level") : dark ? "#e2e8f0" : "#334155";
+}
+
+function boundaryLineColor(dark: boolean): string {
+  return dark ? "#cbd5e1" : "#334155";
+}
+
 function parseJson(value: unknown): unknown {
   if (typeof value !== "string") return value;
   try {
@@ -80,7 +144,7 @@ function escapeHtml(s: string): string {
   );
 }
 
-/** Карта станций: кластеры, маркеры по уровню, попапы. Данные — /api/v1/stations. */
+/** Карта станций: кластеры, маркеры по уровню, попапы, границы регионов. Данные — /api/v1/*. */
 export function StationMap({
   locale,
   openLabel,
@@ -95,19 +159,31 @@ export function StationMap({
   warningsUrl,
   warningsHref,
   warningsOpenLabel,
+  boundaries,
   unsupportedLabel,
 }: StationMapProps) {
-  const containerRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<MapDiagnosticsElement>(null);
   const [unsupported, setUnsupported] = useState(false);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const overlayRef = useRef<SilamOverlay | null>(overlay ?? null);
   overlayRef.current = overlay ?? null;
   const warningsRef = useRef<string | null>(warningsUrl ?? null);
   warningsRef.current = warningsUrl ?? null;
+  const boundariesRef = useRef<BoundariesLayer | null>(boundaries ?? null);
+  boundariesRef.current = boundaries ?? null;
   const applyRef = useRef<(() => void) | null>(null);
   const applyWarningsRef = useRef<(() => void) | null>(null);
+  const applyBoundariesRef = useRef<(() => void) | null>(null);
+  /**
+   * Стиль готов принимать addSource/addLayer: true после style.load, false сразу после setStyle.
+   * map.isStyleLoaded() для этого не годится — он ложен и пока догружаются тайлы, из‑за чего
+   * переключение слоя во время прокрутки карты терялось бы.
+   */
+  const styleReadyRef = useRef(false);
   const { resolvedTheme } = useTheme();
   const theme = resolvedTheme === "dark" ? "dark" : "light";
+  const themeRef = useRef(theme);
+  themeRef.current = theme;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: карта создаётся один раз; тема и язык — через setStyle ниже
   useEffect(() => {
@@ -132,6 +208,8 @@ export function StationMap({
       return;
     }
     mapRef.current = map;
+    const container = containerRef.current;
+    container.__maplibreMap = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
     if (!compact) {
       map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
@@ -142,12 +220,35 @@ export function StationMap({
       );
     }
 
+    /** Перед каким слоем вставлять оверлей, чтобы сохранить порядок OVERLAY_ORDER под подписями подложки. */
+    const beforeIdFor = (id: (typeof OVERLAY_ORDER)[number]): string | undefined => {
+      const index = OVERLAY_ORDER.indexOf(id);
+      for (const above of OVERLAY_ORDER.slice(index + 1)) {
+        if (map.getLayer(above)) return above;
+      }
+      return map.getStyle().layers.find((l) => l.type === "symbol")?.id;
+    };
+    const isVisible = (id: string) =>
+      Boolean(map.getLayer(id)) && map.getLayoutProperty(id, "visibility") !== "none";
+    /** data-map-layers: видимые логические слои — для диагностики без доступа к WebGL (E2E). */
+    const syncDiagnostics = () => {
+      const layers: string[] = [];
+      if (isVisible("stations-points")) layers.push("stations");
+      if (isVisible("silam-raster")) layers.push("silam");
+      if (isVisible("warnings-fill")) layers.push("warnings");
+      if (isVisible("regions-line")) layers.push("regions");
+      if (isVisible("regions-fill") && boundariesRef.current?.fill) layers.push("regions-fill");
+      if (isVisible("districts-line")) layers.push("districts");
+      container.dataset.mapLayers = layers.join(" ");
+    };
+
     const applyOverlay = () => {
       const o = overlayRef.current;
       const existing = map.getSource("silam") as maplibregl.ImageSource | undefined;
       if (!o) {
         if (map.getLayer("silam-raster"))
           map.setLayoutProperty("silam-raster", "visibility", "none");
+        syncDiagnostics();
         return;
       }
       const coordinates: [[number, number], [number, number], [number, number], [number, number]] =
@@ -159,10 +260,6 @@ export function StationMap({
         ];
       if (!existing) {
         map.addSource("silam", { type: "image", url: o.url, coordinates });
-        // Под подписями подложки, под предупреждениями и станциями: первый symbol‑слой стиля.
-        const firstSymbol = map.getLayer("warnings-fill")
-          ? "warnings-fill"
-          : map.getStyle().layers.find((l) => l.type === "symbol")?.id;
         map.addLayer(
           {
             id: "silam-raster",
@@ -174,12 +271,13 @@ export function StationMap({
               "raster-resampling": "linear",
             },
           },
-          firstSymbol,
+          beforeIdFor("silam-raster"),
         );
       } else {
         existing.updateImage({ url: o.url, coordinates });
         map.setLayoutProperty("silam-raster", "visibility", "visible");
       }
+      syncDiagnostics();
     };
 
     const periodFmt = new Intl.DateTimeFormat(locale, {
@@ -196,6 +294,7 @@ export function StationMap({
         for (const id of ["warnings-fill", "warnings-line"]) {
           if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
         }
+        syncDiagnostics();
         return;
       }
       if (existing) {
@@ -203,10 +302,10 @@ export function StationMap({
         for (const id of ["warnings-fill", "warnings-line"]) {
           if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "visible");
         }
+        syncDiagnostics();
         return;
       }
       map.addSource("warnings", { type: "geojson", data: url });
-      const firstSymbol = map.getStyle().layers.find((l) => l.type === "symbol")?.id;
       map.addLayer(
         {
           id: "warnings-fill",
@@ -214,7 +313,7 @@ export function StationMap({
           source: "warnings",
           paint: { "fill-color": ["get", "color"], "fill-opacity": 0.28 },
         },
-        firstSymbol,
+        beforeIdFor("warnings-fill"),
       );
       map.addLayer(
         {
@@ -223,42 +322,203 @@ export function StationMap({
           source: "warnings",
           paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.9 },
         },
-        firstSymbol,
+        beforeIdFor("warnings-line"),
       );
-      map.on("click", "warnings-fill", (e: maplibregl.MapLayerMouseEvent) => {
-        // Клик по станции обрабатывает слой станций.
-        const onStation = map.queryRenderedFeatures(e.point, {
-          layers: ["stations-points", "stations-clusters"].filter((l) => map.getLayer(l)),
-        });
-        if (onStation.length > 0) return;
-        const feature = e.features?.[0];
-        if (!feature) return;
-        const p = feature.properties ?? {};
-        const start = p.start ? periodFmt.format(new Date(String(p.start))) : "";
-        const end = p.end ? periodFmt.format(new Date(String(p.end))) : "";
-        const href = String(p.href ?? warningsHref ?? "/warnings");
-        new maplibregl.Popup({ offset: 8, closeButton: false, maxWidth: "280px" })
-          .setLngLat(e.lngLat)
-          .setHTML(
-            `<div class="font-sans text-sm"><div class="flex items-center gap-1.5"><span class="inline-block size-2.5 rounded-full" style="background:${escapeHtml(String(p.color ?? "#999"))}"></span><span class="text-xs text-muted-foreground">${escapeHtml(String(p.event ?? ""))}</span></div>` +
-              `<div class="font-semibold">${escapeHtml(String(p.headline ?? ""))}</div>` +
-              `<div class="text-xs text-muted-foreground">${escapeHtml(start)}${end ? ` — ${escapeHtml(end)}` : ""}</div>` +
-              `<a class="mt-1 inline-block text-xs font-medium underline" href="${escapeHtml(href)}">${escapeHtml(warningsOpenLabel ?? openLabel)}</a></div>`,
-          )
-          .addTo(map);
-      });
-      map.on("mouseenter", "warnings-fill", () => {
-        map.getCanvas().style.cursor = "pointer";
-      });
-      map.on("mouseleave", "warnings-fill", () => {
-        map.getCanvas().style.cursor = "";
-      });
+      syncDiagnostics();
     };
+    // Обработчики слоёв MapLibre делегируются по id и переживают setStyle — регистрируем один раз,
+    // иначе после смены темы клик открывал бы по два попапа.
+    map.on("click", "warnings-fill", (e: maplibregl.MapLayerMouseEvent) => {
+      // Клик по станции обрабатывает слой станций.
+      const onStation = map.queryRenderedFeatures(e.point, {
+        layers: ["stations-points", "stations-clusters"].filter((l) => map.getLayer(l)),
+      });
+      if (onStation.length > 0) return;
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const p = feature.properties ?? {};
+      const start = p.start ? periodFmt.format(new Date(String(p.start))) : "";
+      const end = p.end ? periodFmt.format(new Date(String(p.end))) : "";
+      const href = String(p.href ?? warningsHref ?? "/warnings");
+      new maplibregl.Popup({ offset: 8, closeButton: false, maxWidth: "280px" })
+        .setLngLat(e.lngLat)
+        .setHTML(
+          `<div class="font-sans text-sm"><div class="flex items-center gap-1.5"><span class="inline-block size-2.5 rounded-full" style="background:${escapeHtml(String(p.color ?? "#999"))}"></span><span class="text-xs text-muted-foreground">${escapeHtml(String(p.event ?? ""))}</span></div>` +
+            `<div class="font-semibold">${escapeHtml(String(p.headline ?? ""))}</div>` +
+            `<div class="text-xs text-muted-foreground">${escapeHtml(start)}${end ? ` — ${escapeHtml(end)}` : ""}</div>` +
+            `<a class="mt-1 inline-block text-xs font-medium underline" href="${escapeHtml(href)}">${escapeHtml(warningsOpenLabel ?? openLabel)}</a></div>`,
+        )
+        .addTo(map);
+    });
+    map.on("mouseenter", "warnings-fill", () => {
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseleave", "warnings-fill", () => {
+      map.getCanvas().style.cursor = "";
+    });
+
+    /** Границы: контуры областей всегда, районы с зума 8, заливка по уровню — опционально. */
+    const applyBoundaries = () => {
+      const b = boundariesRef.current;
+      const ids = ["regions-fill", "regions-line", "districts-line"];
+      if (!b) {
+        for (const id of ids) if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
+        syncDiagnostics();
+        return;
+      }
+      const dark = themeRef.current === "dark";
+      if (!map.getSource("regions")) {
+        map.addSource("regions", { type: "geojson", data: b.regionsUrl });
+        map.addLayer(
+          {
+            id: "regions-fill",
+            type: "fill",
+            source: "regions",
+            paint: {
+              "fill-color": regionFillColor(b.fill, dark),
+              "fill-opacity": regionFillOpacity(b.fill),
+            },
+          },
+          beforeIdFor("regions-fill"),
+        );
+        map.addLayer(
+          {
+            id: "regions-line",
+            type: "line",
+            source: "regions",
+            layout: { "line-join": "round", "line-cap": "round" },
+            paint: {
+              "line-color": boundaryLineColor(dark),
+              "line-width": ["case", HOVERED, 2.6, 1.3],
+              "line-opacity": dark ? 0.85 : 0.9,
+            },
+          },
+          beforeIdFor("regions-line"),
+        );
+      } else {
+        map.setPaintProperty("regions-fill", "fill-color", regionFillColor(b.fill, dark));
+        map.setPaintProperty("regions-fill", "fill-opacity", regionFillOpacity(b.fill));
+      }
+      if (
+        b.districtsUrl &&
+        !map.getSource("districts") &&
+        map.getZoom() >= DISTRICTS_PREFETCH_ZOOM
+      ) {
+        map.addSource("districts", { type: "geojson", data: b.districtsUrl });
+        map.addLayer(
+          {
+            id: "districts-line",
+            type: "line",
+            source: "districts",
+            minzoom: DISTRICTS_MIN_ZOOM,
+            layout: { "line-join": "round" },
+            paint: {
+              "line-color": boundaryLineColor(dark),
+              "line-width": 0.8,
+              "line-opacity": 0.7,
+              "line-dasharray": [3, 2],
+            },
+          },
+          beforeIdFor("districts-line"),
+        );
+      }
+      for (const id of ids) {
+        if (map.getLayer(id))
+          map.setLayoutProperty(id, "visibility", b.visible ? "visible" : "none");
+      }
+      syncDiagnostics();
+    };
+    // Районы подгружаются при первом приближении.
+    map.on("zoomend", () => {
+      const b = boundariesRef.current;
+      if (
+        b?.districtsUrl &&
+        styleReadyRef.current &&
+        !map.getSource("districts") &&
+        map.getZoom() >= DISTRICTS_PREFETCH_ZOOM
+      ) {
+        applyBoundaries();
+      }
+      syncDiagnostics();
+    });
+
+    // Наведение: подсветка области (feature-state) и подпись на языке интерфейса.
+    let hoveredId: string | number | null = null;
+    const hoverLabel = new maplibregl.Popup({
+      closeButton: false,
+      closeOnClick: false,
+      className: "map-hover-label",
+      offset: 14,
+      maxWidth: "260px",
+    });
+    const setHovered = (id: string | number | null) => {
+      if (!map.getSource("regions")) {
+        hoveredId = null;
+        return;
+      }
+      if (hoveredId !== null && hoveredId !== id) {
+        map.setFeatureState({ source: "regions", id: hoveredId }, { hover: false });
+      }
+      hoveredId = id;
+      if (id !== null) map.setFeatureState({ source: "regions", id }, { hover: true });
+    };
+    const stationLayersAt = (point: maplibregl.PointLike) =>
+      map.queryRenderedFeatures(point, {
+        layers: ["stations-points", "stations-clusters", "warnings-fill"].filter((l) =>
+          map.getLayer(l),
+        ),
+      });
+    map.on("mousemove", "regions-fill", (e: maplibregl.MapLayerMouseEvent) => {
+      const feature = e.features?.[0];
+      if (!feature || feature.id === undefined) return;
+      if (feature.id !== hoveredId) setHovered(feature.id);
+      // Над станцией или предупреждением подпись области не нужна — у них свои попапы.
+      if (stationLayersAt(e.point).length > 0) {
+        hoverLabel.remove();
+        return;
+      }
+      const name = pick(parseJson(feature.properties?.name) as Record<string, string>, locale);
+      hoverLabel.setLngLat(e.lngLat).setText(name);
+      if (!hoverLabel.isOpen()) hoverLabel.addTo(map);
+      map.getCanvas().style.cursor = "pointer";
+    });
+    map.on("mouseleave", "regions-fill", () => {
+      setHovered(null);
+      hoverLabel.remove();
+      map.getCanvas().style.cursor = "";
+    });
+    map.on("click", "regions-fill", (e: maplibregl.MapLayerMouseEvent) => {
+      // Клики по станциям и предупреждениям обрабатывают их слои.
+      if (stationLayersAt(e.point).length > 0) return;
+      const feature = e.features?.[0];
+      const b = boundariesRef.current;
+      if (!feature || !b) return;
+      const p = feature.properties ?? {};
+      const name = pick(parseJson(p.name) as Record<string, string>, locale);
+      const count = Number(p.stationsCount ?? 0);
+      const level = Number(p.level ?? 0);
+      const color = (AQ_LEVEL_STYLES[level as keyof typeof AQ_LEVEL_STYLES] ?? AQ_LEVEL_STYLES[0])
+        .color;
+      hoverLabel.remove();
+      new maplibregl.Popup({ offset: 8, closeButton: false, maxWidth: "260px" })
+        .setLngLat(e.lngLat)
+        .setHTML(
+          `<div class="font-sans text-sm" data-popup="region"><div class="flex items-center gap-1.5"><span class="inline-block size-2.5 rounded-full" style="background:${escapeHtml(color)}"></span><span class="font-semibold">${escapeHtml(name)}</span></div>` +
+            `<div class="text-xs text-muted-foreground">${escapeHtml(b.labels.stations)}: ${count}</div>` +
+            `<a class="mt-1 inline-block text-xs font-medium underline" href="${escapeHtml(b.href)}">${escapeHtml(b.labels.open)}</a></div>`,
+        )
+        .addTo(map);
+    });
 
     const addStations = () => {
+      styleReadyRef.current = true;
       applyOverlay();
       applyWarnings();
-      if (map.getSource("stations")) return;
+      applyBoundaries();
+      if (map.getSource("stations")) {
+        syncDiagnostics();
+        return;
+      }
       map.addSource("stations", {
         type: "geojson",
         data: "/api/v1/stations",
@@ -305,68 +565,76 @@ export function StationMap({
           "circle-opacity": ["case", ["==", ["get", "status"], "suspended"], 0.55, 1],
         },
       });
-
-      map.on("click", "stations-clusters", async (e: maplibregl.MapLayerMouseEvent) => {
-        const feature = e.features?.[0];
-        if (!feature) return;
-        const source = map.getSource("stations") as maplibregl.GeoJSONSource;
-        const expansionZoom = await source.getClusterExpansionZoom(
-          feature.properties?.cluster_id as number,
-        );
-        map.easeTo({
-          center: (feature.geometry as Point).coordinates as [number, number],
-          zoom: expansionZoom,
-        });
-      });
-      map.on("click", "stations-points", (e: maplibregl.MapLayerMouseEvent) => {
-        const feature = e.features?.[0];
-        if (!feature) return;
-        const p = feature.properties ?? {};
-        const name = pick(parseJson(p.name) as Record<string, string>, locale);
-        const region = pick(parseJson(p.region) as Record<string, string> | null, locale);
-        const status = statusLabels[p.status as string] ?? String(p.status ?? "");
-        const href = `${stationHrefPrefix}/${p.slug}`;
-        const coords = (feature.geometry as Point).coordinates as [number, number];
-        new maplibregl.Popup({ offset: 12, closeButton: false, maxWidth: "260px" })
-          .setLngLat(coords)
-          .setHTML(
-            `<div class="font-sans text-sm"><div class="font-semibold">${escapeHtml(name)}</div>` +
-              `<div class="text-xs text-muted-foreground">${escapeHtml(region)}${region ? " · " : ""}${escapeHtml(status)}</div>` +
-              `<a class="mt-1 inline-block text-xs font-medium underline" href="${href}">${escapeHtml(openLabel)}</a></div>`,
-          )
-          .addTo(map);
-      });
-      for (const layer of ["stations-clusters", "stations-points"]) {
-        map.on("mouseenter", layer, () => {
-          map.getCanvas().style.cursor = "pointer";
-        });
-        map.on("mouseleave", layer, () => {
-          map.getCanvas().style.cursor = "";
-        });
-      }
+      syncDiagnostics();
     };
+    map.on("click", "stations-clusters", async (e: maplibregl.MapLayerMouseEvent) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const source = map.getSource("stations") as maplibregl.GeoJSONSource;
+      const expansionZoom = await source.getClusterExpansionZoom(
+        feature.properties?.cluster_id as number,
+      );
+      map.easeTo({
+        center: (feature.geometry as Point).coordinates as [number, number],
+        zoom: expansionZoom,
+      });
+    });
+    map.on("click", "stations-points", (e: maplibregl.MapLayerMouseEvent) => {
+      const feature = e.features?.[0];
+      if (!feature) return;
+      const p = feature.properties ?? {};
+      const name = pick(parseJson(p.name) as Record<string, string>, locale);
+      const region = pick(parseJson(p.region) as Record<string, string> | null, locale);
+      const status = statusLabels[p.status as string] ?? String(p.status ?? "");
+      const href = `${stationHrefPrefix}/${p.slug}`;
+      const coords = (feature.geometry as Point).coordinates as [number, number];
+      new maplibregl.Popup({ offset: 12, closeButton: false, maxWidth: "260px" })
+        .setLngLat(coords)
+        .setHTML(
+          `<div class="font-sans text-sm"><div class="font-semibold">${escapeHtml(name)}</div>` +
+            `<div class="text-xs text-muted-foreground">${escapeHtml(region)}${region ? " · " : ""}${escapeHtml(status)}</div>` +
+            `<a class="mt-1 inline-block text-xs font-medium underline" href="${href}">${escapeHtml(openLabel)}</a></div>`,
+        )
+        .addTo(map);
+    });
+    for (const layer of ["stations-clusters", "stations-points"]) {
+      map.on("mouseenter", layer, () => {
+        hoverLabel.remove();
+        map.getCanvas().style.cursor = "pointer";
+      });
+      map.on("mouseleave", layer, () => {
+        map.getCanvas().style.cursor = "";
+      });
+    }
     map.on("load", addStations);
     map.on("style.load", addStations);
     applyRef.current = applyOverlay;
     applyWarningsRef.current = applyWarnings;
+    applyBoundariesRef.current = applyBoundaries;
 
     return () => {
+      hoverLabel.remove();
       map.remove();
       mapRef.current = null;
+      styleReadyRef.current = false;
+      delete container.__maplibreMap;
+      delete container.dataset.mapLayers;
     };
   }, []);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
+    styleReadyRef.current = false;
     map.setStyle(buildBasemapStyle(theme, locale), { diff: false });
+    // Оверлеи вернёт обработчик style.load (addStations).
   }, [theme, locale]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: overlay — триггер; актуальное значение читается из overlayRef
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !applyRef.current) return;
-    if (map.isStyleLoaded()) applyRef.current();
+    if (styleReadyRef.current) applyRef.current();
     // Иначе слой добавит обработчик style.load (addStations → applyOverlay).
   }, [overlay]);
 
@@ -374,8 +642,15 @@ export function StationMap({
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !applyWarningsRef.current) return;
-    if (map.isStyleLoaded()) applyWarningsRef.current();
+    if (styleReadyRef.current) applyWarningsRef.current();
   }, [warningsUrl]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: поля boundaries — триггеры; объект читается из boundariesRef
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !applyBoundariesRef.current) return;
+    if (styleReadyRef.current) applyBoundariesRef.current();
+  }, [boundaries?.visible, boundaries?.fill, boundaries?.regionsUrl, boundaries?.districtsUrl]);
 
   if (unsupported) {
     return (
@@ -392,6 +667,11 @@ export function StationMap({
     );
   }
   return (
-    <section ref={containerRef} className={className} aria-label={ariaLabel ?? "Stations map"} />
+    <section
+      ref={containerRef}
+      className={className}
+      aria-label={ariaLabel ?? "Stations map"}
+      data-map-layers=""
+    />
   );
 }

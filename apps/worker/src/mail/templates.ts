@@ -146,6 +146,46 @@ export function renderEmail(
         text,
       };
     }
+    case "stationData": {
+      const kind = payload.kind === "recovered" ? "recovered" : "stale";
+      const station = pick(payload.stationName as I18nText, locale) || String(payload.code ?? "");
+      const fmt = (iso: unknown) =>
+        typeof iso === "string" && !Number.isNaN(Date.parse(iso))
+          ? new Date(iso).toLocaleString(locale === "en" ? "en-GB" : "ru-RU", {
+              timeZone: "Asia/Dushanbe",
+              dateStyle: "medium",
+              timeStyle: "short",
+            })
+          : "—";
+      const channel = t(
+        locale,
+        `stationData.channel.${payload.channel === "pull" ? "pull" : "api"}`,
+      );
+      const vars = {
+        station,
+        code: String(payload.code ?? ""),
+        since: fmt(payload.since),
+        at: fmt(payload.at),
+        minutes: String(payload.minutes ?? ""),
+        channel,
+        error: String(payload.error ?? "—"),
+      };
+      const subject = t(locale, `stationData.${kind}Subject`, vars);
+      const lines = [
+        t(locale, `stationData.${kind}Body`, vars),
+        kind === "stale" && payload.error ? t(locale, "stationData.lastError", vars) : "",
+      ].filter(Boolean);
+      const stationUrl = String(payload.stationUrl ?? "");
+      const body = `${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join("")}${
+        stationUrl ? button(stationUrl, t(locale, "stationData.button")) : ""
+      }`;
+      const text = `${lines.join("\n\n")}${stationUrl ? `\n\n${stationUrl}` : ""}`;
+      return {
+        subject,
+        html: layout(locale, subject, body, escapeHtml(t(locale, "common.sentBy"))),
+        text,
+      };
+    }
     default: {
       const subject = t(locale, "test.subject");
       const details = [

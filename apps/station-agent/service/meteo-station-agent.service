@@ -1,0 +1,23 @@
+# systemd unit для агента станции Метеопортала (Linux станционный компьютер).
+# Установка: см. README.md / README.ru.md (раздел «Запуск как служба»).
+[Unit]
+Description=Meteoportal station agent (upload measurements to the portal)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=meteo-agent
+WorkingDirectory=/opt/meteo-station-agent
+# Ключ станции: либо в config.json (apiKey), либо в этом файле (apiKeyEnv) — chmod 600!
+EnvironmentFile=-/opt/meteo-station-agent/agent.env
+ExecStart=/usr/bin/node /opt/meteo-station-agent/station-agent.mjs --config /opt/meteo-station-agent/config.json
+Restart=always
+RestartSec=30
+NoNewPrivileges=true
+ProtectSystem=strict
+ReadWritePaths=/opt/meteo-station-agent
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

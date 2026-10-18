@@ -12,7 +12,8 @@ export type JobName =
   | "index-compute"
   | "qc-batch"
   | "threshold-eval"
-  | "mailer";
+  | "mailer"
+  | "station-pull";
 
 export interface JobDefinition<TData = Record<string, never>> {
   name: JobName;

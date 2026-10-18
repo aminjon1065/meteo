@@ -366,7 +366,7 @@ Statuses: "failure, in a row N" — the source returns errors; "paused until …
 ## 7. Running background jobs manually
 
 Worker jobs (BullMQ, queue `meteo-jobs`) and schedule: `heartbeat` 1 min; `mailer` 1 min; `index-compute` 10 min;
-`threshold-eval` 10 min; `qc-batch` 15 min; `smartmet-sync` 15 min; `cap-sync` 5 min; `silam-sync` hourly at :20.
+`threshold-eval` 10 min; `station-pull` 10 min; `qc-batch` 15 min; `smartmet-sync` 15 min; `cap-sync` 5 min; `silam-sync` hourly at :20.
 Interval jobs also run right after the worker starts (`dc restart worker` is the simple way to "run everything now");
 the cron‑based `silam-sync` runs only on schedule or manually.
 
@@ -383,6 +383,7 @@ Replace `silam-sync '{"force":true}'` with the job and parameters you need:
 | `smartmet-sync` | `{"force":true}`; `{"slugs":["dushanbe"]}` — only the listed points | after changing `SMARTMET_*`, adding a forecast point |
 | `silam-sync` | `{"force":true}` — re‑download the current run, bypass the circuit breaker | after a THREDDS failure, dataset change |
 | `cap-sync` | `{"force":true}`; `{"url":"file:///…/feed.atom","force":true}` — one‑off source (e.g. the `infra/data/cap` fixtures) | after changing `CAP_FEED_URL`, for testing |
+| `station-pull` | `{}`; `{"sourceId":5,"force":true}` — one SFTP/FTP/HTTP source, even a disabled one, re-reading the newest file | after configuring a source in the station card (the "Check now" button does the same) |
 | `index-compute` | `{}` | after a bulk import or scale changes (the panel does it itself) |
 | `qc-batch`, `threshold-eval`, `mailer` | `{}` | speed up queue processing |
 
@@ -394,7 +395,7 @@ On a developer machine the same is done by `pnpm --filter @meteo/worker enqueue 
 ### 8.1. Station
 
 Admin panel → "Stations" → "Add" (code, coordinates, region, pollutants and input units) — `docs/manuals/admin/en.md`, section 4.
-Data: manual entry, CSV import in the panel or archive import (section 11). The station appears on the map and in the API
+Data: manual entry, CSV import in the panel, archive import (section 11) or automatic intake from the station (section 9.4). The station appears on the map and in the API
 within a minute, the index — after the first valid measurements; the SILAM point forecast for its coordinates — at the next
 `silam-sync` (or a manual run with `force`).
 
@@ -476,6 +477,64 @@ Check: `curl -fsS "$CAP_FEED_URL" | head -20`; then a manual `cap-sync` run with
 "Synchronisation". Messages with status `Test`/`Exercise` are visible only in the panel. Region codes in `<geocode>` must
 match `warning_regions.code` (section 8.4); otherwise assignment is by polygon intersection. The `event` translation
 dictionary — `/admin/cap/events`.
+
+### 9.4. Automatic data intake from stations (ingest API, agent, SFTP/FTP/HTTP)
+
+Three vendor-independent ways to connect an air-quality station (`docs/02-architecture.md` §8.4):
+
+| Method | When it fits | What the station side needs |
+|---|---|---|
+| **Station agent** `apps/station-agent` | the vendor software writes CSV/TSV files to a folder on the station computer | Node.js 22, one file `station-agent.mjs` + `config.json`, outbound HTTPS |
+| **Direct upload** to `POST /api/v1/ingest/{code}` | the logger/controller can send HTTP requests with JSON itself | outbound HTTPS, the station key |
+| **Pull source** (SFTP/FTP/FTPS/HTTP) | the data is already published on a vendor's or the Agency's server | the worker can reach that server (outbound TCP 22/21/443 from the portal) |
+
+**Network requirements.** Agent and loggers: outbound HTTPS only (TCP 443) from the station computer to the portal
+address (from the Agency DMZ or through a proxy; no inbound ports). Pull sources: outbound access from the portal server
+to the vendor server (SFTP 22, FTP 21 + passive ports, HTTPS 443); if the vendor server restricts access by IP, the
+portal server's external IP goes on its whitelist. The station key and source passwords are secrets: the key is shown
+once and only its hash is stored; source passwords are encrypted with `STATION_SOURCES_KEY` (`.env`,
+`openssl rand -base64 32`; without it `BETTER_AUTH_SECRET` is used — after rotating that secret the passwords must be
+re-entered) or given as `env:NAME` references to a worker environment variable.
+
+**Step by step (agent or direct upload):**
+
+1. Admin panel → "Stations" → station card: tick the measured pollutants and input units (values in other units are
+   rejected with `pollutantNotConfigured`/`unit`), set the data source to "API" or "Automatic sensor" (then the dashboard
+   and e-mails watch for missing intake), click "Generate key" in "Station API key" and copy the key immediately.
+2. On the station computer: install Node.js 22 LTS, copy `apps/station-agent/station-agent.mjs` and a suitable config
+   from `apps/station-agent/examples/`, fill in `portalUrl`, `stationCode`, `watchDir`, `mapping` (delimiter, time column
+   and format, pollutant columns) and the key (`apiKey` or the variable named in `apiKeyEnv`).
+3. Check: `node station-agent.mjs --config config.json --check` (folder and format of the newest file), then
+   `--dry-run` and `--once`. Parse errors are logged with line numbers; the portal's rejection reasons are in the
+   response and in the agent log.
+4. Service: Windows — `service\install-task.cmd` (Task Scheduler, every 5 minutes, `--once`) or
+   `service\nssm-install.cmd` (permanent NSSM service); Linux — `service/meteo-station-agent.service` (systemd).
+   Details: `apps/station-agent/README.md`.
+5. Check on the portal: station card → "Automatic data intake" (time, channel, accepted/rejected, period), dashboard →
+   "Automatic intake" column; audit log — `measurements.ingest` entries by `station:<code>`.
+   Direct upload without the agent: `curl -X POST "$PORTAL/api/v1/ingest/DU-01" -H "Authorization: Bearer $KEY"
+   -H "Content-Type: application/json" -d '[{"time":"2026-10-18T07:00:00Z","pollutant":"PM25","value":42.5}]'`
+   (format reference — `/data/api`).
+
+**Step by step (pull source):**
+
+1. `.env`: set `STATION_SOURCES_KEY` and, if needed, `STATION_PULL_TIMEOUT_MS`, `STATION_PULL_MAX_FILE_MB`,
+   `STATION_PULL_LOOKBACK_DAYS` (depth of the first pass), then `dc up -d worker web`.
+2. Station card → "File sources" → "Add source": type, server/port, user and password (or an SSH private key and the host
+   key fingerprint `SHA256:…` from `ssh-keyscan host | ssh-keygen -lf -`), directory and file mask, column mapping
+   (templates "column per pollutant" / "pollutant per row" / "separate date and time"; same format as the agent), the
+   "notify when no data for longer than N minutes" threshold.
+3. "Check now" → within a minute the card shows the status, success/data times and a summary (files, accepted,
+   rejected, first errors); the worker log has `station-pull: file processed` / `source failed` lines.
+4. From then on the worker fetches new and changed files every 10 minutes (re-processing is safe: upsert by the
+   time/pollutant/averaging key). Changing the address or mask resets the registry of processed files.
+
+**Monitoring.** An e-mail to administrators (template `stationData`, same recipients as integration failures) is sent
+when a source delivers no value for longer than its threshold or a station with API intake stays silent longer than
+`STATION_INGEST_STALE_MIN` (180 min); a recovery e-mail follows when data resumes. The `POST /api/v1/ingest` limit is
+`RATE_LIMIT_INGEST_PER_MINUTE` (60 requests per minute per station + IP, up to 1000 records per request). To revoke a
+station's access, "Rotate key" in the card (the old key stops working immediately) or set the status "suspended"
+(response 403).
 
 ## 10. Restoring administrator access and resetting 2FA
 

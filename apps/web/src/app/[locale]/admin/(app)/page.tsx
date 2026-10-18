@@ -113,9 +113,19 @@ export default async function AdminDashboardPage({
           <CardHeader>
             <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
               {t("freshness.title")}
-              <StatusPill tone={data.withoutData24h === 0 ? "ok" : share >= 50 ? "bad" : "warn"}>
-                {t("freshness.withoutData", { count: data.withoutData24h, total, share })}
-              </StatusPill>
+              <span className="flex flex-wrap gap-2">
+                <StatusPill tone={data.withoutData24h === 0 ? "ok" : share >= 50 ? "bad" : "warn"}>
+                  {t("freshness.withoutData", { count: data.withoutData24h, total, share })}
+                </StatusPill>
+                {data.ingestStale > 0 ? (
+                  <StatusPill tone="warn">
+                    {t("freshness.ingestStaleCount", {
+                      count: data.ingestStale,
+                      minutes: data.ingestStaleAfterMin,
+                    })}
+                  </StatusPill>
+                ) : null}
+              </span>
             </CardTitle>
             <CardDescription>{t("freshness.hint")}</CardDescription>
           </CardHeader>
@@ -136,6 +146,9 @@ export default async function AdminDashboardPage({
                       </th>
                       <th scope="col" className="px-2 py-2 font-medium">
                         {t("freshness.lastMeasurement")}
+                      </th>
+                      <th scope="col" className="px-2 py-2 font-medium">
+                        {t("freshness.ingest")}
                       </th>
                       <th scope="col" className="px-6 py-2 text-right font-medium sm:px-2">
                         {t("freshness.state")}
@@ -173,6 +186,39 @@ export default async function AdminDashboardPage({
                           ) : (
                             <span className="text-muted-foreground">{t("freshness.never")}</span>
                           )}
+                        </td>
+                        <td className="px-2 py-2 tabular-nums">
+                          {s.ingestAt ? (
+                            <span
+                              className="inline-flex items-center gap-1.5 whitespace-nowrap"
+                              title={dt(s.ingestAt)}
+                            >
+                              <span
+                                className={cn(
+                                  "inline-block size-2.5 rounded-full",
+                                  DOT[s.ingestState],
+                                )}
+                                aria-hidden="true"
+                              />
+                              {rel(s.ingestAt)}
+                              <span className="text-xs text-muted-foreground">
+                                {t(`freshness.source.${s.ingestSource ?? "api"}`)}
+                              </span>
+                            </span>
+                          ) : s.sources > 0 ||
+                            s.dataSource === "api" ||
+                            s.dataSource === "sensor" ? (
+                            <span className="text-xs text-muted-foreground">
+                              {t("freshness.ingestNever")}
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                          {s.sourcesFailed > 0 ? (
+                            <span className="block text-xs text-destructive">
+                              {t("freshness.sourcesFailed", { count: s.sourcesFailed })}
+                            </span>
+                          ) : null}
                         </td>
                         <td className="px-6 py-2 text-right sm:px-2">
                           <span className="inline-flex items-center gap-1.5 whitespace-nowrap">

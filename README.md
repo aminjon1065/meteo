@@ -13,6 +13,7 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 + shadcn/ui · next-intl 
 ```
 apps/web        Next.js: публичный портал, /admin, /api/v1, /embed
 apps/worker     фоновые задачи (BullMQ): синхронизации, расчёт индекса, рассылки
+apps/station-agent  агент станционного компьютера: один файл Node 22, отправка измерений на /api/v1/ingest
 packages/core   доменная логика без I/O (RBAC, уровни, позже — индекс и QC)
 packages/db     схема Drizzle, миграции, TimescaleDB/PostGIS SQL, seed
 packages/i18n   локали и сообщения интерфейса

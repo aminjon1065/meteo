@@ -1,0 +1,8 @@
+timestamp,parameter,value,unit,status
+2026-10-17T07:00:00,PM2.5,12.5,ug/m3,valid
+2026-10-17T07:00:00,PM10,30.1,ug/m3,valid
+2026-10-17T07:00:00,Nitrogen dioxide,9.8,ppb,valid
+2026-10-17T07:00:00,Ozone 1h,21,ppb,
+2026-10-17T08:00:00,PM2.5,14.0,ug/m3,valid
+2026-10-17T08:00:00,PM10,<4,ug/m3,valid
+2026-10-17T08:00:00,Nitrogen dioxide,11.2,ppb,suspect

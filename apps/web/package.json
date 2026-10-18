@@ -24,6 +24,7 @@
     "@meteo/ui": "workspace:*",
     "@protomaps/basemaps": "^5.7.2",
     "better-auth": "^1.7.10",
+    "bullmq": "^6.3.15",
     "echarts": "^6.1.0",
     "ioredis": "^6.0.0",
     "lucide-react": "^1.57.0",

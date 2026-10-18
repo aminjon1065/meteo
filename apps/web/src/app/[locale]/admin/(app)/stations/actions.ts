@@ -1,16 +1,19 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
-import { ForbiddenError, slugify } from "@meteo/core";
+import { type FeedMapping, ForbiddenError, slugify } from "@meteo/core";
+import { isEnvSecret, sealSecret, secretKeyFromEnv } from "@meteo/core/secret-box";
 import { eq } from "@meteo/db";
-import { stationPollutants, stations } from "@meteo/db/schema";
+import { stationPollutants, stationSources, stations } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { recordAudit } from "@/lib/audit";
 import { getDb } from "@/lib/db";
 import { isUniqueViolation, violatedConstraint } from "@/lib/db-errors";
+import { enqueueJob } from "@/lib/jobs";
 import { requireAdminSession } from "@/lib/session";
 import { fieldErrorsOf } from "@/lib/validation/common";
 import { type StationValues, stationInput } from "@/lib/validation/station";
+import { stationSourceInput } from "@/lib/validation/station-source";
 
 export type StationActionResult =
   | { ok: true; id: number; slug: string }
@@ -177,4 +180,174 @@ export async function assertStationsWrite(locale: Locale): Promise<void> {
     if (error instanceof ForbiddenError) throw error;
     throw error;
   }
+}
+
+// ---------------------------------------------------------------------------
+// Источники pull‑типа (SFTP/FTP/HTTP) — задача worker'а station-pull
+// ---------------------------------------------------------------------------
+
+export type StationSourceResult =
+  | { ok: true; id: number }
+  | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
+
+/**
+ * Секрет для хранения: пусто — оставить прежний, "-" — удалить, `env:ИМЯ` — ссылка на переменную
+ * окружения worker'а, иначе шифруется ключом STATION_SOURCES_KEY/BETTER_AUTH_SECRET.
+ */
+function storedSecret(
+  input: string,
+  previous: string | null,
+): { value: string | null } | { error: "noKey" } {
+  if (input === "") return { value: previous };
+  if (input.trim() === "-") return { value: null };
+  if (isEnvSecret(input.trim())) return { value: input.trim() };
+  const key = secretKeyFromEnv();
+  if (!key) return { error: "noKey" };
+  return { value: sealSecret(input, key) };
+}
+
+/** Создание/изменение источника станции; пароль и ключ хранятся зашифрованными. */
+export async function saveStationSource(
+  locale: Locale,
+  stationId: number,
+  raw: unknown,
+): Promise<StationSourceResult> {
+  const session = await requireAdminSession(locale, "stations.write");
+  const parsed = stationSourceInput.safeParse(raw);
+  if (!parsed.success)
+    return { ok: false, message: "validation", fieldErrors: fieldErrorsOf(parsed.error) };
+  const v = parsed.data;
+  const db = getDb();
+  const station = await db.query.stations.findFirst({ where: eq(stations.id, stationId) });
+  if (!station) return { ok: false, message: "notFound" };
+  const previous = v.id
+    ? await db.query.stationSources.findFirst({ where: eq(stationSources.id, v.id) })
+    : null;
+  if (v.id && (!previous || previous.stationId !== stationId))
+    return { ok: false, message: "notFound" };
+
+  const secret = storedSecret(v.password, previous?.secret ?? null);
+  if ("error" in secret) return { ok: false, message: secret.error };
+  const privateKey = storedSecret(v.privateKey, previous?.privateKey ?? null);
+  if ("error" in privateKey) return { ok: false, message: privateKey.error };
+
+  const mapping = JSON.parse(v.mappingJson) as FeedMapping;
+  const row = {
+    stationId,
+    kind: v.kind,
+    enabled: v.enabled,
+    label: v.label || null,
+    host: v.kind === "http" ? "" : v.host,
+    port: v.port,
+    username: v.username || null,
+    secret: secret.value,
+    privateKey: v.kind === "sftp" ? privateKey.value : null,
+    hostFingerprint: v.kind === "sftp" ? v.hostFingerprint || null : null,
+    path: v.path,
+    filePattern: v.filePattern || "*.csv",
+    mapping,
+    staleAfterMin: v.staleAfterMin,
+    updatedBy: session.user.id,
+  };
+  const auditView = {
+    kind: row.kind,
+    enabled: row.enabled,
+    label: row.label,
+    host: row.host,
+    port: row.port,
+    username: row.username,
+    path: row.path,
+    filePattern: row.filePattern,
+    staleAfterMin: row.staleAfterMin,
+    mapping,
+    secret: row.secret ? "***" : null,
+    privateKey: row.privateKey ? "***" : null,
+  };
+  let id: number;
+  if (previous) {
+    await db
+      .update(stationSources)
+      .set({
+        ...row,
+        // Смена адреса/маски обнуляет реестр файлов: новые файлы будут обработаны заново.
+        ...(previous.host !== row.host ||
+        previous.path !== row.path ||
+        previous.filePattern !== row.filePattern
+          ? { files: {} }
+          : {}),
+      })
+      .where(eq(stationSources.id, previous.id));
+    id = previous.id;
+  } else {
+    const [created] = await db
+      .insert(stationSources)
+      .values({ ...row, createdBy: session.user.id })
+      .returning({ id: stationSources.id });
+    if (!created) return { ok: false, message: "insert" };
+    id = created.id;
+  }
+  await recordAudit(session, {
+    action: previous ? "station.source.update" : "station.source.create",
+    entity: "station_sources",
+    entityId: id,
+    before: previous
+      ? {
+          kind: previous.kind,
+          enabled: previous.enabled,
+          host: previous.host,
+          port: previous.port,
+          username: previous.username,
+          path: previous.path,
+          filePattern: previous.filePattern,
+          staleAfterMin: previous.staleAfterMin,
+          mapping: previous.mapping,
+        }
+      : null,
+    after: { stationId, stationCode: station.code, ...auditView },
+  });
+  return { ok: true, id };
+}
+
+export async function deleteStationSource(
+  locale: Locale,
+  stationId: number,
+  id: number,
+): Promise<StationSourceResult> {
+  const session = await requireAdminSession(locale, "stations.write");
+  const db = getDb();
+  const previous = await db.query.stationSources.findFirst({ where: eq(stationSources.id, id) });
+  if (!previous || previous.stationId !== stationId) return { ok: false, message: "notFound" };
+  await db.delete(stationSources).where(eq(stationSources.id, id));
+  await recordAudit(session, {
+    action: "station.source.delete",
+    entity: "station_sources",
+    entityId: id,
+    before: { stationId, kind: previous.kind, host: previous.host, path: previous.path },
+  });
+  return { ok: true, id };
+}
+
+/** Ставит задачу station-pull для одного источника (проверка настроек без ожидания расписания). */
+export async function runStationSource(
+  locale: Locale,
+  stationId: number,
+  id: number,
+): Promise<StationSourceResult> {
+  const session = await requireAdminSession(locale, "stations.write");
+  const db = getDb();
+  const source = await db.query.stationSources.findFirst({ where: eq(stationSources.id, id) });
+  if (!source || source.stationId !== stationId) return { ok: false, message: "notFound" };
+  const queued = await enqueueJob(
+    "station-pull",
+    { sourceId: id, force: true },
+    { jobId: `station-pull:manual:${id}:${Date.now()}` },
+  );
+  if (!queued) return { ok: false, message: "queueUnavailable" };
+  await recordAudit(session, {
+    action: "station.source.run",
+    entity: "station_sources",
+    entityId: id,
+    after: { stationId, kind: source.kind, host: source.host, path: source.path },
+  });
+  return { ok: true, id };
 }

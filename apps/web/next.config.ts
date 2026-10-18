@@ -19,7 +19,7 @@ const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: resolve(import.meta.dirname, "../../"),
   transpilePackages: ["@meteo/ui", "@meteo/core", "@meteo/db", "@meteo/i18n"],
-  serverExternalPackages: ["postgres", "ioredis"],
+  serverExternalPackages: ["postgres", "ioredis", "bullmq"],
   reactStrictMode: true,
   poweredByHeader: false,
   images: {

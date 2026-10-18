@@ -4,12 +4,14 @@ import {
   geometry,
   index,
   integer,
+  jsonb,
   pgEnum,
   pgTable,
   primaryKey,
   real,
   serial,
   text,
+  timestamp,
   varchar,
 } from "drizzle-orm/pg-core";
 import { i18nText, timestamps } from "./_shared";
@@ -25,6 +27,27 @@ export const stationDataSource = pgEnum("station_data_source", [
   "sensor",
 ]);
 export const stationSampling = pgEnum("station_sampling", ["continuous", "discrete"]);
+
+/** Канал последнего автоматического приёма: api — POST /api/v1/ingest (логгер, агент), pull — задача station-pull. */
+export type StationIngestSource = "api" | "pull";
+
+/** Сводка последнего автоматического приёма данных (карточка станции, дашборд). */
+export interface StationIngestSummary {
+  at: string;
+  source: StationIngestSource;
+  received: number;
+  accepted: number;
+  rejected: number;
+  invalidRange: number;
+  from: string | null;
+  to: string | null;
+  pollutants: string[];
+  /** station_sources.id для pull‑источника. */
+  sourceId?: number;
+  /** Имя файла экспорта (pull) или User‑Agent отправителя (api). */
+  file?: string;
+  agent?: string;
+}
 
 /** Реестр станций мониторинга (ТЗ, модуль 7). */
 export const stations = pgTable(
@@ -50,6 +73,12 @@ export const stations = pgTable(
     /** Хэш API‑ключа для автоматической отправки измерений (POST /api/v1/ingest). */
     apiKeyHash: text("api_key_hash"),
     isPublic: boolean("is_public").default(true).notNull(),
+    /** Последний успешный автоматический приём данных (ingest API или station-pull). */
+    lastIngestAt: timestamp("last_ingest_at", { withTimezone: true }),
+    lastIngestSource: varchar("last_ingest_source", { length: 16 }).$type<StationIngestSource>(),
+    lastIngestSummary: jsonb("last_ingest_summary").$type<StationIngestSummary>(),
+    /** Когда администраторам отправлено письмо о длительном отсутствии данных (null — не отправлялось). */
+    staleAlertedAt: timestamp("stale_alerted_at", { withTimezone: true }),
     ...timestamps,
   },
   (t) => [

@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 import { trackCspViolations } from "../helpers/console";
 import { t } from "../helpers/messages";
+import { E2E } from "../setup/fixtures";
 
 test("/map: карта MapLibre, включение слоя SILAM, выбор вещества и ползунок времени", async ({
   page,
@@ -38,4 +39,111 @@ test("/map: карта MapLibre, включение слоя SILAM, выбор �
   );
   await page.waitForLoadState("networkidle");
   expect(violations()).toEqual([]);
+});
+
+/** Контейнер карты с экземпляром MapLibre для диагностики (MapDiagnosticsElement в station-map.tsx). */
+type MapDiagnosticsElement = HTMLElement & {
+  __maplibreMap?: { project(lngLat: [number, number]): { x: number; y: number } };
+};
+
+test("/map: границы регионов включены по умолчанию, выключаются, заливка по уровню и попап области", async ({
+  page,
+}) => {
+  const violations = trackCspViolations(page);
+  const regionsResponse = page.waitForResponse((r) => r.url().includes("/api/v1/regions"));
+  await page.goto("/ru/map");
+  await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
+  const regions = await regionsResponse;
+  expect(regions.status()).toBe(200);
+  const body = (await regions.json()) as {
+    type: string;
+    features: Array<{ properties: { code: string; stationsCount: number; level: number } }>;
+  };
+  expect(body.type).toBe("FeatureCollection");
+  expect(body.features.map((f) => f.properties.code).sort()).toEqual([
+    "DU",
+    "GB",
+    "KT",
+    "RRP",
+    "SU",
+  ]);
+  const du = body.features.find((f) => f.properties.code === "DU")?.properties;
+  expect(du?.stationsCount).toBe(1);
+  expect(du?.level).toBeGreaterThan(0);
+  expect(body.features.find((f) => f.properties.code === "GB")?.properties.stationsCount).toBe(0);
+
+  // Контуры включены по умолчанию; состояние слоёв — в data-map-layers (без доступа к WebGL).
+  const toggle = page.getByRole("checkbox", { name: t("ru", "map.regions") });
+  await expect(toggle).toHaveAttribute("aria-checked", "true");
+  const mapEl = page.locator("[data-map-layers]").first();
+  await expect(mapEl).toHaveAttribute("data-map-layers", /\bregions\b/);
+  await expect(mapEl).toHaveAttribute("data-map-layers", /\bstations\b/);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-checked", "false");
+  await expect(mapEl).not.toHaveAttribute("data-map-layers", /\bregions\b/);
+  await expect(page.getByRole("checkbox", { name: t("ru", "map.regionsFill") })).toHaveCount(0);
+  await toggle.click();
+  await expect(mapEl).toHaveAttribute("data-map-layers", /\bregions\b/);
+
+  // Заливка по худшему уровню — отдельный чекбокс, по умолчанию выключен.
+  const fill = page.getByRole("checkbox", { name: t("ru", "map.regionsFill") });
+  await expect(fill).toHaveAttribute("aria-checked", "false");
+  await expect(mapEl).not.toHaveAttribute("data-map-layers", /regions-fill/);
+  await fill.click();
+  await expect(mapEl).toHaveAttribute("data-map-layers", /regions-fill/);
+
+  // Попап области: клик по Хатлону вдали от станции и полигона предупреждения.
+  const popup = page.locator(".maplibregl-popup [data-popup='region']");
+  await expect(async () => {
+    const point = await mapEl.evaluate(
+      (el, lngLat) => {
+        const map = (el as MapDiagnosticsElement).__maplibreMap;
+        if (!map) throw new Error("карта не инициализирована");
+        const p = map.project(lngLat);
+        const r = el.getBoundingClientRect();
+        return { x: r.left + p.x, y: r.top + p.y };
+      },
+      [69.9, 37.4] as [number, number],
+    );
+    await page.mouse.click(point.x, point.y);
+    await expect(popup).toContainText(E2E.regionName.KT.ru, { timeout: 2_000 });
+  }).toPass({ timeout: 30_000 });
+  await expect(popup).toContainText(`${t("ru", "map.regionStations")}: 1`);
+  await expect(popup.getByRole("link", { name: t("ru", "map.regionOpen") })).toHaveAttribute(
+    "href",
+    "/ru/air",
+  );
+  expect(violations()).toEqual([]);
+});
+
+test("/api/v1/regions и /api/v1/districts: GeoJSON, кэш 10 минут, ETag и 304", async ({
+  request,
+}) => {
+  const regions = await request.get("/api/v1/regions");
+  expect(regions.ok()).toBeTruthy();
+  expect(regions.headers()["cache-control"]).toContain("max-age=600");
+  expect(regions.headers()["access-control-allow-origin"]).toBe("*");
+  const etag = regions.headers().etag ?? "";
+  expect(etag).toMatch(/^W\/"[0-9a-f]{16}"$/);
+  const cached = await request.get("/api/v1/regions", { headers: { "If-None-Match": etag } });
+  expect(cached.status()).toBe(304);
+
+  const districts = await request.get("/api/v1/districts");
+  expect(districts.ok()).toBeTruthy();
+  const body = (await districts.json()) as {
+    type: string;
+    features: Array<{
+      geometry: { type: string };
+      properties: { code: string; regionCode: string; stationsCount: number; level: number };
+    }>;
+  };
+  expect(body.type).toBe("FeatureCollection");
+  expect(body.features).toHaveLength(1);
+  expect(body.features[0]?.geometry.type).toBe("MultiPolygon");
+  expect(body.features[0]?.properties).toMatchObject({
+    code: E2E.district.code,
+    regionCode: "DU",
+    stationsCount: 1,
+  });
+  expect(body.features[0]?.properties.level).toBeGreaterThan(0);
 });
