@@ -1,0 +1,860 @@
+{
+  "title": "Административно-территориальные единицы Таджикистана (admin1, admin2) для regions/districts",
+  "source": {
+    "name": "OCHA COD-AB Tajikistan — Administrative Boundaries (taxonomy), v2.1",
+    "publisher": "Agency on Statistics under the President of the Republic of Tajikistan; OCHA ROCCA",
+    "url": "https://data.humdata.org/dataset/cod-ab-tjk",
+    "file": "tajikistan-administrative-division_v2.1.xlsx (листы Admin1, Admin2)",
+    "dataDate": "2017-01",
+    "retrieved": "2026-10-16",
+    "license": "CC BY-IGO (Creative Commons Attribution for Intergovernmental Organisations)"
+  },
+  "notes": [
+    "pcode — код ОКАТО (P-code системы COD), уникален для каждой единицы и используется как districts.code.",
+    "tg — название на таджикском (кириллица) без слова «ноҳия/шаҳр»; ru — полное русское название; en — опционально, иначе транслитерация tg через @meteo/core (transliterate).",
+    "aliases — нормализованные латинские варианты (строчные буквы, без пробелов и знаков) для сопоставления с полигонами GADM / geoBoundaries / OSM; включают прежние названия.",
+    "Переименования после даты источника применены по решениям 2018 г.: г. Курган-Тюбе → Бохтар, г. Сарбанд → Левакант, Бохтарский район → Кушониён. Строки с note требуют подтверждения Агентством (зависимость D9).",
+    "Исправлены явные дефекты исходных таджикских написаний (сокращения, пропущенные ҳ/қ/ӯ); исходные значения сохранены в поле source."
+  ],
+  "admin1": [
+    {
+      "code": "DU",
+      "pcode": "3501000",
+      "sortOrder": 1,
+      "name": { "tg": "Шаҳри Душанбе", "ru": "Город Душанбе", "en": "Dushanbe city" },
+      "aliases": ["dushanbe", "dushanbecity", "tjdu", "tj01"]
+    },
+    {
+      "code": "RRP",
+      "pcode": "3509000",
+      "sortOrder": 2,
+      "name": {
+        "tg": "Ноҳияҳои тобеи ҷумҳурӣ",
+        "ru": "Районы республиканского подчинения",
+        "en": "Districts of Republican Subordination"
+      },
+      "aliases": [
+        "districtsofrepublicansubordination",
+        "districtsofrepublicansubordin",
+        "regionofrepublicansubordination",
+        "regionsofrepublicansubordination",
+        "nohiyahoitobeijumhuri",
+        "karotegin",
+        "rrp",
+        "rrs",
+        "drs",
+        "tjrr",
+        "tjra"
+      ]
+    },
+    {
+      "code": "SU",
+      "pcode": "3505000",
+      "sortOrder": 3,
+      "name": { "tg": "Вилояти Суғд", "ru": "Согдийская область", "en": "Sughd region" },
+      "aliases": [
+        "sughd",
+        "sughdregion",
+        "sughdviloyat",
+        "sogd",
+        "sogdiyskaya",
+        "leninabad",
+        "tjle",
+        "tjsu"
+      ]
+    },
+    {
+      "code": "KT",
+      "pcode": "3507000",
+      "sortOrder": 4,
+      "name": { "tg": "Вилояти Хатлон", "ru": "Хатлонская область", "en": "Khatlon region" },
+      "aliases": ["khatlon", "khatlonregion", "khatlonviloyat", "hatlon", "tjkl", "tjkt"]
+    },
+    {
+      "code": "GB",
+      "pcode": "3590000",
+      "sortOrder": 5,
+      "name": {
+        "tg": "Вилояти Мухтори Кӯҳистони Бадахшон",
+        "ru": "Горно-Бадахшанская автономная область",
+        "en": "Gorno-Badakhshan Autonomous Region"
+      },
+      "aliases": [
+        "gornobadakhshan",
+        "gornobadakhshanautonomousregion",
+        "gornobadakhshanautonomousoblast",
+        "gbao",
+        "vmkb",
+        "kuhistonibadakhshon",
+        "badakhshonikuhi",
+        "badakhshan",
+        "tjbk",
+        "tjgb"
+      ]
+    }
+  ],
+  "admin2": [
+    {
+      "pcode": "3501263",
+      "region": "DU",
+      "kind": "district",
+      "tg": "Шоҳмансур",
+      "ru": "Район Шохмансур",
+      "aliases": ["shohmansur", "shahmansur"],
+      "source": { "en": "Shah Mansur", "ru": "Шохмансур", "tg": "Шоҳмансур" }
+    },
+    {
+      "pcode": "3501266",
+      "region": "DU",
+      "kind": "district",
+      "tg": "Исмоили Сомонӣ",
+      "ru": "Район Исмоили Сомони",
+      "aliases": ["ismoilisomoni", "ismailsamani", "isomoni"],
+      "source": { "en": "Ismail Samani", "ru": "И.Сомони", "tg": "Исмоили Сомонӣ" }
+    },
+    {
+      "pcode": "3501268",
+      "region": "DU",
+      "kind": "district",
+      "tg": "Сино",
+      "ru": "Район Сино",
+      "aliases": ["sino", "avicenna", "abualiibnisino"],
+      "source": { "en": "Avicenna", "ru": "Сино", "tg": "Абӯалӣ Ибни Сино" }
+    },
+    {
+      "pcode": "3501269",
+      "region": "DU",
+      "kind": "district",
+      "tg": "Фирдавсӣ",
+      "ru": "Район Фирдавси",
+      "aliases": ["firdavsi", "ferdowsi"],
+      "source": { "en": "Ferdowsi", "ru": "Фирдавси", "tg": "Фирдавсӣ" }
+    },
+
+    {
+      "pcode": "3505203",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Айнӣ",
+      "ru": "Айнинский район",
+      "aliases": ["ayni", "aini"],
+      "source": { "en": "Aini", "ru": "Айнинский", "tg": "Айнӣ" }
+    },
+    {
+      "pcode": "3505207",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Ашт",
+      "ru": "Аштский район",
+      "aliases": ["asht"],
+      "source": { "en": "Asht", "ru": "Аштский", "tg": "Ашт" }
+    },
+    {
+      "pcode": "3505213",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Деваштич",
+      "ru": "Деваштичский район",
+      "aliases": ["devashtich", "ghonchi", "ganchi", "gonchi"],
+      "former": { "en": "Ganchi", "ru": "Ганчинский" },
+      "source": { "en": "Devashtich", "ru": "Деваштич", "tg": "Деваштич" }
+    },
+    {
+      "pcode": "3505217",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Зафаробод",
+      "ru": "Зафарабадский район",
+      "aliases": ["zafarobod", "zafarabad"],
+      "source": { "en": "Zafarabad", "ru": "Зафарободский", "tg": "Зафаробод" }
+    },
+    {
+      "pcode": "3505220",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Исфара",
+      "ru": "Исфаринский район",
+      "aliases": ["isfara"],
+      "source": { "en": "Isfara", "ru": "Исфаринский", "tg": "Исфара" }
+    },
+    {
+      "pcode": "3505226",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Конибодом",
+      "ru": "Канибадамский район",
+      "aliases": ["konibodom", "kanibadam"],
+      "source": { "en": "Konibodom", "ru": "Канибадамский", "tg": "Конибодом" }
+    },
+    {
+      "pcode": "3505228",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Кӯҳистони Мастчоҳ",
+      "ru": "Горно-Матчинский район",
+      "aliases": ["kuhistonimastchoh", "kuhistanimastchoh", "kuhistonimastcho", "gornomatcha"],
+      "source": {
+        "en": "Kuhistani Mastchoh",
+        "ru": "Кухистони Мастчохский",
+        "tg": "Кӯҳистони Мастчоҳ"
+      }
+    },
+    {
+      "pcode": "3505230",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Мастчоҳ",
+      "ru": "Матчинский район",
+      "aliases": ["mastchoh", "matcha", "matchin", "mastcha"],
+      "source": { "en": "Matcha", "ru": "Матчинский", "tg": "Мастчоҳ" }
+    },
+    {
+      "pcode": "3505238",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Спитамен",
+      "ru": "Спитаменский район",
+      "aliases": ["spitamen", "nau", "nov", "naunov"],
+      "former": { "en": "Nau/Nov", "ru": "Науский" },
+      "source": { "en": "Spitamen", "ru": "Спитаменский", "tg": "Спитамен" }
+    },
+    {
+      "pcode": "3505242",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Панҷакент",
+      "ru": "Пенджикентский район",
+      "aliases": ["panjakent", "pandjakent", "penjikent", "pendzhikent"],
+      "source": { "en": "Panjakent", "ru": "Пенджикентский", "tg": "Панҷакент" }
+    },
+    {
+      "pcode": "3505246",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Ҷаббор Расулов",
+      "ru": "Джаббор-Расуловский район",
+      "aliases": ["jabborrasulov", "jaborrasulov", "jabarrasulov", "jrasulov", "rasulov"],
+      "source": { "en": "Jabar - Rasulov", "ru": "Джабар - Расуловский", "tg": "Ҷ.Расулов" }
+    },
+    {
+      "pcode": "3505251",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Истаравшан",
+      "ru": "Истаравшанский район",
+      "aliases": ["istaravshan", "uroteppa", "urateppa"],
+      "source": { "en": "Istaravshan", "ru": "Истаравшанский", "tg": "Истаравшан" }
+    },
+    {
+      "pcode": "3505256",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Бобоҷон Ғафуров",
+      "ru": "Бободжон-Гафуровский район",
+      "aliases": [
+        "bobojonghafurov",
+        "bobojongafurov",
+        "bghafurov",
+        "bgafurov",
+        "ghafurov",
+        "gafurov",
+        "khojent",
+        "khodzhent"
+      ],
+      "former": { "en": "Khojent", "ru": "Ходжентский" },
+      "source": { "en": "B. Gafurov", "ru": "Б. Гафуровский", "tg": "Б.Ғафуров" }
+    },
+    {
+      "pcode": "3505259",
+      "region": "SU",
+      "kind": "district",
+      "tg": "Шаҳристон",
+      "ru": "Шахристанский район",
+      "aliases": ["shahriston", "shakhristan", "shahristan"],
+      "source": { "en": "Shakhristan", "ru": "Шахристанский", "tg": "Шаҳристон" }
+    },
+    {
+      "pcode": "3505401",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Хуҷанд",
+      "ru": "Город Худжанд",
+      "aliases": ["khujand", "khojand", "khudzhand"],
+      "source": { "en": "Khujand", "ru": "Худжанд", "tg": "Хуҷанд" }
+    },
+    {
+      "pcode": "3505404",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Исфара",
+      "ru": "Город Исфара",
+      "aliases": ["isfara"],
+      "source": { "en": "Isfara", "ru": "Исфара", "tg": "Исфара" }
+    },
+    {
+      "pcode": "3505407",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Гулистон",
+      "ru": "Город Гулистон",
+      "aliases": ["guliston", "qayraqqum", "qayroqqum", "kairakkum"],
+      "former": { "en": "Qayraqqum", "ru": "Кайраккум" },
+      "source": { "en": "Guliston", "ru": "Гулистон", "tg": "Гулистон" }
+    },
+    {
+      "pcode": "3505410",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Конибодом",
+      "ru": "Город Канибадам",
+      "aliases": ["konibodom", "kanibadam"],
+      "source": { "en": "Konibodom", "ru": "Канибадам", "tg": "Конибодом" }
+    },
+    {
+      "pcode": "3505413",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Панҷакент",
+      "ru": "Город Пенджикент",
+      "aliases": ["panjakent", "pandjakent"],
+      "source": { "en": "Panjakent", "ru": "Пенджикент", "tg": "Панҷакент" }
+    },
+    {
+      "pcode": "3505417",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Истиқлол",
+      "ru": "Город Истиклол",
+      "aliases": ["istiqlol", "istiklol", "taboshar"],
+      "former": { "en": "Taboshar", "ru": "Табошар" },
+      "source": { "en": "Istiklol", "ru": "Истиклол", "tg": "Истиклол" }
+    },
+    {
+      "pcode": "3505419",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Истаравшан",
+      "ru": "Город Истаравшан",
+      "aliases": ["istaravshan"],
+      "source": { "en": "Istaravshan", "ru": "Истаравшан", "tg": "Истаравшан" }
+    },
+    {
+      "pcode": "3505422",
+      "region": "SU",
+      "kind": "city",
+      "tg": "Бӯстон",
+      "ru": "Город Бустон",
+      "aliases": ["buston", "chkalovsk"],
+      "former": { "en": "Chkalovsk", "ru": "Чкаловск" },
+      "source": { "en": "Buston", "ru": "Бустон", "tg": "Бустон" }
+    },
+
+    {
+      "pcode": "3507203",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Вахш",
+      "ru": "Вахшский район",
+      "aliases": ["vakhsh"],
+      "source": { "en": "Vakhsh", "ru": "Вахшский", "tg": "Вахш" }
+    },
+    {
+      "pcode": "3507205",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Восеъ",
+      "ru": "Восейский район",
+      "aliases": ["vose", "vosse"],
+      "source": { "en": "Vose", "ru": "Восейский", "tg": "Восеъ" }
+    },
+    {
+      "pcode": "3507207",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Данғара",
+      "ru": "Дангаринский район",
+      "aliases": ["danghara", "dangara"],
+      "source": { "en": "Dangara", "ru": "Дангаринский", "tg": "Данғара" }
+    },
+    {
+      "pcode": "3507209",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Дӯстӣ",
+      "ru": "Район Дусти",
+      "aliases": ["dusti", "jilikul", "dzhilikul", "jillikul"],
+      "former": { "en": "Jilikul", "ru": "Джиликульский" },
+      "source": { "en": "Dusti", "ru": "Дусти", "tg": "Дусти" }
+    },
+    {
+      "pcode": "3507211",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Хуросон",
+      "ru": "Хуросонский район",
+      "aliases": ["khuroson", "ghozimalik", "gozimalik"],
+      "former": { "en": "Ghozimalik", "ru": "Гозималикский" },
+      "source": { "en": "Khuroson", "ru": "Хуросонский", "tg": "Хуросон" }
+    },
+    {
+      "pcode": "3507213",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Қубодиён",
+      "ru": "Кабодиёнский район",
+      "aliases": ["qubodiyon", "qabodiyon", "kabodiyon", "kabodiyan", "kabadiyan"],
+      "source": { "en": "Kabodiyon", "ru": "Кабодиёнский", "tg": "Қубодиён" }
+    },
+    {
+      "pcode": "3507215",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Ҷалолиддини Балхӣ",
+      "ru": "Район Джалолиддина Балхи",
+      "en": "Jaloliddin Balkhi",
+      "aliases": [
+        "jaloliddinbalkhi",
+        "jaloliddinibalkhi",
+        "balkhi",
+        "jbalkhi",
+        "rumi",
+        "jaloliddinirumi",
+        "jaloliddinrumi",
+        "kolkhozobod",
+        "kolkhozabad"
+      ],
+      "former": { "en": "Rumi / Kolkhozobod", "ru": "Руми / Колхозабадский" },
+      "source": { "en": "Balkhi", "ru": "Ч. Балхи", "tg": "Ч. Балхи" }
+    },
+    {
+      "pcode": "3507217",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Кӯшониён",
+      "ru": "Кушониёнский район",
+      "aliases": ["kushoniyon", "kushoniyen", "bokhtar"],
+      "former": { "en": "Bokhtar", "ru": "Бохтарский" },
+      "note": "Переименован в 2018 г. (Бохтарский район → Кушониён); в источнике 2017 г. — Bokhtar.",
+      "source": { "en": "Bokhtar", "ru": "Бохтарский", "tg": "Бохтар" }
+    },
+    {
+      "pcode": "3507219",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Абдураҳмони Ҷомӣ",
+      "ru": "Район Абдурахмана Джами",
+      "aliases": [
+        "abdurahmonijomi",
+        "jomi",
+        "jami",
+        "ajami",
+        "dzhami",
+        "hojamaston",
+        "khojamaston",
+        "kuybyshev"
+      ],
+      "former": { "en": "Hojamaston", "ru": "Ходжамастонский" },
+      "source": { "en": "Jami A.", "ru": "А. Джами", "tg": "А.Ҷомӣ" }
+    },
+    {
+      "pcode": "3507221",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Кӯлоб",
+      "ru": "Кулябский район",
+      "aliases": ["kulob", "kulyab"],
+      "source": { "en": "Kulob", "ru": "Кулябский", "tg": "Кӯлоб" }
+    },
+    {
+      "pcode": "3507223",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Ҷайҳун",
+      "ru": "Джайхунский район",
+      "aliases": ["jayhun", "jaihun", "chaikhun", "qumsangir", "kumsangir"],
+      "former": { "en": "Qumsangir", "ru": "Кумсангирский" },
+      "source": { "en": "Chaikhun", "ru": "Чайхунский", "tg": "Чайхун" }
+    },
+    {
+      "pcode": "3507226",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Мӯъминобод",
+      "ru": "Муминабадский район",
+      "aliases": ["muminobod", "muminabad"],
+      "source": { "en": "Muminabad", "ru": "Муминободский", "tg": "Мӯъминобод" }
+    },
+    {
+      "pcode": "3507229",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Ҳамадонӣ",
+      "ru": "Район Хамадони",
+      "aliases": [
+        "hamadoni",
+        "mirsaidalihamadoni",
+        "mirsayyidalihamadoni",
+        "msahamadoni",
+        "moskovskiy",
+        "moskovsky",
+        "moskva"
+      ],
+      "former": { "en": "Moskovskiy", "ru": "Московский" },
+      "source": { "en": "Hamadoni", "ru": "Хамадони", "tg": "М.С.А.Ҳамадонӣ" }
+    },
+    {
+      "pcode": "3507232",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Фархор",
+      "ru": "Фархорский район",
+      "aliases": ["farkhor", "parkhar"],
+      "source": { "en": "Farkhor", "ru": "Пархарский", "tg": "Фархор" }
+    },
+    {
+      "pcode": "3507234",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Панҷ",
+      "ru": "Пянджский район",
+      "aliases": ["panj", "pyanj", "pyandzh"],
+      "source": { "en": "Panj", "ru": "Пянджский", "tg": "Панҷ" }
+    },
+    {
+      "pcode": "3507236",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Левакант",
+      "ru": "Левакантский район",
+      "aliases": ["levakant", "sarband"],
+      "former": { "en": "Sarband", "ru": "Сарбандский" },
+      "note": "Единица ОКАТО «Сарбандский район»; название приведено к переименованию г. Сарбанд → Левакант (2018). Статус подтвердить у Агентства.",
+      "source": { "en": "Sarband", "ru": "Сарбандский", "tg": "Сарбанд" }
+    },
+    {
+      "pcode": "3507238",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Темурмалик",
+      "ru": "Темурмаликский район",
+      "aliases": ["temurmalik", "sovet", "sovetskiy", "sovetsky"],
+      "former": { "en": "Sovetskiy", "ru": "Советский" },
+      "source": { "en": "Temurmalik", "ru": "Темурмаликский", "tg": "Темурмалик" }
+    },
+    {
+      "pcode": "3507242",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Ховалинг",
+      "ru": "Ховалингский район",
+      "aliases": ["khovaling", "hovaling"],
+      "source": { "en": "Khovaling", "ru": "Ховалингский", "tg": "Ховалинг" }
+    },
+    {
+      "pcode": "3507245",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Шаҳритус",
+      "ru": "Шаартузский район",
+      "aliases": ["shahritus", "shahrituz", "shaartuz", "shahrtuz"],
+      "source": { "en": "Shaartuz", "ru": "Шаартузский", "tg": "Шаҳртуз" }
+    },
+    {
+      "pcode": "3507246",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Шамсиддини Шоҳин",
+      "ru": "Район Шамсиддина Шохина",
+      "en": "Shamsiddin Shohin",
+      "aliases": [
+        "shamsiddinshohin",
+        "shamsiddinishohin",
+        "shohin",
+        "shurobod",
+        "shuroobod",
+        "shuroabad"
+      ],
+      "former": { "en": "Shuroobod", "ru": "Шуроабадский" },
+      "source": { "en": "Shohin", "ru": "Шамсиддини Шохин", "tg": "Шамсиддини Шохин" }
+    },
+    {
+      "pcode": "3507250",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Ёвон",
+      "ru": "Яванский район",
+      "aliases": ["yovon", "yavan", "yavon"],
+      "source": { "en": "Yavon", "ru": "Яванский", "tg": "Ёвон" }
+    },
+    {
+      "pcode": "3507252",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Норак",
+      "ru": "Нурекский район",
+      "aliases": ["norak", "nurek"],
+      "source": { "en": "Norak", "ru": "Нурекский", "tg": "Норак" }
+    },
+    {
+      "pcode": "3507254",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Носири Хусрав",
+      "ru": "Район Носири Хусрав",
+      "aliases": ["nosirikhusrav", "nosirkhusrav", "nkhusraw", "nkhusrav", "beshkent"],
+      "former": { "en": "Beshkent", "ru": "Бешкентский" },
+      "source": { "en": "N. Khusraw", "ru": "Н. Хусрав", "tg": "Н. Хусрав" }
+    },
+    {
+      "pcode": "3507256",
+      "region": "KT",
+      "kind": "district",
+      "tg": "Балҷувон",
+      "ru": "Бальджуванский район",
+      "aliases": ["baljuvon", "baldzhuvan"],
+      "source": { "en": "Baljuvon", "ru": "Бальджувонский", "tg": "Балҷувон" }
+    },
+    {
+      "pcode": "3507401",
+      "region": "KT",
+      "kind": "city",
+      "tg": "Бохтар",
+      "ru": "Город Бохтар",
+      "aliases": ["bokhtar", "qurghonteppa", "qurgonteppa", "kurgantyube", "kurganteppa"],
+      "former": { "en": "Qurghonteppa", "ru": "Курган-Тюбе" },
+      "note": "Переименован в 2018 г. (Курган-Тюбе → Бохтар); в источнике 2017 г. — Qurghonteppa.",
+      "source": { "en": "Qurghonteppa", "ru": "Курган-Тюбе", "tg": "Қӯрғонтеппа" }
+    },
+    {
+      "pcode": "3507403",
+      "region": "KT",
+      "kind": "city",
+      "tg": "Левакант",
+      "ru": "Город Левакант",
+      "aliases": ["levakant", "sarband"],
+      "former": { "en": "Sarband", "ru": "Сарбанд" },
+      "note": "Переименован в 2018 г. (Сарбанд → Левакант); в источнике 2017 г. — Sarband.",
+      "source": { "en": "Sarband", "ru": "Сарбанд", "tg": "Сарбанд" }
+    },
+    {
+      "pcode": "3507405",
+      "region": "KT",
+      "kind": "city",
+      "tg": "Кӯлоб",
+      "ru": "Город Куляб",
+      "aliases": ["kulob", "kulyab"],
+      "source": { "en": "Kulob", "ru": "Куляб", "tg": "Кӯлоб" }
+    },
+
+    {
+      "pcode": "3509018",
+      "region": "RRP",
+      "kind": "city",
+      "tg": "Ваҳдат",
+      "ru": "Город Вахдат",
+      "aliases": ["vahdat", "vakhdat", "kofarnihon", "ordzhonikidzeabad"],
+      "source": { "en": "Vahdat", "ru": "Вахдат", "tg": "Вахдат" }
+    },
+    {
+      "pcode": "3509019",
+      "region": "RRP",
+      "kind": "city",
+      "tg": "Турсунзода",
+      "ru": "Город Турсунзаде",
+      "aliases": ["tursunzoda", "tursunzade", "regar"],
+      "source": { "en": "Tursunzade", "ru": "Турсун - Заде", "tg": "Турсунзода" }
+    },
+    {
+      "pcode": "3509033",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Варзоб",
+      "ru": "Варзобский район",
+      "aliases": ["varzob"],
+      "source": { "en": "Varzob", "ru": "Варзобский", "tg": "Варзоб" }
+    },
+    {
+      "pcode": "3509036",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Рашт",
+      "ru": "Раштский район",
+      "aliases": ["rasht", "gharm", "garm"],
+      "source": { "en": "Rasht", "ru": "Раштский", "tg": "Рашт" }
+    },
+    {
+      "pcode": "3509038",
+      "region": "RRP",
+      "kind": "city",
+      "tg": "Ҳисор",
+      "ru": "Город Гиссар",
+      "aliases": ["hisor", "hissor", "hissar", "gissar"],
+      "source": { "en": "Hissar", "ru": "Гиссар", "tg": "Ҳисор" }
+    },
+    {
+      "pcode": "3509042",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Лахш",
+      "ru": "Лахшский район",
+      "aliases": ["lakhsh", "lyakhsh", "jirgatol", "jirgatal", "dzhirgatal"],
+      "former": { "en": "Jirgatal", "ru": "Джиргатальский" },
+      "source": { "en": "Lyakhsh", "ru": "Ляхш", "tg": "Ляхш" }
+    },
+    {
+      "pcode": "3509047",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Нуробод",
+      "ru": "Нурабадский район",
+      "aliases": ["nurobod", "nurabad", "darband"],
+      "source": { "en": "Nurabad", "ru": "Нурабадский", "tg": "Нуробод" }
+    },
+    {
+      "pcode": "3509058",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Рӯдакӣ",
+      "ru": "Район Рудаки",
+      "aliases": ["rudaki", "lenin", "leninskiy"],
+      "source": { "en": "Rudaki", "ru": "Рудаки", "tg": "Рӯдакӣ" }
+    },
+    {
+      "pcode": "3509065",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Ваҳдат",
+      "ru": "Вахдатский район",
+      "aliases": ["vahdat", "vakhdat", "kofarnihon"],
+      "source": { "en": "Vahdat", "ru": "Вахдатский", "tg": "Вахдат" }
+    },
+    {
+      "pcode": "3509068",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Роғун",
+      "ru": "Рогунский район",
+      "aliases": ["roghun", "rogun"],
+      "source": { "en": "Roghun", "ru": "Рогунский", "tg": "Роғун" }
+    },
+    {
+      "pcode": "3509072",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Сангвор",
+      "ru": "Сангворский район",
+      "aliases": ["sangvor", "tavildara"],
+      "former": { "en": "Tavildara", "ru": "Тавильдаринский" },
+      "source": { "en": "Sangvor", "ru": "Сангвор", "tg": "Сангвор" }
+    },
+    {
+      "pcode": "3509074",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Тоҷикобод",
+      "ru": "Таджикабадский район",
+      "aliases": ["tojikobod", "tajikabad", "tadzhikabad"],
+      "source": { "en": "Tajikabad", "ru": "Тоджикободский", "tg": "Тоҷикобод" }
+    },
+    {
+      "pcode": "3509077",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Турсунзода",
+      "ru": "Турсунзадевский район",
+      "aliases": ["tursunzoda", "tursunzade", "regar"],
+      "source": { "en": "Tursunzade", "ru": "Турсунзадевский", "tg": "Турсунзода" }
+    },
+    {
+      "pcode": "3509081",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Файзобод",
+      "ru": "Файзабадский район",
+      "aliases": ["fayzobod", "faizobod", "faizabad", "fayzabad"],
+      "source": { "en": "Faizabad", "ru": "Файзабадский", "tg": "Файзобод" }
+    },
+    {
+      "pcode": "3509084",
+      "region": "RRP",
+      "kind": "district",
+      "tg": "Шаҳринав",
+      "ru": "Шахринавский район",
+      "aliases": ["shahrinav", "shakhrinav", "sharinav"],
+      "source": { "en": "Shakhrinav", "ru": "Шахринавский", "tg": "Шаҳринав" }
+    },
+
+    {
+      "pcode": "3590204",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Ванҷ",
+      "ru": "Ванчский район",
+      "aliases": ["vanj", "vanch"],
+      "source": { "en": "Vanj", "ru": "Ванчский", "tg": "Ванҷ" }
+    },
+    {
+      "pcode": "3590208",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Ишкошим",
+      "ru": "Ишкашимский район",
+      "aliases": ["ishkoshim", "ishkashim"],
+      "source": { "en": "Ishkashim", "ru": "Ишкашимский", "tg": "Ишкошим" }
+    },
+    {
+      "pcode": "3590213",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Дарвоз",
+      "ru": "Дарвазский район",
+      "aliases": ["darvoz", "darvaz"],
+      "source": { "en": "Darvoz", "ru": "Дарвозский", "tg": "Дарвоз" }
+    },
+    {
+      "pcode": "3590217",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Мурғоб",
+      "ru": "Мургабский район",
+      "aliases": ["murghob", "murghab", "murgab"],
+      "source": { "en": "Murghab", "ru": "Мургабский", "tg": "Мурғоб" }
+    },
+    {
+      "pcode": "3590219",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Роштқалъа",
+      "ru": "Рошткалинский район",
+      "aliases": ["roshtqala", "roshtkala"],
+      "source": { "en": "Roshtqala", "ru": "Рошткалинский", "tg": "Роштқалъа" }
+    },
+    {
+      "pcode": "3590220",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Рӯшон",
+      "ru": "Рушанский район",
+      "aliases": ["rushon", "rushan"],
+      "source": { "en": "Rushan", "ru": "Рушанский", "tg": "Рӯшон" }
+    },
+    {
+      "pcode": "3590226",
+      "region": "GB",
+      "kind": "district",
+      "tg": "Шуғнон",
+      "ru": "Шугнанский район",
+      "aliases": ["shughnon", "shugnan"],
+      "source": { "en": "Shugnan", "ru": "Шугнанский", "tg": "Шуғнон" }
+    },
+    {
+      "pcode": "3590401",
+      "region": "GB",
+      "kind": "city",
+      "tg": "Хоруғ",
+      "ru": "Город Хорог",
+      "aliases": ["khorugh", "khorog"],
+      "source": { "en": "Khorugh", "ru": "Хорог", "tg": "Хоруғ" }
+    }
+  ]
+}

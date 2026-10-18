@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>tj.meteo.test.0001</identifier>
+  <sender>alert@meteo.tj</sender>
+  <sent>2026-10-16T10:00:00+05:00</sent>
+  <status>Test</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>en-US</language>
+    <category>Met</category>
+    <event>Heavy rain</event>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-10-16T18:00:00+05:00</onset>
+    <expires>2026-10-17T06:00:00+05:00</expires>
+    <headline>TEST — heavy rain in GBAO (editor test message)</headline>
+    <description>This is a test message generated while configuring the SmartMet Alert editor. It must not be published.</description>
+    <area>
+      <areaDesc>GBAO</areaDesc>
+      <geocode>
+        <valueName>region</valueName>
+        <value>GB</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

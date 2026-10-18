@@ -1,0 +1,117 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "./tokens.css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* Источники классов: сама дизайн‑система и приложения монорепозитория */
+@source "../**/*.{ts,tsx}";
+@source "../../../../apps/web/src/**/*.{ts,tsx}";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-sans);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --color-brand: var(--brand-primary);
+  --color-brand-strong: var(--brand-primary-strong);
+  --color-brand-soft: var(--brand-primary-soft);
+  --color-brand-accent: var(--brand-accent);
+
+  --color-aq-0: var(--aq-0);
+  --color-aq-0-foreground: var(--aq-0-foreground);
+  --color-aq-1: var(--aq-1);
+  --color-aq-1-foreground: var(--aq-1-foreground);
+  --color-aq-2: var(--aq-2);
+  --color-aq-2-foreground: var(--aq-2-foreground);
+  --color-aq-3: var(--aq-3);
+  --color-aq-3-foreground: var(--aq-3-foreground);
+  --color-aq-4: var(--aq-4);
+  --color-aq-4-foreground: var(--aq-4-foreground);
+  --color-aq-5: var(--aq-5);
+  --color-aq-5-foreground: var(--aq-5-foreground);
+
+  --color-warn-minor: var(--warn-minor);
+  --color-warn-moderate: var(--warn-moderate);
+  --color-warn-severe: var(--warn-severe);
+  --color-warn-extreme: var(--warn-extreme);
+
+  --color-status-fresh: var(--status-fresh);
+  --color-status-fresh-text: var(--status-fresh-text);
+  --color-status-stale: var(--status-stale);
+  --color-status-stale-text: var(--status-stale-text);
+  --color-status-missing: var(--status-missing);
+  --color-status-missing-text: var(--status-missing-text);
+
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-variant-numeric: tabular-nums;
+  }
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
+@utility container-page {
+  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+}

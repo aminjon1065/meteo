@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>SmartMet Alert — Tajikistan (fixtures)</title>
+  <id>urn:uuid:5a3f0f2e-9a9a-4a7e-8f0e-fixtures-cap-tj</id>
+  <updated>2026-10-16T15:30:00+05:00</updated>
+  <link rel="self" href="feed.atom"/>
+  <entry>
+    <id>tj.meteo.2026.0001</id>
+    <title>Strong wind — Dushanbe and RRP</title>
+    <updated>2026-10-16T06:00:00+05:00</updated>
+    <link rel="alternate" type="application/cap+xml" href="wind-alert.xml"/>
+  </entry>
+  <entry>
+    <id>tj.meteo.2026.0002</id>
+    <title>Frost — Sughd</title>
+    <updated>2026-10-16T09:00:00+05:00</updated>
+    <link rel="alternate" type="text/html" href="https://meteo.tj/en/warnings"/>
+    <link type="application/cap+xml" href="./frost-alert.xml"/>
+  </entry>
+  <entry>
+    <id>tj.meteo.2026.0003</id>
+    <title>Frost — update</title>
+    <updated>2026-10-16T15:30:00+05:00</updated>
+    <link href="frost-update.xml"/>
+  </entry>
+  <entry>
+    <id>tj.meteo.2026.0004</id>
+    <title>Dust storm — Khatlon</title>
+    <updated>2026-10-16T07:00:00+05:00</updated>
+    <link href="dust-alert.xml"/>
+  </entry>
+  <entry>
+    <id>tj.meteo.2026.0005</id>
+    <title>Dust storm — cancelled</title>
+    <updated>2026-10-16T13:00:00+05:00</updated>
+    <link href="dust-cancel.xml"/>
+  </entry>
+  <entry>
+    <id>tj.meteo.test.0001</id>
+    <title>TEST message</title>
+    <updated>2026-10-16T10:00:00+05:00</updated>
+    <link href="test-alert.xml"/>
+  </entry>
+</feed>

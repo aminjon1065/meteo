@@ -1,0 +1,19 @@
+{
+  "name": "@meteo/i18n",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Локали, сообщения интерфейса и помощники локализации (tg / ru / en)",
+  "exports": {
+    ".": "./src/index.ts",
+    "./messages/*.json": "./messages/*.json"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "check:messages": "node --experimental-strip-types scripts/check-messages.ts"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22"
+  }
+}

@@ -1,0 +1,53 @@
+# Caddy: TLS (Let's Encrypt автоматически), сжатие, заголовки безопасности, статика, прокси.
+{
+	email admin@meteo.tj
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(self), camera=(), microphone=(), payment=()"
+		-Server
+	}
+
+	# Векторные тайлы карты (PMTiles, range-запросы) — кэш сутки
+	handle_path /tiles/* {
+		root * /srv/tiles
+		header Cache-Control "public, max-age=86400"
+		header Access-Control-Allow-Origin "*"
+		file_server
+	}
+
+	# Растровые слои SILAM — кэш час
+	handle_path /silam/* {
+		root * /srv/silam
+		header Cache-Control "public, max-age=3600"
+		file_server
+	}
+
+	# Загрузки CMS (изображения новостей, PDF). Файлы проверены по сигнатуре при загрузке;
+	# документы с активным содержимым (PDF) отдаются только как вложение, а не в origin портала.
+	handle_path /uploads/* {
+		root * /srv/uploads
+		header Cache-Control "public, max-age=604800"
+		header Content-Security-Policy "default-src 'none'; sandbox"
+		@pdf path *.pdf
+		header @pdf Content-Disposition attachment
+		file_server
+	}
+
+	handle {
+		reverse_proxy web:3000 {
+			header_up X-Forwarded-Proto {scheme}
+		}
+	}
+
+	log {
+		output stdout
+		format json
+	}
+}

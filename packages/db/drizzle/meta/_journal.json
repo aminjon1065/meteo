@@ -1,0 +1,48 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1792135378440,
+      "tag": "0000_elite_wrecker",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792135980443,
+      "tag": "0001_vengeful_whirlwind",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792142044943,
+      "tag": "0002_fair_patch",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1792144933357,
+      "tag": "0003_curious_mad_thinker",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1792149060118,
+      "tag": "0004_deep_mister_fear",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792236178710,
+      "tag": "0005_unique_mindworm",
+      "breakpoints": true
+    }
+  ]
+}

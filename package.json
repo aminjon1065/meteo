@@ -1,0 +1,39 @@
+{
+  "name": "meteoportal",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Метеопортал FINTAJ: публичный портал, мониторинг качества воздуха и административная панель Агентства по гидрометеорологии Республики Таджикистан",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=22.12"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "start": "turbo run start",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:e2e": "pnpm --filter @meteo/web test:e2e",
+    "lhci": "pnpm --filter @meteo/web lhci",
+    "perf:api": "sh infra/perf/run.sh",
+    "backup:restore-test": "sh infra/backup/restore-test.sh",
+    "db:import-history": "pnpm --filter @meteo/db import-history",
+    "db:generate": "pnpm --filter @meteo/db generate",
+    "db:migrate": "pnpm --filter @meteo/db migrate",
+    "db:seed": "pnpm --filter @meteo/db seed",
+    "db:studio": "pnpm --filter @meteo/db studio",
+    "infra:up": "docker compose -f infra/compose/docker-compose.yml up -d",
+    "infra:down": "docker compose -f infra/compose/docker-compose.yml down",
+    "docs:build": "node docs/manuals/build.mjs",
+    "docs:check": "node docs/manuals/check-links.mjs"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.4.2",
+    "marked": "^18.1.1",
+    "turbo": "^2.11.8",
+    "typescript": "^5.9.3"
+  }
+}

@@ -1,0 +1,16 @@
+**/node_modules
+**/.next
+**/dist
+**/.turbo
+**/coverage
+**/*.tsbuildinfo
+**/.DS_Store
+.git
+**/.env
+**/.env.*
+!.env.example
+*.docx
+*.pdf
+docs
+infra/compose/data
+*.pmtiles

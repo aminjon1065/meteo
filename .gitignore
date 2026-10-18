@@ -1,0 +1,51 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# builds
+.next/
+out/
+dist/
+build/
+.turbo/
+*.tsbuildinfo
+next-env.d.ts
+
+# env & secrets
+.env
+.env.*
+!.env.example
+!infra/compose/.env.example
+
+# logs & caches
+*.log
+npm-debug.log*
+.DS_Store
+coverage/
+playwright-report/
+test-results/
+
+# runtime data (docker volumes, uploads, tiles) — только корневая папка data/
+/data/
+infra/compose/data/
+infra/data/boundaries/cache/
+*.pmtiles
+
+# contract documents (bank details, personal data) — never commit
+*.docx
+*.pdf
+
+# карты: тайлы и ассеты скачиваются скриптом infra/data/fetch-map-assets.sh
+apps/web/public/basemaps/
+infra/data/tiles/
+apps/web/public/maplibre/
+
+# e2e (Playwright) и Lighthouse CI: состояние сессии, данные тестовой БД, отчёты
+apps/web/e2e/.auth/
+apps/web/e2e/.data/
+.lighthouseci/
+infra/perf/results/
+infra/backup/.restore-test/
+
+# Собранная документация (pnpm docs:build)
+docs/manuals/dist/

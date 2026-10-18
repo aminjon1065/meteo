@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>tj.meteo.2026.0004</identifier>
+  <sender>alert@meteo.tj</sender>
+  <sent>2026-10-16T07:00:00+05:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <scope>Public</scope>
+  <info>
+    <language>ru-RU</language>
+    <category>Met</category>
+    <category>Env</category>
+    <event>Пыльная буря</event>
+    <urgency>Immediate</urgency>
+    <severity>Extreme</severity>
+    <certainty>Observed</certainty>
+    <effective>2026-10-16T07:00:00+05:00</effective>
+    <expires>2026-10-16T20:00:00+05:00</expires>
+    <headline>Пыльная буря в Хатлонской области</headline>
+    <description>Видимость менее 500 м, порывы ветра до 28 м/с. Концентрация пыли PM10 превышает ПДК в 5–8 раз.</description>
+    <instruction>Оставайтесь в помещениях, закройте окна, используйте респираторы.</instruction>
+    <area>
+      <areaDesc>Юг Хатлонской области</areaDesc>
+      <polygon>37.90,68.00 37.90,69.40 36.90,69.40 36.90,68.00</polygon>
+      <geocode>
+        <valueName>region</valueName>
+        <value>KT</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

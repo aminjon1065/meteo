@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>tj.meteo.2026.0003</identifier>
+  <sender>alert@meteo.tj</sender>
+  <sent>2026-10-16T15:30:00+05:00</sent>
+  <status>Actual</status>
+  <msgType>Update</msgType>
+  <scope>Public</scope>
+  <references>alert@meteo.tj,tj.meteo.2026.0002,2026-10-16T09:00:00+05:00</references>
+  <info>
+    <language>en-US</language>
+    <category>Met</category>
+    <event>Frost</event>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-10-17T20:00:00+05:00</onset>
+    <expires>2026-10-18T10:00:00+05:00</expires>
+    <headline>Frost down to −5 °C in Sughd and RRP</headline>
+    <description>The cold intrusion is stronger than forecast: frost of −3…−5 °C is expected in the valleys of Sughd and the Hisor valley.</description>
+    <instruction>Cover crops, drain irrigation systems, keep livestock sheltered.</instruction>
+    <area>
+      <areaDesc>Sughd region</areaDesc>
+      <geocode>
+        <valueName>region</valueName>
+        <value>SU</value>
+      </geocode>
+    </area>
+    <area>
+      <areaDesc>Districts of Republican Subordination</areaDesc>
+      <geocode>
+        <valueName>region</valueName>
+        <value>RRP</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>ru-RU</language>
+    <category>Met</category>
+    <event>Заморозки</event>
+    <urgency>Expected</urgency>
+    <severity>Moderate</severity>
+    <certainty>Likely</certainty>
+    <onset>2026-10-17T20:00:00+05:00</onset>
+    <expires>2026-10-18T10:00:00+05:00</expires>
+    <headline>Заморозки до −5 °C в Согдийской области и РРП</headline>
+    <description>Вторжение холода сильнее прогноза: в долинах Согда и Гиссарской долине ожидаются заморозки −3…−5 °C.</description>
+    <instruction>Укройте посевы, слейте воду из систем полива, держите скот в укрытиях.</instruction>
+    <area>
+      <areaDesc>Согдийская область</areaDesc>
+      <geocode>
+        <valueName>region</valueName>
+        <value>SU</value>
+      </geocode>
+    </area>
+    <area>
+      <areaDesc>Районы республиканского подчинения</areaDesc>
+      <geocode>
+        <valueName>region</valueName>
+        <value>RRP</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

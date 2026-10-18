@@ -1,0 +1,28 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+allowBuilds:
+  "@biomejs/biome": true
+  "@parcel/watcher": true
+  "@swc/core": true
+  "@tailwindcss/oxide": true
+  "@node-rs/argon2": true
+  esbuild: true
+  msgpackr-extract: true
+  sharp: true
+  unrs-resolver: true
+
+minimumReleaseAgeExclude:
+  - better-auth@1.7.10
+  - next@16.4.2
+  - vitest@5.0.5
+  - '@better-auth/core@1.7.10'
+  - '@better-auth/drizzle-adapter@1.7.10'
+  - '@better-auth/kysely-adapter@1.7.10'
+  - '@better-auth/memory-adapter@1.7.10'
+  - '@better-auth/mongo-adapter@1.7.10'
+  - '@better-auth/prisma-adapter@1.7.10'
+  - '@better-auth/telemetry@1.7.10'
+  - '@vitest/mocker@5.0.5'
+  - '@vitest/spy@5.0.5'

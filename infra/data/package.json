@@ -1,0 +1,5 @@
+{
+  "private": true,
+  "type": "module",
+  "description": "Скрипты подготовки данных (infra/data/*.ts запускаются через tsx из @meteo/db как ES-модули); не пакет workspace"
+}

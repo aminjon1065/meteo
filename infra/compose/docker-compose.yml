@@ -1,0 +1,45 @@
+# Локальная разработка: только инфраструктурные сервисы.
+# Приложения запускаются на хосте: pnpm dev
+name: meteo-dev
+
+services:
+  postgres:
+    image: timescale/timescaledb-ha:pg17
+    container_name: meteo-postgres
+    environment:
+      POSTGRES_USER: meteo
+      POSTGRES_PASSWORD: meteo
+      POSTGRES_DB: meteo
+      TZ: UTC
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/home/postgres/pgdata/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meteo -d meteo"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    command: >
+      postgres
+      -c shared_preload_libraries=timescaledb
+      -c timescaledb.telemetry_level=off
+      -c timezone=UTC
+
+  redis:
+    image: redis:7-alpine
+    container_name: meteo-redis
+    command: ["redis-server", "--appendonly", "yes", "--maxmemory", "256mb", "--maxmemory-policy", "noeviction"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  pgdata:
+  redisdata:

@@ -1,0 +1,23 @@
+{
+  "$comment": "Длинный формат: одна строка — одно значение (станция, время, вещество, значение, единица). Выгрузка из БД датчиков или OpenAQ-подобный CSV.",
+  "layout": "long",
+  "station": { "column": "station_code" },
+  "time": { "column": "measured_at", "timezone": "UTC" },
+  "pollutantColumn": "parameter",
+  "valueColumn": "value",
+  "unitColumn": "unit",
+  "defaultUnit": "µg/m³",
+  "pollutantAliases": {
+    "pm25": "PM25",
+    "pm2.5": "PM25",
+    "Взвешенные частицы PM2.5": "PM25",
+    "pm10": "PM10",
+    "no2": "NO2",
+    "Диоксид азота": "NO2",
+    "so2": "SO2",
+    "co": "CO",
+    "o3": "O3"
+  },
+  "missingValues": ["", "NA", "NaN", "-"],
+  "qcFlag": 0
+}

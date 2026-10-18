@@ -1,0 +1,129 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>tj.meteo.2026.0001</identifier>
+  <sender>alert@meteo.tj</sender>
+  <sent>2026-10-16T06:00:00+05:00</sent>
+  <status>Actual</status>
+  <msgType>Alert</msgType>
+  <source>SmartMet Alert</source>
+  <scope>Public</scope>
+  <code>profile:CAP-TJ:1.0</code>
+  <info>
+    <language>tg-TJ</language>
+    <category>Met</category>
+    <event>Шамоли сахт</event>
+    <responseType>Prepare</responseType>
+    <urgency>Expected</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <eventCode>
+      <valueName>FMI-type</valueName>
+      <value>wind</value>
+    </eventCode>
+    <effective>2026-10-16T06:00:00+05:00</effective>
+    <onset>2026-10-16T12:00:00+05:00</onset>
+    <expires>2026-10-17T21:00:00+05:00</expires>
+    <senderName>Агентии обуҳавошиносӣ</senderName>
+    <headline>Шамоли сахт то 25 м/с дар Душанбе ва НТҶ</headline>
+    <description>Аз нисфирӯзии 16 октябр то шоми 17 октябр шамоли сахти ғарбӣ бо шиддати 18–25 м/с интизор аст.</description>
+    <instruction>Аз истодан дар зери дарахтон ва сохторҳои ноустувор худдорӣ кунед.</instruction>
+    <web>https://meteo.tj/warnings</web>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>3; red; Severe</value>
+    </parameter>
+    <parameter>
+      <valueName>awareness_type</valueName>
+      <value>1; Wind</value>
+    </parameter>
+    <area>
+      <areaDesc>Душанбе ва ноҳияҳои тобеи ҷумҳурӣ</areaDesc>
+      <polygon>38.80,68.50 38.80,69.10 38.30,69.10 38.30,68.50 38.80,68.50</polygon>
+      <circle>38.5598,68.787 25</circle>
+      <geocode>
+        <valueName>region</valueName>
+        <value>DU</value>
+      </geocode>
+      <geocode>
+        <valueName>region</valueName>
+        <value>RRP</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>ru-RU</language>
+    <category>Met</category>
+    <event>Сильный ветер</event>
+    <responseType>Prepare</responseType>
+    <urgency>Expected</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <eventCode>
+      <valueName>FMI-type</valueName>
+      <value>wind</value>
+    </eventCode>
+    <effective>2026-10-16T06:00:00+05:00</effective>
+    <onset>2026-10-16T12:00:00+05:00</onset>
+    <expires>2026-10-17T21:00:00+05:00</expires>
+    <senderName>Агентство по гидрометеорологии</senderName>
+    <headline>Сильный ветер до 25 м/с в Душанбе и РРП</headline>
+    <description>С полудня 16 октября до вечера 17 октября ожидается сильный западный ветер 18–25 м/с.</description>
+    <instruction>Не оставайтесь под деревьями и неустойчивыми конструкциями, закрепите лёгкие предметы.</instruction>
+    <web>https://meteo.tj/ru/warnings</web>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>3; red; Severe</value>
+    </parameter>
+    <area>
+      <areaDesc>Душанбе и районы республиканского подчинения</areaDesc>
+      <polygon>38.80,68.50 38.80,69.10 38.30,69.10 38.30,68.50 38.80,68.50</polygon>
+      <circle>38.5598,68.787 25</circle>
+      <geocode>
+        <valueName>region</valueName>
+        <value>DU</value>
+      </geocode>
+      <geocode>
+        <valueName>region</valueName>
+        <value>RRP</value>
+      </geocode>
+    </area>
+  </info>
+  <info>
+    <language>en-US</language>
+    <category>Met</category>
+    <event>Strong wind</event>
+    <responseType>Prepare</responseType>
+    <urgency>Expected</urgency>
+    <severity>Severe</severity>
+    <certainty>Likely</certainty>
+    <eventCode>
+      <valueName>FMI-type</valueName>
+      <value>wind</value>
+    </eventCode>
+    <effective>2026-10-16T06:00:00+05:00</effective>
+    <onset>2026-10-16T12:00:00+05:00</onset>
+    <expires>2026-10-17T21:00:00+05:00</expires>
+    <senderName>Agency for Hydrometeorology</senderName>
+    <headline>Strong wind up to 25 m/s in Dushanbe and RRP</headline>
+    <description>Strong westerly wind of 18–25 m/s is expected from noon on 16 October until the evening of 17 October.</description>
+    <instruction>Stay away from trees and unstable structures; secure loose objects.</instruction>
+    <web>https://meteo.tj/en/warnings</web>
+    <parameter>
+      <valueName>awareness_level</valueName>
+      <value>3; red; Severe</value>
+    </parameter>
+    <area>
+      <areaDesc>Dushanbe and Districts of Republican Subordination</areaDesc>
+      <polygon>38.80,68.50 38.80,69.10 38.30,69.10 38.30,68.50 38.80,68.50</polygon>
+      <circle>38.5598,68.787 25</circle>
+      <geocode>
+        <valueName>region</valueName>
+        <value>DU</value>
+      </geocode>
+      <geocode>
+        <valueName>region</valueName>
+        <value>RRP</value>
+      </geocode>
+    </area>
+  </info>
+</alert>

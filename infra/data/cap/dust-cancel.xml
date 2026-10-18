@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2">
+  <identifier>tj.meteo.2026.0005</identifier>
+  <sender>alert@meteo.tj</sender>
+  <sent>2026-10-16T13:00:00+05:00</sent>
+  <status>Actual</status>
+  <msgType>Cancel</msgType>
+  <scope>Public</scope>
+  <note>Пыльная буря закончилась раньше прогноза, предупреждение отменено.</note>
+  <references>alert@meteo.tj,tj.meteo.2026.0004,2026-10-16T07:00:00+05:00</references>
+</alert>

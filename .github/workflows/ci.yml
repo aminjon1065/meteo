@@ -1,0 +1,235 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NEXT_TELEMETRY_DISABLED: 1
+
+jobs:
+  checks:
+    name: Lint, typecheck, unit, build
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm lint
+      - run: pnpm --filter @meteo/i18n check:messages
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3000
+
+  security:
+    name: Dependency audit, Trivy (fs, config)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # Известные уязвимости production-зависимостей уровня high/critical блокируют сборку
+      # (docs/security-checklist.md); moderate — отчёт в журнале job.
+      - name: pnpm audit (production dependencies)
+        run: pnpm audit --prod --audit-level=high
+      - name: Trivy — lockfile и конфигурация (Dockerfile, compose)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-dirs: node_modules,apps/web/.next
+
+  migrations:
+    name: Migrations against TimescaleDB
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg17
+        env:
+          POSTGRES_USER: meteo
+          POSTGRES_PASSWORD: meteo
+          POSTGRES_DB: meteo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meteo -d meteo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgres://meteo:meteo@localhost:5432/meteo
+      SEED_ADMIN_EMAIL: ci@meteo.tj
+      SEED_ADMIN_PASSWORD: ci-password-12345
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm db:migrate
+      - run: pnpm db:seed
+      - name: Migrations are idempotent
+        run: pnpm db:migrate && pnpm db:seed
+      - name: Backup + restore smoke (pg_dump → clean DB)
+        run: |
+          docker exec "$(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg17 | head -1)" \
+            pg_dump -U meteo -d meteo -Fc -Z 6 > /tmp/meteo-ci.dump
+          SOURCE_CONTAINER="$(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg17 | head -1)" \
+            sh infra/backup/restore-test.sh /tmp/meteo-ci.dump
+
+  e2e:
+    name: E2E (Playwright) + Lighthouse CI
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    services:
+      postgres:
+        image: timescale/timescaledb-ha:pg17
+        env:
+          POSTGRES_USER: meteo
+          POSTGRES_PASSWORD: meteo
+          POSTGRES_DB: meteo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U meteo -d meteo"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      CI: 1
+      DATABASE_URL: postgres://meteo:meteo@localhost:5432/meteo
+      REDIS_URL: redis://localhost:6379
+      BETTER_AUTH_SECRET: ci-e2e-secret-not-for-production-0123456789abcdef
+      E2E_PORT: 3100
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm --filter @meteo/web exec playwright install --with-deps chromium
+      - name: Build web (production)
+        run: pnpm -C apps/web build
+        env:
+          NEXT_PUBLIC_APP_URL: http://localhost:3100
+      - name: Playwright
+        run: pnpm test:e2e
+      - name: Lighthouse CI
+        run: pnpm lhci
+        env:
+          LHCI_RUNS: 2
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: e2e-reports
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+            apps/web/.lighthouseci
+          retention-days: 14
+
+  docker:
+    name: Docker images — build, Trivy scan, push
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    needs: [checks]
+    permissions:
+      contents: read
+      packages: write
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: web
+            context: .
+            dockerfile: apps/web/Dockerfile
+          - name: worker
+            context: .
+            dockerfile: apps/worker/Dockerfile
+          - name: backup
+            context: infra/backup
+            dockerfile: infra/backup/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build (local, for scanning)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          load: true
+          push: false
+          tags: meteoportal-${{ matrix.name }}:scan
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Trivy — уязвимости образа (HIGH/CRITICAL с исправлением блокируют)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: meteoportal-${{ matrix.name }}:scan
+          format: table
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Push to GHCR
+        if: github.event_name == 'push'
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/meteoportal-${{ matrix.name }}:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/meteoportal-${{ matrix.name }}:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

@@ -1,0 +1,35 @@
+{
+  "name": "@meteo/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Доменная логика без I/O: авторизация, уровни качества воздуха, единицы, константы",
+  "exports": {
+    ".": "./src/index.ts",
+    "./authz": "./src/authz.ts",
+    "./levels": "./src/levels.ts",
+    "./aqi": "./src/aqi.ts",
+    "./smartmet": "./src/smartmet.ts",
+    "./weather-symbols": "./src/weather-symbols.ts",
+    "./silam": "./src/silam.ts",
+    "./cap": "./src/cap.ts",
+    "./markdown": "./src/markdown.ts",
+    "./image-meta": "./src/image-meta.ts",
+    "./resilience": "./src/resilience.ts",
+    "./csv": "./src/csv.ts",
+    "./xlsx": "./src/xlsx.ts",
+    "./import-mapping": "./src/import-mapping.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5.9.3",
+    "vitest": "5.0.4"
+  },
+  "dependencies": {
+    "fast-xml-parser": "5.11.2"
+  }
+}

@@ -1,0 +1,378 @@
+import {
+  and,
+  eq,
+  getSilamPointForecast,
+  loadIndexConfig,
+  localDateKey,
+  publicThresholds,
+  summarizeSilamDays,
+} from "@meteo/db";
+import { districts, pollutants, regions, stationPollutants, stations } from "@meteo/db/schema";
+import type { Locale } from "@meteo/i18n";
+import { AqBadge } from "@meteo/ui/components/aq-badge";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@meteo/ui/components/card";
+import { ArrowLeftIcon, HeartPulseIcon } from "lucide-react";
+import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
+import { StationStatusBadge } from "@/components/admin/stations/station-status-badge";
+import { ExceedanceBanner } from "@/components/air/exceedance-banner";
+import { MeasurementChartLazy } from "@/components/air/measurement-chart.lazy";
+import { SilamDays } from "@/components/air/silam-days";
+import { StationMapSection } from "@/components/air/station-map-section";
+import { Link } from "@/i18n/navigation";
+import { bandsByPollutant, effectiveLevel, loadCurrentAq, loadHealthAdvice } from "@/lib/aq";
+import { getDb } from "@/lib/db";
+import { name } from "@/lib/format";
+
+export const dynamic = "force-dynamic";
+
+const LEVEL_BORDER: Record<number, string> = {
+  1: "border-aq-1/50",
+  2: "border-aq-2/50",
+  3: "border-aq-3/50",
+  4: "border-aq-4/50",
+  5: "border-aq-5/50",
+};
+const LEVEL_BAR: Record<number, string> = {
+  0: "bg-aq-0",
+  1: "bg-aq-1",
+  2: "bg-aq-2",
+  3: "bg-aq-3",
+  4: "bg-aq-4",
+  5: "bg-aq-5",
+};
+
+async function loadStation(slug: string) {
+  const db = getDb();
+  const station = await db
+    .select({
+      id: stations.id,
+      code: stations.code,
+      slug: stations.slug,
+      name: stations.name,
+      description: stations.description,
+      address: stations.address,
+      kind: stations.kind,
+      status: stations.status,
+      geom: stations.geom,
+      elevationM: stations.elevationM,
+      commissionedAt: stations.commissionedAt,
+      sampling: stations.sampling,
+      dataSource: stations.dataSource,
+      region: regions.name,
+      district: districts.name,
+    })
+    .from(stations)
+    .leftJoin(regions, eq(regions.id, stations.regionId))
+    .leftJoin(districts, eq(districts.id, stations.districtId))
+    .where(and(eq(stations.slug, slug), eq(stations.isPublic, true)))
+    .then((r) => r[0]);
+  if (!station) return null;
+  const measured = await db
+    .select({
+      id: pollutants.id,
+      code: pollutants.code,
+      shortName: pollutants.shortName,
+      unit: pollutants.unit,
+      decimals: pollutants.decimals,
+    })
+    .from(stationPollutants)
+    .innerJoin(pollutants, eq(pollutants.id, stationPollutants.pollutantId))
+    .where(and(eq(stationPollutants.stationId, station.id), eq(stationPollutants.active, true)))
+    .orderBy(pollutants.sortOrder);
+  return { station, measured };
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}): Promise<Metadata> {
+  const { locale, slug } = await params;
+  const data = await loadStation(slug);
+  if (!data) return {};
+  const t = await getTranslations({ locale: locale as Locale, namespace: "air" });
+  return { title: `${name(data.station.name, locale)} · ${t("title")}` };
+}
+
+export default async function StationPage({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}) {
+  const { locale, slug } = (await params) as { locale: Locale; slug: string };
+  setRequestLocale(locale);
+  const data = await loadStation(slug);
+  if (!data) notFound();
+  const { station, measured } = data;
+  const [t, ts, tl, tp, ti, format, aq] = await Promise.all([
+    getTranslations("station"),
+    getTranslations("stations"),
+    getTranslations("levels"),
+    getTranslations("pollutants"),
+    getTranslations("index"),
+    getFormatter(),
+    loadCurrentAq([station.id]),
+  ]);
+  const idx = aq.byStation.get(station.id);
+  const level = effectiveLevel(idx);
+  const advice = aq.scale ? await loadHealthAdvice(aq.scale.id, level) : [];
+  const general = advice.find((a) => a.audience === "general");
+  const dominant = idx?.dominantPollutantId
+    ? aq.pollutantsById.get(idx.dominantPollutantId)
+    : undefined;
+  const bands = bandsByPollutant(aq.scale, aq.pollutantsById);
+  const todayKey = localDateKey(new Date());
+  const silamDays = await Promise.all([
+    getSilamPointForecast(getDb(), { stationId: station.id }),
+    loadIndexConfig(getDb()),
+  ])
+    .then(([silam, config]) =>
+      summarizeSilamDays(silam.rows, publicThresholds(config))
+        .filter((d) => d.date >= todayKey)
+        .slice(0, 3),
+    )
+    .catch(() => []);
+  const levelLabels = Object.fromEntries(
+    [0, 1, 2, 3, 4, 5].map((l) => [String(l), tl(`${l}` as "0")]),
+  );
+  const pollutantLabel = (code: string, fallback: string) =>
+    tp.has(code as "PM25") ? tp(code as "PM25") : fallback;
+
+  return (
+    <div className="container-page flex flex-col gap-8 py-10">
+      <div className="flex flex-col gap-3">
+        <Link
+          href="/air"
+          className="inline-flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeftIcon className="size-4" aria-hidden="true" />
+          {t("backToList")}
+        </Link>
+        <div className="flex flex-wrap items-center gap-3">
+          <h1 className="text-3xl font-semibold tracking-tight">
+            {name(station.name, locale) || station.code}
+          </h1>
+          <StationStatusBadge status={station.status} label={ts(`status.${station.status}`)} />
+        </div>
+        <p className="text-muted-foreground">
+          {[
+            name(station.region, locale),
+            name(station.district, locale),
+            name(station.address, locale),
+          ]
+            .filter(Boolean)
+            .join(" · ")}
+        </p>
+      </div>
+
+      <ExceedanceBanner locale={locale} stationId={station.id} />
+      <section className="grid gap-6 lg:grid-cols-[2fr_1fr]">
+        <Card className={LEVEL_BORDER[level]}>
+          <CardHeader>
+            <CardTitle className="flex flex-wrap items-center gap-3">
+              <AqBadge
+                level={level}
+                label={tl(`${level}` as "0")}
+                value={
+                  idx?.value !== null && idx?.value !== undefined && !idx.stale
+                    ? format.number(idx.value, { maximumFractionDigits: 1 })
+                    : undefined
+                }
+                size="lg"
+              />
+              <span className="text-base font-normal text-muted-foreground">{t("current")}</span>
+            </CardTitle>
+            <CardDescription className="flex flex-wrap gap-x-4 gap-y-1">
+              {idx ? (
+                <span>
+                  {format.relativeTime(idx.time)}
+                  {idx.stale ? ` · ${ti("stale")}` : ""}
+                </span>
+              ) : (
+                <span>{t("noData")}</span>
+              )}
+              {dominant && !idx?.stale ? (
+                <span>
+                  {ti("dominant")}: {pollutantLabel(dominant.code, dominant.shortName)}
+                </span>
+              ) : null}
+              <span>
+                {ti("scale")}: {ti("scaleDefault")}
+              </span>
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {measured.map((m) => {
+              const sub = idx && !idx.stale ? idx.subIndices[String(m.id)] : undefined;
+              const subLevel = sub?.level ?? 0;
+              return (
+                <div key={m.id} className="relative overflow-hidden rounded-lg border p-3 pl-4">
+                  <span
+                    className={`absolute inset-y-0 left-0 w-1.5 ${LEVEL_BAR[subLevel] ?? LEVEL_BAR[0]}`}
+                    aria-hidden="true"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    {pollutantLabel(m.code, m.shortName)}
+                  </p>
+                  <p className="text-2xl font-semibold tabular-nums">
+                    {sub ? format.number(sub.value, { maximumFractionDigits: m.decimals }) : "—"}
+                    <span className="ml-1 text-sm font-normal text-muted-foreground">{m.unit}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground">{tl(`${subLevel}` as "0")}</p>
+                </div>
+              );
+            })}
+            {measured.length === 0 ? (
+              <p className="text-sm text-muted-foreground">{t("noData")}</p>
+            ) : null}
+          </CardContent>
+        </Card>
+
+        <div className="flex flex-col gap-6">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base">{t("mapTitle")}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="h-48 overflow-hidden rounded-lg border">
+                <StationMapSection
+                  locale={locale}
+                  className="h-full w-full"
+                  compact
+                  center={[station.geom.x, station.geom.y]}
+                  zoom={11}
+                />
+              </div>
+            </CardContent>
+          </Card>
+          {silamDays.length > 0 ? (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">{t("silamTomorrow")}</CardTitle>
+                <CardDescription>{t("silamHint")}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <SilamDays
+                  days={silamDays}
+                  pollutantsById={aq.pollutantsById}
+                  todayKey={todayKey}
+                  compact
+                />
+              </CardContent>
+            </Card>
+          ) : null}
+          {general ? (
+            <Card className={LEVEL_BORDER[level]}>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-base">
+                  <HeartPulseIcon className="size-4" aria-hidden="true" />
+                  {name(general.title, locale) || ti("advice")}
+                </CardTitle>
+                <CardDescription>{ti("adviceGeneral")}</CardDescription>
+              </CardHeader>
+              <CardContent className="text-sm">{name(general.text, locale)}</CardContent>
+            </Card>
+          ) : null}
+          <Link
+            href={`/subscribe?station=${station.id}`}
+            className="text-sm text-muted-foreground underline-offset-4 hover:underline"
+          >
+            {ti("subscribeStation")}
+          </Link>
+        </div>
+      </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{ti("chartTitle")}</CardTitle>
+          <CardDescription>{ti("bandsHint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {measured.length > 0 ? (
+            <MeasurementChartLazy
+              stationSlug={station.slug}
+              pollutants={measured.map((m) => ({
+                code: m.code,
+                shortName: m.shortName,
+                unit: m.unit,
+                decimals: m.decimals,
+              }))}
+              bands={bands}
+              locale={locale}
+              labels={{
+                ranges: {
+                  "24h": ti("ranges.24h"),
+                  "7d": ti("ranges.7d"),
+                  "30d": ti("ranges.30d"),
+                  "1y": ti("ranges.1y"),
+                },
+                pollutant: ti("pollutant"),
+                downloadCsv: ti("downloadCsv"),
+                noData: ti("noData"),
+                loading: ti("loading"),
+                hourly: ti("hourly"),
+                daily: ti("daily"),
+                levels: levelLabels,
+              }}
+            />
+          ) : (
+            <p className="text-sm text-muted-foreground">{t("noData")}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("passport")}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <dl className="grid gap-x-8 gap-y-3 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <div>
+              <dt className="text-muted-foreground">{t("code")}</dt>
+              <dd className="font-mono">{station.code}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("kind")}</dt>
+              <dd>{ts(`kind.${station.kind}`)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("coordinates")}</dt>
+              <dd className="tabular-nums">
+                {station.geom.y.toFixed(5)}, {station.geom.x.toFixed(5)}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("elevation")}</dt>
+              <dd>{station.elevationM !== null ? `${station.elevationM} м` : "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("commissioned")}</dt>
+              <dd>{station.commissionedAt ?? "—"}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("sampling")}</dt>
+              <dd>{ts(`sampling.${station.sampling}`)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted-foreground">{t("source")}</dt>
+              <dd>{ts(`dataSource.${station.dataSource}`)}</dd>
+            </div>
+          </dl>
+          {name(station.description, locale) ? (
+            <p className="mt-4 text-sm text-muted-foreground">
+              {name(station.description, locale)}
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}

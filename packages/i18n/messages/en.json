@@ -1,0 +1,1740 @@
+{
+  "common": {
+    "siteName": "Meteoportal",
+    "siteTagline": "Air quality and weather of Tajikistan",
+    "agency": "Agency for Hydrometeorology of the Committee for Environmental Protection under the Government of the Republic of Tajikistan",
+    "fintaj": "FINTAJ project supported by the Finnish Meteorological Institute (FMI)",
+    "language": "Language",
+    "skipToContent": "Skip to content",
+    "loading": "Loading…",
+    "updatedAgo": "Updated: {time}",
+    "noData": "No data",
+    "actions": {
+      "save": "Save",
+      "cancel": "Cancel",
+      "delete": "Delete",
+      "edit": "Edit",
+      "create": "Create",
+      "search": "Search",
+      "back": "Back",
+      "more": "Learn more",
+      "download": "Download",
+      "openMap": "Open map"
+    },
+    "theme": {
+      "light": "Light theme",
+      "dark": "Dark theme"
+    },
+    "menu": "Menu",
+    "mainNav": "Main navigation",
+    "soon": "Coming soon",
+    "legend": "Legend",
+    "pagination": "Pagination"
+  },
+  "nav": {
+    "home": "Home",
+    "air": "Air quality",
+    "map": "Map",
+    "weather": "Weather",
+    "warnings": "Warnings",
+    "news": "News",
+    "health": "Health",
+    "about": "About",
+    "data": "Open data",
+    "admin": "Administration"
+  },
+  "levels": {
+    "0": "No data",
+    "1": "Good",
+    "2": "Satisfactory",
+    "3": "Fair",
+    "4": "Poor",
+    "5": "Very poor"
+  },
+  "pollutants": {
+    "PM25": "PM2.5 particles",
+    "PM10": "PM10 particles",
+    "NO2": "Nitrogen dioxide",
+    "SO2": "Sulphur dioxide",
+    "CO": "Carbon monoxide",
+    "O3": "Ozone"
+  },
+  "home": {
+    "title": "Air quality and weather in Tajikistan",
+    "subtitle": "Official data of the Agency for Hydrometeorology: current air quality, forecasts and warnings",
+    "airNow": "Air quality now",
+    "forecastToday": "Weather today",
+    "warningsActive": "Active warnings",
+    "latestNews": "Latest news",
+    "stationsCount": "{count, plural, one {# station} other {# stations}}",
+    "heroUpdated": "Updated {time}",
+    "heroNoStation": "No station with current data yet",
+    "viewStation": "Station page",
+    "subscribe": "Subscribe to alerts",
+    "airTomorrow": "Air quality tomorrow",
+    "allCities": "All cities",
+    "silamSource": "SILAM model (FMI), daily mean level",
+    "noForecast": "Forecast not available yet",
+    "noWarnings": "No active warnings",
+    "allWarnings": "All warnings",
+    "noNews": "No news yet",
+    "allNews": "All news"
+  },
+  "footer": {
+    "rights": "© {year} Agency for Hydrometeorology of the Republic of Tajikistan",
+    "dataLicense": "Data is available under an open licence",
+    "api": "API for developers",
+    "subscribe": "Email alerts",
+    "sections": "Portal sections",
+    "aboutIndex": "About the index"
+  },
+  "auth": {
+    "signIn": "Sign in",
+    "signOut": "Sign out",
+    "email": "Email",
+    "password": "Password",
+    "signInTitle": "Sign in to the admin panel",
+    "signInSubtitle": "Agency staff only",
+    "invalidCredentials": "Invalid email or password",
+    "signingIn": "Signing in…",
+    "forbidden": "Access denied",
+    "forbiddenHint": "Your role does not grant access to this section.",
+    "totpTitle": "Verification code",
+    "totpHint": "Enter the six-digit code from your authenticator app",
+    "backupCode": "Backup code",
+    "backupHint": "One of the backup codes saved when 2FA was enabled; each code works once",
+    "useBackupCode": "Use a backup code",
+    "useTotp": "Enter an app code instead",
+    "trustDevice": "Trust this device for 30 days",
+    "verify": "Verify",
+    "back": "Back to sign-in",
+    "invalidCode": "Invalid or expired code",
+    "banned": "This account is blocked. Contact an administrator.",
+    "tooManyAttempts": "Too many attempts — try again later",
+    "twoFactorSetup": "Security and 2FA"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "operator": "Operator",
+    "editor": "Editor"
+  },
+  "admin": {
+    "title": "Admin panel",
+    "dashboard": "Dashboard",
+    "stations": "Stations",
+    "measurements": "Measurements",
+    "scales": "Scales and thresholds",
+    "healthAdvice": "Health advice",
+    "content": "Content",
+    "news": "News",
+    "users": "Users",
+    "auditLog": "Audit log",
+    "settings": "Settings",
+    "welcome": "Welcome, {name}",
+    "stats": {
+      "stations": "Stations in registry",
+      "activeStations": "Active stations",
+      "users": "Users",
+      "measurements24h": "Measurements in 24 h",
+      "workerHeartbeat": "Background service",
+      "workerOk": "running",
+      "workerStale": "not responding",
+      "workerUnknown": "no data",
+      "integrations": "Integrations",
+      "integrationsHint": "Latest successful syncs of external sources",
+      "smartmet": "SmartMet (weather forecast)",
+      "silam": "SILAM (air quality forecast)",
+      "cap": "SmartMet Alert (CAP)",
+      "never": "not run yet",
+      "modelRun": "model run {time} UTC",
+      "intStale": "stale",
+      "intOk": "up to date",
+      "qcQueue": "QC queue",
+      "activeAlerts": "Active exceedances"
+    },
+    "alerts": "Notifications",
+    "subscribers": "Subscribers",
+    "cap": "CAP messages",
+    "media": "Media",
+    "bulletins": "Bulletins",
+    "freshness": {
+      "title": "Data freshness by station",
+      "hint": "Time of the last measurement; a station without data for 24 hours is marked as stale",
+      "withoutData": "No data for 24 h: {count} of {total} ({share} %)",
+      "empty": "No active stations",
+      "station": "Station",
+      "region": "Region",
+      "lastMeasurement": "Last measurement",
+      "state": "State",
+      "never": "no measurements yet",
+      "fresh": "fresh",
+      "stale": "stale",
+      "missing": "no data"
+    },
+    "outbox": {
+      "title": "Mail queue",
+      "smtpConfigured": "SMTP is configured; the worker delivers mail",
+      "smtpDev": "SMTP_URL is not set — mail is written to the worker log (development mode)",
+      "pending": "pending",
+      "failed": "failed",
+      "sent24h": "sent 24 h",
+      "lastSent": "Last sent",
+      "lastFailed": "Delivery failed: {to} ({template})",
+      "testLink": "Check SMTP with a test message →"
+    },
+    "integration": {
+      "ok": "up to date",
+      "stale": "stale",
+      "failed": "failing, {count} in a row",
+      "paused": "paused until {time}",
+      "disabled": "source not configured",
+      "never": "never ran",
+      "lastSuccess": "Last successful load",
+      "lastRun": "last run",
+      "capErrors": "errors in the last run: {count}"
+    },
+    "recentAudit": {
+      "title": "Recent actions",
+      "all": "Full log",
+      "empty": "No entries yet"
+    }
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "This page does not exist or has been moved.",
+    "backHome": "Back to home"
+  },
+  "stations": {
+    "title": "Stations",
+    "subtitle": "{count, plural, one {# station} other {# stations}} in the registry",
+    "add": "Add station",
+    "searchPlaceholder": "Code, slug or name",
+    "empty": "No stations found",
+    "saved": "Station saved",
+    "readOnly": "Your role cannot edit stations.",
+    "fields": {
+      "code": "Code",
+      "slug": "Slug",
+      "name": "Name",
+      "region": "Region",
+      "district": "District",
+      "kind": "Type",
+      "status": "Status",
+      "pollutants": "Pollutants",
+      "updatedAt": "Updated",
+      "isPublic": "Show on the portal",
+      "lat": "Latitude",
+      "lon": "Longitude",
+      "elevationM": "Elevation, m",
+      "address": "Address",
+      "description": "Description",
+      "dataSource": "Data source",
+      "sampling": "Sampling mode",
+      "commissionedAt": "Commissioned",
+      "decommissionedAt": "Decommissioned"
+    },
+    "filters": {
+      "allStatuses": "All statuses",
+      "allRegions": "All regions",
+      "apply": "Apply"
+    },
+    "status": {
+      "active": "Active",
+      "suspended": "Suspended",
+      "decommissioned": "Decommissioned"
+    },
+    "kind": {
+      "air": "Air",
+      "meteo": "Meteo",
+      "combined": "Combined"
+    },
+    "dataSource": {
+      "manual": "Manual entry",
+      "import": "File import",
+      "api": "API",
+      "sensor": "Automatic sensor"
+    },
+    "sampling": {
+      "continuous": "Continuous",
+      "discrete": "Discrete samples"
+    },
+    "sections": {
+      "basic": "Basics",
+      "names": "Names and description",
+      "location": "Location",
+      "operation": "Operation",
+      "pollutants": "Measured pollutants"
+    },
+    "hints": {
+      "code": "Latin letters, digits, hyphen. Used in imports and the API.",
+      "slug": "Leave empty to derive from the name.",
+      "names": "Fill in at least the Tajik name; other languages fall back via tg → ru → en.",
+      "location": "Click the map or drag the marker; coordinates can also be typed.",
+      "noDistricts": "Districts appear after boundaries are loaded.",
+      "sampling": "Discrete — posts sampling 3–4 times a day; continuous — automatic sensors.",
+      "pollutants": "Tick pollutants and the incoming unit; storage is always in the pollutant's unit.",
+      "new": "Fill in the station passport and its region."
+    },
+    "errors": {
+      "min": "Too short",
+      "max": "Too long",
+      "format": "Invalid characters",
+      "range": "Out of range",
+      "required": "Required",
+      "unique": "Already in use",
+      "date": "Invalid date",
+      "validation": "Check the form fields",
+      "notFound": "Station not found",
+      "insert": "Could not save"
+    },
+    "apiKey": {
+      "title": "Station API key",
+      "none": "No key yet. Needed for automatic measurement uploads (POST /api/v1/ingest).",
+      "exists": "A key exists. A new key replaces the old one.",
+      "generate": "Generate key",
+      "rotate": "Rotate key",
+      "rotated": "Key created — save it now",
+      "copied": "Copied",
+      "hint": "The key is shown once; only its hash is stored."
+    },
+    "decommission": {
+      "title": "Decommissioning",
+      "hint": "The station disappears from the portal; measurement history is kept.",
+      "action": "Decommission",
+      "confirmTitle": "Decommission this station?",
+      "confirmText": "Status changes to “decommissioned” as of {date}.",
+      "done": "Station decommissioned"
+    }
+  },
+  "map": {
+    "title": "Map",
+    "subtitle": "Monitoring stations, SILAM forecast and warnings",
+    "layers": "Layers",
+    "stations": "Stations",
+    "silam": "SILAM forecast",
+    "warnings": "Warnings",
+    "legend": "Legend",
+    "soon": "soon",
+    "open": "Open",
+    "noTiles": "Map tiles are missing: run infra/data/fetch-map-assets.sh",
+    "warningsNone": "No active warnings",
+    "warningsCount": "{count, plural, one {# active} other {# active}}",
+    "warningsOpen": "All warnings",
+    "warningsLegend": "Warnings",
+    "webglUnsupported": "The map is unavailable in this browser (WebGL is not supported). Use the station list instead."
+  },
+  "air": {
+    "title": "Air quality",
+    "intro": "Data from the national network of ambient air monitoring stations. The index and colour levels appear with the first measurements.",
+    "stationsHeading": "Monitoring stations",
+    "noStations": "No stations yet",
+    "viewAll": "All stations",
+    "aboutIndex": "How the index is calculated"
+  },
+  "station": {
+    "current": "Current values",
+    "noData": "No measurements yet",
+    "passport": "Station passport",
+    "coordinates": "Coordinates",
+    "chartSoon": "Measurement charts and CSV export arrive next week.",
+    "lastMeasurement": "Last measurement",
+    "code": "Code",
+    "kind": "Type",
+    "region": "Region",
+    "district": "District",
+    "elevation": "Elevation",
+    "commissioned": "Commissioned",
+    "sampling": "Mode",
+    "source": "Source",
+    "backToList": "Back to stations",
+    "mapTitle": "Location",
+    "silamTomorrow": "SILAM forecast",
+    "silamHint": "FMI SILAM model forecast for the station coordinates: daily mean level by the worst pollutant."
+  },
+  "measurements": {
+    "title": "Measurements",
+    "subtitle": "Entry, import and review of monitoring data",
+    "last7d": "{count, plural, one {# measurement} other {# measurements}} in 7 days",
+    "recentBatches": "Recent imports",
+    "noBatches": "No imports yet",
+    "createdAt": "Created",
+    "cards": {
+      "entry": {
+        "title": "Manual entry",
+        "text": "Station × time × pollutant grid for discrete samples and lab data"
+      },
+      "import": {
+        "title": "CSV import",
+        "text": "Upload files from posts and sensors with validation before writing"
+      },
+      "browse": {
+        "title": "Browse data",
+        "text": "Filter by station, pollutant and period; quality-control flags"
+      },
+      "qc": {
+        "title": "Quality control",
+        "text": "{count, plural, =0 {Queue is empty} one {# value awaits a decision} other {# values await a decision}}"
+      }
+    },
+    "batchStatus": {
+      "label": "Status",
+      "pending": "Pending",
+      "applied": "Applied",
+      "rejected": "Rejected"
+    },
+    "entry": {
+      "station": "Station",
+      "date": "Date (local time)",
+      "time": "Time",
+      "addRow": "Add row",
+      "removeRow": "Remove row",
+      "save": "Save measurements",
+      "saved": "Values saved: {count}",
+      "invalidTitle": "Out-of-range values were saved with the “invalid” flag",
+      "noPollutants": "No active station has measured pollutants configured — set them in the station registry.",
+      "pasteHint": "You can paste a row of values from a spreadsheet: tab or semicolon separated.",
+      "unitHint": "Input units are set on the station card; storage uses the pollutant's unit."
+    },
+    "errors": {
+      "validation": "Check the entered values",
+      "unknownStation": "Station not found",
+      "unitConversion": "Could not convert units",
+      "empty": "Nothing to save",
+      "value": "Invalid number",
+      "time": "Invalid time"
+    },
+    "import": {
+      "file": "File",
+      "chooseFile": "CSV file",
+      "defaultStation": "Default station",
+      "anyStation": "Given in the file (station column)",
+      "template": "Download CSV template",
+      "format": "Columns: time, station, pollutant, value, unit (optional). Time — ISO 8601 or “YYYY-MM-DD HH:MM” Dushanbe time; decimal separator — dot or comma.",
+      "preview": "Check file",
+      "reportTitle": "Validation result",
+      "row": "Row",
+      "message": "Message",
+      "sampleHint": "Valid rows recognised (first {count} shown).",
+      "summary": {
+        "total": "Rows in file",
+        "ok": "Valid",
+        "rejected": "Rejected",
+        "invalidRange": "Out of range"
+      },
+      "apply": "Apply ({count})",
+      "cancel": "Discard",
+      "applied": "Values imported: {count}",
+      "rejected": "Import discarded",
+      "nothingToApply": "No valid rows to import",
+      "errors": {
+        "time": "Invalid time",
+        "futureTime": "Time is in the future",
+        "unknownStation": "Unknown station: {detail}",
+        "unknownPollutant": "Unknown pollutant: {detail}",
+        "emptyValue": "Empty value",
+        "value": "Invalid number",
+        "unit": "Unknown unit: {detail}",
+        "unitConversion": "Cannot convert unit {detail} for this pollutant",
+        "duplicate": "Duplicate row (time, station, pollutant)",
+        "missingColumn": "Missing required column: {detail}",
+        "tooManyRows": "Too many rows (max {detail})",
+        "csv": "CSV parse error: {detail}"
+      },
+      "results": {
+        "noFile": "Choose a file",
+        "tooLarge": "File is larger than 20 MB",
+        "notFound": "Batch not found",
+        "alreadyApplied": "Batch already processed",
+        "expired": "Validation expired — upload the file again",
+        "insert": "Could not save the batch"
+      }
+    },
+    "browse": {
+      "total": "{count, plural, one {# record} other {# records}}",
+      "pollutant": "Pollutant",
+      "from": "From",
+      "to": "To",
+      "apply": "Show",
+      "time": "Time",
+      "value": "Value",
+      "averaging": "Averaging",
+      "min": "min",
+      "qc": "Quality control",
+      "source": "Source",
+      "empty": "No data for the selected filters"
+    },
+    "qc": {
+      "0": "Raw",
+      "1": "Valid",
+      "2": "Suspect",
+      "3": "Invalid",
+      "4": "Corrected",
+      "5": "No data"
+    },
+    "source": {
+      "1": "Manual entry",
+      "2": "Import",
+      "3": "API",
+      "4": "Sensor"
+    }
+  },
+  "index": {
+    "ranges": {
+      "24h": "24 hours",
+      "7d": "7 days",
+      "30d": "30 days",
+      "1y": "Year"
+    },
+    "pollutant": "Pollutant",
+    "downloadCsv": "Download CSV",
+    "noData": "No data for the selected period",
+    "loading": "Loading…",
+    "hourly": "hourly means",
+    "daily": "daily means, local time",
+    "dominant": "Dominant pollutant",
+    "stale": "data is stale",
+    "scale": "Scale",
+    "scaleDefault": "operational five-level index (hourly values, worst pollutant)",
+    "advice": "Advice",
+    "adviceGeneral": "General population",
+    "chartTitle": "Measurement history",
+    "bandsHint": "Coloured bands are the scale levels for the selected pollutant; only valid measurements are shown",
+    "subscribeStation": "Get alerts about exceedances at this station",
+    "about": "about the index"
+  },
+  "email": {
+    "common": {
+      "brand": "Meteoportal · Agency for Hydrometeorology of Tajikistan",
+      "sentBy": "This message was sent automatically by Meteoportal.",
+      "unsubscribe": "Unsubscribe"
+    },
+    "confirm": {
+      "subject": "Confirm your Meteoportal alert subscription",
+      "body": "You requested air quality alerts. Click the button below to confirm your email address.",
+      "button": "Confirm subscription",
+      "ignore": "If you did not subscribe, simply ignore this message."
+    },
+    "alert": {
+      "subject": "Threshold exceeded: {station}",
+      "body": "Rule “{rule}” triggered at station “{station}”: {measure} (threshold {threshold}). See health advice on the station page.",
+      "button": "Open station page",
+      "levelValue": "index level {level}"
+    },
+    "test": {
+      "subject": "Meteoportal test email",
+      "body": "Mail configuration works.",
+      "requestedBy": "Requested by: {by}",
+      "sentAt": "Requested at: {at}"
+    },
+    "bulletin": {
+      "readOnSite": "Read on the portal",
+      "footer": "You receive this e-mail because you subscribed to the Meteoportal bulletin."
+    },
+    "integration": {
+      "names": {
+        "smartmet": "SmartMet (weather forecast)",
+        "silam": "SILAM (air quality forecast)",
+        "cap": "SmartMet Alert (CAP)"
+      },
+      "failedSubject": "Integration failure {name}: {count} failed runs in a row",
+      "failedBody": "The source “{name}” has been unavailable since {since}. Failed runs in a row: {count}. The portal keeps showing the last loaded data marked as stale.",
+      "lastError": "Last error: {error}",
+      "paused": "Synchronisation is paused until {until}; attempts then resume automatically.",
+      "recoveredSubject": "Integration {name} recovered",
+      "recoveredBody": "The source “{name}” is responding again ({at}). The outage lasted since {since}.",
+      "button": "Open the dashboard"
+    }
+  },
+  "qc": {
+    "title": "Quality control",
+    "subtitle": "{count, plural, one {# value} other {# values}} awaiting a decision",
+    "context": "Before → after",
+    "reason": "Reason",
+    "actions": "Actions",
+    "empty": "The queue is empty",
+    "filters": {
+      "suspectAndInvalid": "Suspect and invalid",
+      "resolved": "Decision",
+      "pending": "Awaiting decision",
+      "resolvedOnly": "Already resolved"
+    },
+    "reasons": {
+      "range": "Out of range",
+      "spike": "Spike relative to neighbouring values",
+      "stuck": "Stuck sensor",
+      "mad_outlier": "Outlier relative to station history",
+      "confirmed": "Confirmed by operator",
+      "rejected": "Rejected by operator",
+      "corrected": "Corrected by operator"
+    },
+    "confirm": "Confirm",
+    "correct": "Correct",
+    "reject": "Reject",
+    "cancel": "Cancel",
+    "save": "Save",
+    "done": "Decision saved",
+    "correctTitle": "Correct value",
+    "correctHint": "The original value is kept and the change goes to the audit log.",
+    "newValue": "New value",
+    "reasonLabel": "Reason",
+    "reasonPlaceholder": "E.g. typo, re-checked against the logbook",
+    "rejectTitle": "Reject value",
+    "rejectHint": "The value will be excluded from calculations and charts.",
+    "errors": {
+      "validation": "Check the entered data",
+      "notFound": "Value not found",
+      "value": "Invalid number"
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "{count, plural, one {# record} other {# records}}",
+    "search": "Search",
+    "searchPlaceholder": "Action, email, identifier",
+    "entity": "Entity",
+    "from": "From",
+    "to": "To",
+    "apply": "Show",
+    "at": "Time",
+    "actor": "User",
+    "action": "Action",
+    "details": "Details",
+    "before": "Before",
+    "after": "After",
+    "empty": "No records"
+  },
+  "scales": {
+    "title": "Scales and thresholds",
+    "subtitle": "Air quality index scales, per-pollutant thresholds and limit values. Changes apply to the index immediately.",
+    "default": "default",
+    "disabled": "disabled",
+    "kind": {
+      "breakpoints": "breakpoint scale",
+      "ratio_to_limit": "ratio to limit",
+      "iza": "composite IZA"
+    },
+    "sections": {
+      "general": "General",
+      "levels": "Levels",
+      "breakpoints": "Thresholds per pollutant"
+    },
+    "fields": {
+      "name": "Name",
+      "description": "Description",
+      "isDefaultPublic": "Default public scale",
+      "enabled": "Enabled",
+      "sortOrder": "Order",
+      "level": "Level",
+      "color": "Colour",
+      "lo": "From",
+      "hi": "To",
+      "pollutant": "Pollutant",
+      "averaging": "Averaging",
+      "levelFrom": "Level {level} from"
+    },
+    "hints": {
+      "levelsBreakpoints": "Level labels in three languages; colours come from the design system.",
+      "levelsBands": "Ranges of the final value for each level (the last one is open-ended).",
+      "breakpoints": "Lower bound of each level in the pollutant's unit; bounds must increase. Leave a row empty to exclude the pollutant."
+    },
+    "averaging": {
+      "60": "1 hour",
+      "480": "8 hours",
+      "1440": "24 hours"
+    },
+    "save": "Save",
+    "back": "Back to list",
+    "saved": "Scale saved, index recomputed",
+    "errors": {
+      "validation": "Check the fields",
+      "notFound": "Scale not found",
+      "fiveLevels": "All five bounds must be filled for a pollutant",
+      "monotonic": "Bounds must strictly increase"
+    },
+    "limits": {
+      "title": "Limit values and hazard classes",
+      "subtitle": "Daily, maximum single and annual limit values in the pollutant's unit; hazard class for IZA",
+      "table": "Limit values",
+      "hint": "Empty field — no limit set. Default values follow SanPiN 1.2.3685-21 (to be confirmed by the Customer).",
+      "daily": "Daily limit",
+      "maxSingle": "Max single limit",
+      "annual": "Annual limit",
+      "hazardClass": "Hazard class"
+    }
+  },
+  "healthAdmin": {
+    "title": "Health advice",
+    "subtitle": "Texts per level and population group in three languages",
+    "scale": "Scale",
+    "noScales": "No enabled scales",
+    "saveLevel": "Save level “{level}”",
+    "saved": "Advice saved",
+    "fields": {
+      "title": "Title",
+      "text": "Text"
+    },
+    "audience": {
+      "general": "General population",
+      "children": "Children",
+      "pregnant": "Pregnant and breastfeeding",
+      "elderly": "Elderly people",
+      "respiratory": "Chronic respiratory diseases",
+      "cardio": "Cardiovascular diseases"
+    }
+  },
+  "health": {
+    "title": "Health and air quality",
+    "intro": "What to do at each pollution level: advice for everyone and for vulnerable groups — children, pregnant and breastfeeding women, the elderly, people with chronic respiratory and cardiovascular diseases.",
+    "disclaimer": "The advice is general and does not replace medical consultation.",
+    "noAdvice": "Advice for this level has not been filled in yet.",
+    "audience": {
+      "general": "General population",
+      "children": "Children",
+      "pregnant": "Pregnant and breastfeeding",
+      "elderly": "Elderly people",
+      "respiratory": "Chronic respiratory diseases",
+      "cardio": "Cardiovascular diseases"
+    }
+  },
+  "alerts": {
+    "title": "Notification rules",
+    "subtitle": "Threshold exceedances: portal banner and emails to subscribers",
+    "add": "Add rule",
+    "empty": "No rules yet",
+    "saved": "Rule saved",
+    "deleted": "Rule deleted",
+    "save": "Save",
+    "back": "Back to list",
+    "delete": "Delete",
+    "enabled": "enabled",
+    "disabled": "disabled",
+    "conditionIndex": "index ≥ level {level}",
+    "kind": {
+      "pollutant": "Pollutant concentration",
+      "index": "Index level"
+    },
+    "scope": {
+      "all": "All stations",
+      "station": "One station",
+      "region": "Region"
+    },
+    "channels": {
+      "portal": "Portal",
+      "email": "Email"
+    },
+    "averaging": {
+      "60": "1 hour",
+      "480": "8 hours",
+      "1440": "24 hours"
+    },
+    "form": {
+      "condition": "Condition",
+      "delivery": "Delivery"
+    },
+    "fields": {
+      "name": "Name",
+      "kind": "Condition type",
+      "pollutant": "Pollutant",
+      "scale": "Scale",
+      "threshold": "Concentration threshold",
+      "thresholdLevel": "Level threshold (1–5)",
+      "averaging": "Averaging",
+      "scope": "Scope",
+      "station": "Station",
+      "region": "Region",
+      "cooldown": "Cooldown between events, min",
+      "enabled": "Rule enabled",
+      "condition": "Condition",
+      "channels": "Channels",
+      "status": "Status"
+    },
+    "hints": {
+      "threshold": "In the pollutant's unit; “greater or equal” against the mean over the averaging period.",
+      "thresholdLevel": "Triggers when the station index level is at or above the given level.",
+      "cooldown": "After an event closes, a new one will not open before this time passes."
+    },
+    "errors": {
+      "validation": "Check the fields",
+      "notFound": "Rule not found",
+      "insert": "Could not save",
+      "min": "Too short",
+      "max": "Too long",
+      "required": "Required",
+      "positive": "Must be greater than zero",
+      "level": "Level from 1 to 5",
+      "averaging": "Invalid averaging",
+      "channels": "Select at least one channel"
+    },
+    "events": {
+      "title": "Exceedance events",
+      "subtitle": "Open and resolved exceedances per rule",
+      "started": "Started",
+      "ended": "Ended",
+      "peak": "Peak",
+      "notified": "Emails",
+      "yes": "sent",
+      "empty": "No events",
+      "resolve": "Resolve",
+      "status": {
+        "active": "Active",
+        "resolved": "Resolved"
+      }
+    }
+  },
+  "subscribersAdmin": {
+    "title": "Subscribers",
+    "export": "Export CSV",
+    "locale": "Language",
+    "status": "Status",
+    "topics": "Topics",
+    "createdAt": "Subscribed",
+    "empty": "No subscribers",
+    "confirmed": "Confirmed",
+    "pending": "Pending",
+    "unsubscribed": "Unsubscribed",
+    "allStations": "All stations",
+    "stationsCount": "{count, plural, one {# station} other {# stations}}",
+    "newsletter": "newsletter"
+  },
+  "subscribe": {
+    "title": "Air quality alerts",
+    "intro": "An email when thresholds are exceeded at the selected stations and, optionally, the Agency newsletter.",
+    "email": "Email",
+    "topics": "What to notify about",
+    "allStations": "All stations",
+    "newsletter": "Agency newsletter",
+    "consent": "I agree to the processing of my email address for sending alerts. You can unsubscribe at any time via the link in each email.",
+    "doubleOptIn": "We will send an email with a link to confirm your address.",
+    "submit": "Subscribe",
+    "doneTitle": "Check your inbox",
+    "doneText": "We sent an email with a link to confirm your subscription.",
+    "backHome": "Back to home",
+    "errors": {
+      "validation": "Check the address and consent",
+      "topics": "Select at least one station or the newsletter",
+      "insert": "Could not save the subscription"
+    },
+    "confirm": {
+      "confirmed": {
+        "title": "Subscription confirmed",
+        "text": "You will now receive exceedance alerts."
+      },
+      "already": {
+        "title": "Already confirmed",
+        "text": "Nothing else to do."
+      },
+      "invalid": {
+        "title": "Invalid link",
+        "text": "The link has expired or was already used. Please subscribe again."
+      }
+    },
+    "unsubscribe": {
+      "done": {
+        "title": "You are unsubscribed",
+        "text": "No more emails will be sent."
+      },
+      "invalid": {
+        "title": "Invalid link",
+        "text": "Check the link from the email."
+      }
+    }
+  },
+  "exceedances": {
+    "title": "{count, plural, one {Active threshold exceedance} other {Active threshold exceedances}}",
+    "pollutant": "{pollutant} {value} {unit} (threshold {threshold})",
+    "index": "index reached level {level}",
+    "since": "since {time}"
+  },
+  "weather": {
+    "title": "Weather",
+    "intro": "Weather forecast for cities of Tajikistan: SmartMet Server data of the Agency for Hydrometeorology based on the ECMWF model, updated every 15 minutes.",
+    "now": "Now",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "hourly": "Hourly forecast",
+    "next24h": "Next 24 hours",
+    "daily": "{days, plural, one {#-day} other {#-day}} forecast",
+    "temperature": "Temperature",
+    "wind": "Wind",
+    "gust": "gusts up to {value} m/s",
+    "humidity": "Humidity",
+    "pressure": "Pressure",
+    "precip": "Precipitation",
+    "cloud": "Cloud cover",
+    "dewPoint": "Dew point",
+    "ms": "m/s",
+    "mm": "mm",
+    "hpa": "hPa",
+    "max": "max",
+    "min": "min",
+    "noForecast": "The forecast for this location has not been loaded yet. Please try again later.",
+    "updated": "Updated {time}",
+    "model": "Model {producer}, run {time} UTC",
+    "source": "Source: SmartMet Server (FMI), ECMWF global model",
+    "featured": "Major cities",
+    "otherLocations": "Other locations",
+    "openForecast": "Detailed forecast",
+    "airForecast": "Air quality forecast",
+    "airForecastHint": "SILAM model (FMI): daily mean concentrations on a 0.2° grid; the day level follows the worst pollutant of the public scale.",
+    "airForecastNone": "SILAM forecast not available yet",
+    "openLayer": "SILAM layer on the map",
+    "backToList": "All cities",
+    "chartTemperature": "Temperature, °C",
+    "chartPrecip": "Precipitation, mm/h",
+    "chartHint": "Line: air temperature, bars: hourly precipitation; local time (UTC+5).",
+    "day": "Day",
+    "dominant": "driven by {pollutant}",
+    "windDirections": {
+      "N": "N",
+      "NE": "NE",
+      "E": "E",
+      "SE": "SE",
+      "S": "S",
+      "SW": "SW",
+      "W": "W",
+      "NW": "NW"
+    },
+    "calm": "calm",
+    "embedTitle": "Website widget",
+    "embedHint": "Embed the forecast on meteo.tj or any other site with one line:",
+    "stale": "Forecast is stale: SmartMet synchronisation has not succeeded recently",
+    "silamStale": "SILAM forecast is stale: a new model run has not been loaded yet"
+  },
+  "weatherSymbols": {
+    "clear": "Clear",
+    "mostlyClear": "Mostly clear",
+    "partlyCloudy": "Partly cloudy",
+    "mostlyCloudy": "Mostly cloudy",
+    "overcast": "Overcast",
+    "fog": "Fog",
+    "drizzle": "Drizzle",
+    "freezingDrizzle": "Freezing drizzle",
+    "freezingRain": "Freezing rain",
+    "isolatedShowers": "Isolated showers",
+    "scatteredShowers": "Scattered showers",
+    "showers": "Showers",
+    "lightRain": "Light rain",
+    "rain": "Rain",
+    "heavyRain": "Heavy rain",
+    "lightSleetShowers": "Light sleet showers",
+    "sleetShowers": "Sleet showers",
+    "heavySleetShowers": "Heavy sleet showers",
+    "lightSleet": "Light sleet",
+    "sleet": "Sleet",
+    "heavySleet": "Heavy sleet",
+    "lightSnowShowers": "Light snow showers",
+    "snowShowers": "Snow showers",
+    "heavySnowShowers": "Heavy snow showers",
+    "lightSnow": "Light snow",
+    "snow": "Snow",
+    "heavySnow": "Heavy snow",
+    "isolatedThunderstorms": "Isolated thunderstorms",
+    "scatteredThunderstorms": "Scattered thunderstorms",
+    "thunderstorms": "Thunderstorms",
+    "isolatedThunderShowers": "Isolated thundershowers",
+    "scatteredThunderShowers": "Scattered thundershowers",
+    "thunderShowers": "Thundershowers",
+    "unknown": "No data"
+  },
+  "silam": {
+    "layer": "SILAM forecast",
+    "pollutant": "Pollutant",
+    "time": "Time",
+    "run": "Model run {time} UTC",
+    "noData": "The SILAM layer has not been loaded yet: the worker downloads the forecast from FMI THREDDS once a day.",
+    "play": "Play",
+    "pause": "Pause",
+    "prev": "Previous hour",
+    "next": "Next hour",
+    "hint": "SILAM model (FMI), 0.2° ≈ 20 km grid: colour shows the public-scale level of the hourly concentration.",
+    "legend": "Levels",
+    "maxInDomain": "country maximum {value} {unit}"
+  },
+  "embed": {
+    "poweredBy": "Meteoportal · Agency for Hydrometeorology",
+    "open": "Open on the portal",
+    "airNow": "Air quality now",
+    "forecast": "Weather",
+    "noData": "No data",
+    "stale": "data is stale"
+  },
+  "warnings": {
+    "title": "Warnings",
+    "intro": "Weather warnings of the Agency for Hydrometeorology: hazardous and adverse weather by region for the coming days",
+    "none": "No active warnings",
+    "noneForDay": "No warnings for the selected day",
+    "activeNow": "In force now",
+    "upcoming": "Upcoming",
+    "byRegion": "By region and day",
+    "region": "Region",
+    "allRegions": "All regions",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "wholeCountry": "No specific region",
+    "severity": {
+      "Extreme": "Extreme danger",
+      "Severe": "Severe danger",
+      "Moderate": "Moderate danger",
+      "Minor": "Minor danger",
+      "Unknown": "Level not specified"
+    },
+    "urgency": {
+      "Immediate": "immediate",
+      "Expected": "expected",
+      "Future": "future",
+      "Past": "past",
+      "Unknown": "unknown"
+    },
+    "certainty": {
+      "Observed": "observed",
+      "Likely": "likely",
+      "Possible": "possible",
+      "Unlikely": "unlikely",
+      "Unknown": "unknown"
+    },
+    "msgType": {
+      "Alert": "Alert",
+      "Update": "Update",
+      "Cancel": "Cancellation",
+      "Ack": "Acknowledgement",
+      "Error": "Error"
+    },
+    "status": {
+      "Actual": "Actual",
+      "Exercise": "Exercise",
+      "System": "System",
+      "Test": "Test",
+      "Draft": "Draft"
+    },
+    "period": "{from} — {to}",
+    "from": "from {time}",
+    "until": "until {time}",
+    "validUntil": "Valid until {time}",
+    "startsAt": "Starts {time}",
+    "issued": "Issued {time}",
+    "sender": "Source: {sender}",
+    "instruction": "Advice",
+    "areas": "Area",
+    "updated": "updated",
+    "all": "All warnings",
+    "more": "{count} more",
+    "legend": "Danger levels",
+    "bannerTitle": "{count, plural, one {# warning in force} other {# warnings in force}}",
+    "forLocation": "Warnings for this area",
+    "noneForLocation": "No warnings for this area",
+    "colorHint": "Colour matches the danger level: yellow — minor, orange — moderate, red — severe and extreme",
+    "sourceNote": "Warnings are issued by the Agency for Hydrometeorology in CAP format (SmartMet Alert)",
+    "dayNav": "Choose a day",
+    "mapCount": "{count, plural, one {# active} other {# active}}",
+    "xml": "CAP XML"
+  },
+  "capAdmin": {
+    "title": "CAP messages",
+    "subtitle": "SmartMet Alert messages, including test, cancelled and superseded ones",
+    "events": "Event types",
+    "eventsSubtitle": "Translations of the event field: used when a message has no info block in the portal language",
+    "event": "Event (as in CAP)",
+    "addEvent": "Add event",
+    "eventPlaceholder": "e.g. Strong wind",
+    "saved": "Saved",
+    "deleted": "Deleted",
+    "eventsEmpty": "No events yet — they appear after the first sync",
+    "fields": {
+      "identifier": "Identifier",
+      "sender": "Sender",
+      "sent": "Sent",
+      "status": "Status",
+      "type": "Type",
+      "severity": "Severity",
+      "event": "Event",
+      "headline": "Headline",
+      "expires": "Expires",
+      "regions": "Regions",
+      "languages": "Languages",
+      "received": "Received",
+      "source": "Source",
+      "scope": "Scope",
+      "note": "Note"
+    },
+    "superseded": "superseded",
+    "cancelled": "cancelled",
+    "published": "published",
+    "notPublished": "not published",
+    "expired": "expired",
+    "filters": {
+      "allStatuses": "All statuses",
+      "allTypes": "All types",
+      "apply": "Show"
+    },
+    "empty": "No messages",
+    "xml": "XML",
+    "rawXml": "Raw XML",
+    "detail": "CAP message",
+    "infos": "Info blocks",
+    "areas": "Areas",
+    "references": "References",
+    "supersededByLink": "Superseded by",
+    "parameters": "Parameters",
+    "sync": {
+      "title": "Synchronisation",
+      "never": "not run yet",
+      "ok": "ok",
+      "partial": "partial",
+      "failed": "failed",
+      "disabled": "source not configured (CAP_FEED_URL)",
+      "not-modified": "not modified",
+      "inserted": "new messages: {count}",
+      "errors": "Errors of the last run",
+      "runHint": "The cap-sync job runs every 5 minutes; manual run — pnpm --filter @meteo/worker enqueue cap-sync (force flag described in infra/data/cap/README.md)",
+      "source": "Source"
+    },
+    "back": "Back to list",
+    "total": "{count, plural, one {# message} other {# messages}}"
+  },
+  "news": {
+    "title": "News",
+    "intro": "News, announcements and bulletins of the Agency for Hydrometeorology",
+    "empty": "No news yet",
+    "readMore": "Read more",
+    "back": "All news",
+    "allCategories": "All categories",
+    "category": "Category",
+    "page": "Page {page} of {pages}",
+    "prev": "Previous",
+    "next": "Next",
+    "rss": "RSS feed",
+    "updated": "Updated {time}",
+    "pinned": "Pinned",
+    "subscribeCta": "Get the bulletin by e-mail",
+    "author": "Author"
+  },
+  "newsAdmin": {
+    "title": "News",
+    "subtitle": "{count, plural, one {# post} other {# posts}}",
+    "add": "Add post",
+    "new": "New post",
+    "edit": "Edit",
+    "fields": {
+      "slug": "Slug",
+      "title": "Title",
+      "excerpt": "Excerpt",
+      "body": "Body",
+      "category": "Category",
+      "cover": "Cover image",
+      "status": "Status",
+      "publishedAt": "Publish date",
+      "pinned": "Pin on the home page",
+      "author": "Author",
+      "updatedAt": "Updated"
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published",
+      "archived": "Archived"
+    },
+    "hints": {
+      "slug": "Latin letters, digits and hyphens; empty — from the title",
+      "body": "Markdown: # headings, lists, **bold**, *italic*, [link](https://…), ![image](/uploads/…)",
+      "publishedAt": "Empty — current time when published; a future date — scheduled publication",
+      "languages": "The Tajik version is required; other languages fall back",
+      "new": "Fill in the title and text in at least one language"
+    },
+    "preview": "Preview",
+    "editor": "Editor",
+    "saved": "Saved",
+    "publish": "Publish",
+    "unpublish": "Unpublish",
+    "delete": "Delete",
+    "deleteConfirm": "Delete this post permanently?",
+    "empty": "No posts",
+    "readOnly": "Your role cannot edit content",
+    "viewOnSite": "View on the portal",
+    "searchPlaceholder": "Title or slug",
+    "filters": {
+      "allStatuses": "All statuses",
+      "apply": "Show"
+    },
+    "errors": {
+      "validation": "Check the form fields",
+      "unique": "This slug is already in use",
+      "notFound": "Post not found",
+      "insert": "Could not save",
+      "required": "Required field",
+      "format": "Invalid format",
+      "max": "Value too long",
+      "date": "Invalid date"
+    },
+    "categories": {
+      "title": "Categories",
+      "subtitle": "News categories in three languages",
+      "add": "Add category",
+      "name": "Name",
+      "slug": "Slug",
+      "order": "Order",
+      "empty": "No categories",
+      "deleteConfirm": "Delete the category? Posts will keep no category."
+    },
+    "cover": {
+      "choose": "Choose file",
+      "uploading": "Uploading…",
+      "remove": "Remove cover",
+      "hint": "JPEG, PNG, WebP or GIF up to 10 MB",
+      "error": "Upload failed"
+    }
+  },
+  "media": {
+    "title": "Media",
+    "subtitle": "Images for posts and bulletins; the /uploads/… link goes into Markdown",
+    "upload": "Upload file",
+    "empty": "No files yet",
+    "fields": {
+      "file": "File",
+      "size": "Size",
+      "dimensions": "Dimensions",
+      "uploadedAt": "Uploaded",
+      "alt": "Alt text"
+    },
+    "copyUrl": "Copy link",
+    "copied": "Link copied",
+    "delete": "Delete",
+    "deleteConfirm": "Delete the file? Links to it in posts will stop working.",
+    "errors": {
+      "type": "File type not allowed: JPEG, PNG, WebP, GIF and PDF only",
+      "size": "File is larger than 10 MB",
+      "upload": "Could not save the file"
+    },
+    "uploaded": "File uploaded"
+  },
+  "bulletins": {
+    "title": "Bulletins",
+    "subtitle": "Mailing to subscribers who opted in to the bulletin",
+    "add": "New bulletin",
+    "new": "New bulletin",
+    "edit": "Edit bulletin",
+    "fields": {
+      "subject": "Subject",
+      "body": "Body",
+      "post": "Related post",
+      "status": "Status",
+      "recipients": "Recipients",
+      "createdAt": "Created",
+      "sentAt": "Sent"
+    },
+    "status": {
+      "draft": "Draft",
+      "queued": "Queued",
+      "sent": "Sent"
+    },
+    "noPost": "— no related post —",
+    "send": "Send to subscribers",
+    "sendTitle": "Send the bulletin?",
+    "sendConfirm": "{count} subscribers will receive the e-mail in their subscription language. Sending cannot be cancelled once started.",
+    "queued": "Queued: {count} e-mails",
+    "noRecipients": "No bulletin subscribers yet",
+    "subscribersCount": "Bulletin subscribers: {count}",
+    "saved": "Saved",
+    "empty": "No bulletins",
+    "preview": "E-mail preview",
+    "editor": "Editor",
+    "locked": "A sent bulletin cannot be edited",
+    "delete": "Delete",
+    "deleteConfirm": "Delete the bulletin draft?",
+    "errors": {
+      "validation": "Check the form fields",
+      "notFound": "Bulletin not found",
+      "locked": "The bulletin has already been sent",
+      "required": "Required field",
+      "max": "Value too long"
+    },
+    "hints": {
+      "body": "Markdown; images via /uploads/… links from the Media section",
+      "subject": "Subject and text in the subscriber's language; empty languages fall back tg → ru → en"
+    }
+  },
+  "settingsAdmin": {
+    "title": "Settings",
+    "subtitle": "Mail, integration endpoints and portal branding",
+    "smtp": {
+      "title": "Mail (SMTP)",
+      "hint": "The background worker sends mail from the email_outbox queue every minute. A test message checks the whole path: queue → SMTP → mailbox.",
+      "configured": "configured ({host})",
+      "dev": "SMTP_URL is not set — mail is written to the worker log (development mode)",
+      "to": "Recipient address",
+      "send": "Send test message",
+      "queued": "Message queued — it will be sent within a minute",
+      "lastTest": "Last test",
+      "status": {
+        "pending": "queued",
+        "sent": "sent",
+        "failed": "failed"
+      },
+      "statusLine": "{to} · {at} · requested by {by}",
+      "sentAt": "sent {time}",
+      "attempts": "attempts: {count}",
+      "refresh": "Refresh status",
+      "none": "No tests yet"
+    },
+    "integrations": {
+      "title": "Integration endpoints",
+      "hint": "Set through environment variables (.env) at deployment time; read-only here. Credentials are hidden.",
+      "variable": "Variable",
+      "value": "Value",
+      "notSet": "not set",
+      "fromWorker": "as reported by the worker's last run",
+      "apiKeySet": "set (hidden)",
+      "smartmet": "SmartMet Server",
+      "silam": "SILAM (THREDDS)",
+      "cap": "SmartMet Alert (CAP)",
+      "portal": "Portal"
+    },
+    "branding": {
+      "title": "Branding",
+      "hint": "The name, organisation and contacts appear in the header, footer and on the About page.",
+      "updatedAt": "Updated {time} ({by}).",
+      "siteName": "Portal name",
+      "siteNameHint": "Leave empty to use the name from the interface translations",
+      "agencyName": "Organisation name",
+      "email": "Contact e-mail",
+      "phone": "Phone",
+      "address": "Address",
+      "website": "Organisation website",
+      "footerNote": "Additional footer line",
+      "footerNoteHint": "For example, press-office hours or a link to regulations",
+      "saved": "Settings saved",
+      "publicHint": "Changes appear on the portal within a minute"
+    },
+    "errors": {
+      "validation": "Check the highlighted fields",
+      "email": "Invalid address",
+      "url": "The address must start with http:// or https://",
+      "insert": "Could not queue the message"
+    }
+  },
+  "usersAdmin": {
+    "title": "Users",
+    "subtitle": "{count, plural, one {# account} other {# accounts}}",
+    "create": "Create user",
+    "createHint": "Hand the password over through a secure channel; an administrator must enable 2FA at first sign-in.",
+    "created": "User created",
+    "name": "Name",
+    "email": "E-mail",
+    "role": "Role",
+    "locale": "Interface language",
+    "password": "Password",
+    "passwordHint": "At least 10 characters",
+    "newPassword": "New password",
+    "generate": "Generate password",
+    "copyPassword": "Copy password",
+    "copied": "Copied",
+    "twoFactor": "2FA",
+    "twoFactorOn": "enabled",
+    "twoFactorOff": "disabled",
+    "twoFactorRequired": "must be enabled",
+    "status": "Status",
+    "active": "Active",
+    "blocked": "Blocked",
+    "blockedUntil": "until {time}",
+    "sessions": "{count, plural, one {# active session} other {# active sessions}}",
+    "createdAt": "Created",
+    "actions": "Actions",
+    "you": "you",
+    "changeRole": "Change role",
+    "changeRoleHint": "All of the user's sessions will be terminated after the change. The Administrator role requires two-factor authentication at the next sign-in.",
+    "resetPassword": "Reset password",
+    "resetPasswordHint": "Set a new password and hand it over to the user. All of their sessions will be terminated.",
+    "block": "Block",
+    "blockHint": "{email} will not be able to sign in; their sessions will be terminated.",
+    "blockReason": "Reason (visible to administrators only)",
+    "blockDays": "Duration, days (empty — indefinitely)",
+    "unblock": "Unblock",
+    "revokeSessions": "Sign out everywhere",
+    "revokeSessionsHint": "{email} will be signed out on all devices.",
+    "resetTwoFactor": "Reset 2FA",
+    "resetTwoFactorHint": "The secret and backup codes of {email} will be deleted and sessions terminated. 2FA must be set up again at the next sign-in.",
+    "delete": "Delete",
+    "deleteConfirm": "Delete the account {email}? This cannot be undone; audit log entries are kept.",
+    "saved": "Saved",
+    "empty": "No users found",
+    "mandatory2fa": "Two-factor authentication (TOTP) is mandatory for the Administrator role: without it only the 2FA setup page is available.",
+    "filters": {
+      "search": "Search",
+      "placeholder": "Name or e-mail",
+      "apply": "Find"
+    },
+    "errors": {
+      "validation": "Check the highlighted fields",
+      "name": "Name: 2 to 120 characters",
+      "email": "Invalid e-mail",
+      "emailTaken": "A user with this e-mail already exists",
+      "password": "The password must be at least 10 characters",
+      "role": "Unknown role",
+      "locale": "Unknown language",
+      "self": "Cannot be applied to your own account",
+      "lastAdmin": "Not allowed: this is the last active administrator",
+      "notFound": "User not found",
+      "forbidden": "Insufficient permissions",
+      "unknown": "The operation failed"
+    }
+  },
+  "twoFactor": {
+    "title": "Two-factor authentication",
+    "intro": "The second factor is a one-time code from an authenticator app on your phone. It protects the account even if the password leaks.",
+    "required": "Two-factor authentication is mandatory for the Administrator role. Set it up to continue working in the panel.",
+    "mandatoryHint": "Access to the panel opens once 2FA is enabled",
+    "enabled": "2FA enabled",
+    "disabledState": "2FA disabled",
+    "disabled": "2FA has been disabled",
+    "stepPassword": "Confirm your password",
+    "password": "Password",
+    "start": "Enable 2FA",
+    "stepScan": "Scan the QR code",
+    "scanHint": "Open an authenticator app (Google Authenticator, Aegis, FreeOTP, Microsoft Authenticator) and add the account from the QR code or enter the key manually.",
+    "qrAlt": "QR code for the authenticator app",
+    "secret": "Key for manual entry",
+    "stepVerify": "Enter the code from the app",
+    "code": "Code",
+    "codeHint": "Six digits, refreshed every 30 seconds",
+    "verify": "Verify and enable",
+    "backupCodes": "Backup codes",
+    "backupHint": "Store the codes in a safe place: each can be used once if the phone is unavailable.",
+    "copy": "Copy",
+    "download": "Download",
+    "codesCopied": "Backup codes copied",
+    "codesDownloaded": "Backup codes file saved",
+    "codesRegenerated": "New backup codes issued; the old ones no longer work",
+    "done": "Done: two-factor authentication is enabled",
+    "goToAdmin": "Go to the panel",
+    "regenerate": "Issue new backup codes",
+    "regenerateHint": "The old codes will stop working. Your password is required.",
+    "disable": "Disable 2FA",
+    "disableForbidden": "Administrators cannot disable 2FA: it is mandatory",
+    "errors": {
+      "password": "Wrong password",
+      "invalidCode": "Invalid code — check the time on your phone and try again",
+      "alreadyEnabled": "2FA is already enabled",
+      "tooManyAttempts": "Too many attempts — try again later",
+      "unknown": "The operation failed"
+    }
+  },
+  "about": {
+    "title": "About the portal",
+    "intro": "Meteoportal is the official source of air quality and weather data for Tajikistan: measurements from the monitoring network, forecasts, warnings and health advice in three languages.",
+    "agency": {
+      "title": "Operator",
+      "text": "The Agency runs national ambient air monitoring and hydrometeorological observations and issues forecasts and severe weather warnings. The portal is its public data showcase."
+    },
+    "project": {
+      "title": "FINTAJ project",
+      "text": "The portal was developed within FINTAJ, the Finnish–Tajik cooperation project strengthening the hydrometeorological service of Tajikistan.",
+      "fmi": "The donor and technical partner is the Finnish Meteorological Institute (FMI): weather forecasts come from SmartMet Server, the air quality forecast from the SILAM model, and warnings from the SmartMet Alert editor in CAP format."
+    },
+    "sources": {
+      "title": "Where the data comes from",
+      "intro": "All external sources are synchronised in the background; if a source is unavailable the portal keeps showing the latest data marked as stale.",
+      "open": "Open section",
+      "stations": {
+        "title": "Monitoring stations",
+        "text": "PM2.5, PM10, NO₂, SO₂, CO and O₃ concentrations from the Agency's stations: manual entry, imports and automatic sensors. Data passes quality control."
+      },
+      "smartmet": {
+        "title": "Weather forecast",
+        "text": "SmartMet Server (FMI): hourly forecast for 3 days and daily forecast for 10 days for cities and districts."
+      },
+      "silam": {
+        "title": "Air quality forecast",
+        "text": "SILAM chemical transport model (FMI): concentration maps and point forecasts for 5 days."
+      },
+      "cap": {
+        "title": "Warnings",
+        "text": "SmartMet Alert messages in CAP 1.2: hazardous phenomena by region with yellow / orange / red levels."
+      }
+    },
+    "openData": {
+      "title": "Open data",
+      "text": "Current and historical data is available through a JSON API, CSV exports and embeddable widgets.",
+      "data": "Datasets",
+      "api": "API for developers",
+      "index": "Index methodology"
+    },
+    "languages": {
+      "title": "Languages and accessibility",
+      "text": "The portal is available in Tajik, Russian and English; the Tajik version is the primary one."
+    },
+    "accessibility": "The interface follows WCAG 2.1 AA: pollution levels are conveyed by colour and label, every action is keyboard-accessible, and dark mode and reduced motion are supported.",
+    "contacts": {
+      "title": "Contacts",
+      "email": "E-mail",
+      "phone": "Phone",
+      "address": "Address",
+      "website": "Website",
+      "none": "Contact details will be published after approval by the Agency."
+    },
+    "disclaimer": "Data is published for information purposes. Official environmental statements are issued by the Agency."
+  },
+  "aboutIndex": {
+    "title": "About the air quality index",
+    "intro": "How station measurements become five clear levels, which thresholds apply, and how the national index differs from the WHO scale.",
+    "step": "Step {n}",
+    "operational": {
+      "title": "Operational five-level index",
+      "measure": {
+        "title": "Measurement",
+        "text": "For each pollutant the latest hourly mean is taken (8-hour mean for CO). Only measurements that passed quality control are used."
+      },
+      "subindex": {
+        "title": "Pollutant sub-index",
+        "text": "The value is compared with the threshold table and gets a level from 1 (good) to 5 (very poor). The position within the band is kept, so the index can also be shown as a number."
+      },
+      "max": {
+        "title": "Station index",
+        "text": "The station index is the worst sub-index. The pollutant with the highest sub-index is called dominant and is shown next to the level."
+      },
+      "note": "This approach is used by operational indices in Europe (for example FMI/HSY): it shows the current situation without smoothing peaks. The thresholds below are edited by the Agency without a software release."
+    },
+    "thresholds": "Level thresholds",
+    "thresholdsCaption": "Concentration thresholds by pollutant and level",
+    "thresholdsHint": "Intervals are half-open: the lower bound is included, the upper is not. Units are µg/m³; mg/m³ for CO.",
+    "noScale": "The scale has not been configured yet.",
+    "pollutant": "Pollutant",
+    "averaging": "Averaging",
+    "avg1h": "1 hour",
+    "avg8h": "8 hours",
+    "avg24h": "24 hours",
+    "avgMin": "{min} min",
+    "colors": {
+      "title": "How to read the colours",
+      "level1": "Clean air: no restrictions.",
+      "level2": "Acceptable quality; very sensitive people may notice slight discomfort.",
+      "level3": "Sensitive groups should reduce prolonged outdoor exertion.",
+      "level4": "Pollution is noticeable for everyone: limit time outdoors, especially for children and the elderly.",
+      "level5": "Very high pollution: stay indoors if possible and keep windows closed.",
+      "level0": "No data, or the data is stale (measurement older than 6 hours).",
+      "accessibility": "Colour is never the only carrier of meaning: a level label is always shown next to it and a number on the map. Colours are chosen for a text contrast of at least 4.5:1 in light and dark themes."
+    },
+    "national": {
+      "title": "National index: ratio to limit values and the IZA",
+      "ratio": "The ratio to limit value compares a concentration with the maximum permissible concentration (daily or single maximum). Up to 1 means the standard is met; levels 2–5 correspond to ratios of 1–2, 2–3, 3–5 and above 5.",
+      "iza": "The composite air pollution index (IZA, RD 52.04.186-89) sums normalised monthly mean concentrations of the five pollutants with the largest contribution, weighted by hazard class: IZA = Σ (q̄ᵢ / MPCᵢ)^Cᵢ. Grades: low < 5, elevated 5–6, high 7–13, very high ≥ 14.",
+      "note": "Limit values and hazard classes are tabular data maintained by the Agency (reference: SanPiN 1.2.3685-21) and are refined on approval."
+    },
+    "limits": {
+      "daily": "Daily mean limit",
+      "maxSingle": "Single maximum limit",
+      "hazardClass": "Hazard class"
+    },
+    "limitsCaption": "Maximum permissible concentrations by pollutant",
+    "who": {
+      "title": "WHO guideline scale",
+      "text": "An optional scale based on the WHO Air Quality Guidelines 2021 and interim targets (24-hour means). Available in the API with scale=WHO_24H."
+    },
+    "quality": {
+      "title": "Data quality",
+      "text": "Every measurement is checked: physical range, spikes, stuck sensors and outliers relative to the station's history. Suspect values are reviewed by an operator; only valid and corrected values are published.",
+      "stale": "If the measurement is older than 6 hours the index is considered stale and shown as grey “no data” — an honest gap is better than an outdated number."
+    },
+    "more": {
+      "title": "See also",
+      "health": "Health advice by level",
+      "air": "Current air quality by station",
+      "api": "Index data via the API"
+    }
+  },
+  "data": {
+    "title": "Open data",
+    "intro": "Measurements, the index, forecasts and warnings are available in machine-readable form — for researchers, the media, app developers and the meteo.tj website.",
+    "apiDocs": "API documentation",
+    "updates": "Updated",
+    "onPortal": "View on the portal",
+    "csvHint": "Add format=csv to download a table",
+    "datasets": {
+      "stations": {
+        "title": "Monitoring stations",
+        "description": "Register of public stations with coordinates, status and current index level (GeoJSON).",
+        "updates": "every minute"
+      },
+      "measurements": {
+        "title": "Station measurements",
+        "description": "Hourly or daily means by pollutant for 24 hours, 7 days, 30 days or a year; JSON or CSV.",
+        "updates": "as data arrives"
+      },
+      "index": {
+        "title": "Current index",
+        "description": "Level, value and dominant pollutant for all stations on the selected scale.",
+        "updates": "every 10 minutes"
+      },
+      "forecast": {
+        "title": "Weather forecast",
+        "description": "Hourly and daily SmartMet forecast for cities and districts.",
+        "updates": "every 15 minutes"
+      },
+      "silam": {
+        "title": "Air quality forecast",
+        "description": "SILAM point forecast and a catalogue of raster layers for maps.",
+        "updates": "daily"
+      },
+      "alerts": {
+        "title": "CAP warnings",
+        "description": "Active and upcoming warnings as JSON, GeoJSON and the original CAP XML.",
+        "updates": "every 5 minutes"
+      },
+      "news": {
+        "title": "News",
+        "description": "Published news of the Agency as JSON and RSS in the selected language.",
+        "updates": "on publication"
+      },
+      "regions": {
+        "title": "Administrative boundaries",
+        "description": "Regions, Dushanbe and the Districts of Republican Subordination with simplified polygons (GeoJSON).",
+        "updates": "rarely"
+      }
+    },
+    "license": {
+      "title": "Licence",
+      "text": "Data is published under the Creative Commons Attribution 4.0 (CC BY 4.0) open licence: it may be used, shared and processed, including commercially.",
+      "attribution": "Attribution is required: “Agency for Hydrometeorology of the Republic of Tajikistan, Meteoportal”. FMI forecasts (SmartMet, SILAM) must credit the Finnish Meteorological Institute."
+    },
+    "formats": {
+      "title": "Formats",
+      "json": "JSON — the primary format of all endpoints",
+      "geojson": "GeoJSON — stations, boundaries, warning polygons",
+      "csv": "CSV (UTF-8 with BOM) — measurement series for spreadsheets and analysis",
+      "xml": "CAP XML and RSS 2.0 — warnings and news"
+    },
+    "widgets": {
+      "title": "Widgets for websites",
+      "text": "Ready-made iframe blocks: station index, weather forecast, warnings. The language is set with the lang parameter."
+    },
+    "quality": "Station data is published after automatic and manual quality control; values marked “stale” or “no data” mean a gap, not zero pollution."
+  },
+  "apiDocs": {
+    "title": "API for developers",
+    "intro": "Public REST API version 1: read-only, no keys, JSON by default. The OpenAPI 3.1 specification is generated from the same schemas that validate server responses.",
+    "download": "Download OpenAPI 3.1 (JSON)",
+    "backToData": "← Open data",
+    "baseUrl": "Base URL",
+    "auth": "Authentication",
+    "authHint": "Not required. Rate limit: 60 requests per minute per IP.",
+    "cors": "CORS",
+    "corsHint": "Requests from any website are allowed (Access-Control-Allow-Origin: *).",
+    "contents": "Contents",
+    "cache": "cache {ttl}",
+    "parameters": "Parameters",
+    "param": "Parameter",
+    "in": "In",
+    "type": "Type",
+    "description": "Description",
+    "required": "required",
+    "example": "Example request",
+    "try": "Open in browser →",
+    "responses": {
+      "ok": "Successful response",
+      "csv": "CSV (UTF-8 with BOM): time_utc, time_local, pollutant, value, min, max, n",
+      "geojson": "GeoJSON when format=geojson",
+      "capXml": "Original CAP 1.2 message",
+      "rss": "RSS 2.0",
+      "badRequest": "Invalid parameters",
+      "notFound": "Object not found"
+    },
+    "licenseNote": "Data is licensed under CC BY 4.0 with attribution; FMI forecasts must credit the Finnish Meteorological Institute.",
+    "embedNote": "For websites without development there are iframe widgets /embed/aqi, /embed/forecast and /embed/alerts (see Open data).",
+    "info": {
+      "title": "Meteoportal of Tajikistan — public API",
+      "description": "Air quality, weather and air quality forecasts, CAP warnings and news of the Agency for Hydrometeorology of the Republic of Tajikistan. Times are UTC (ISO 8601); local time is Asia/Dushanbe (UTC+5).",
+      "license": "CC BY 4.0"
+    },
+    "tags": {
+      "air": "Air quality",
+      "weather": "Forecasts",
+      "warnings": "Warnings",
+      "content": "News",
+      "geo": "Geography"
+    },
+    "endpoints": {
+      "stations": {
+        "summary": "List of monitoring stations",
+        "description": "Public stations (except decommissioned) as a GeoJSON FeatureCollection with the current index level; 0 means no data or stale."
+      },
+      "stationMeasurements": {
+        "summary": "Station measurement series",
+        "description": "Hourly (24h, 7d) or daily local-time (30d, 1y) means of valid measurements with min/max and count. CSV with format=csv.",
+        "params": {
+          "slug": "Station address (the slug field from the station list)",
+          "range": "Period: 24h, 7d, 30d or 1y",
+          "pollutant": "Pollutant code (PM25, PM10, NO2, SO2, CO, O3); all pollutants when omitted",
+          "format": "json or csv"
+        }
+      },
+      "indexCurrent": {
+        "summary": "Current index by station",
+        "description": "The latest computed index of every public station: level, value, dominant pollutant, sub-indices and a stale flag (older than 6 hours).",
+        "params": {
+          "scale": "Scale code: NATIONAL_OPERATIONAL (default), WHO_24H or IZA"
+        }
+      },
+      "exceedances": {
+        "summary": "Active threshold exceedances",
+        "description": "Open exceedance events according to the Agency's alert rules (portal channel)."
+      },
+      "forecast": {
+        "summary": "Weather forecast for a location",
+        "description": "Hourly series and daily aggregates from SmartMet Server; model run time and data producer.",
+        "params": {
+          "slug": "Forecast location address, e.g. dushanbe",
+          "hours": "Number of hours in the hourly series (1–240)",
+          "days": "Number of days in the daily forecast (1–16)"
+        }
+      },
+      "silamPoint": {
+        "summary": "SILAM air quality forecast for a location",
+        "description": "Hourly concentrations and levels by pollutant plus a daily summary (local-day mean, level by the worst pollutant).",
+        "params": {
+          "slug": "Forecast location address, e.g. dushanbe"
+        }
+      },
+      "silamLayers": {
+        "summary": "Catalogue of SILAM raster layers",
+        "description": "Grid bounds and PNG frames by pollutant and hour of the latest run — for map overlays."
+      },
+      "alerts": {
+        "summary": "CAP warnings",
+        "description": "Normalised list of SmartMet Alert warnings in the selected language (with fallback) or GeoJSON polygons for maps.",
+        "params": {
+          "active": "1 — only warnings active now",
+          "region": "Warning region code (DU, SU, KT, GB, RRP)",
+          "lang": "Text language: tg, ru or en",
+          "days": "Horizon in days (1–14)",
+          "format": "json or geojson"
+        }
+      },
+      "alertXml": {
+        "summary": "Original CAP XML",
+        "description": "The original CAP 1.2 message (status=Actual only).",
+        "params": {
+          "id": "Warning identifier from the list"
+        }
+      },
+      "news": {
+        "summary": "News",
+        "description": "Published news with excerpt, category, cover and page link.",
+        "params": {
+          "locale": "Language: tg, ru or en",
+          "page": "Page number",
+          "pageSize": "Page size (1–50)",
+          "category": "Category slug"
+        }
+      },
+      "newsRss": {
+        "summary": "News RSS",
+        "description": "The 20 latest news items as RSS 2.0 in the selected language.",
+        "params": {
+          "locale": "Language: tg, ru or en"
+        }
+      },
+      "regions": {
+        "summary": "Administrative boundaries",
+        "description": "Regions, Dushanbe and the Districts of Republican Subordination with simplified polygons and centroids."
+      }
+    },
+    "responsesTitle": "Responses"
+  }
+}

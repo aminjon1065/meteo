@@ -1,0 +1,35 @@
+{
+  "name": "@meteo/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Схема PostgreSQL (Drizzle), миграции, TimescaleDB/PostGIS и seed-данные метеопортала",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema/index.ts",
+    "./client": "./src/client.ts"
+  },
+  "scripts": {
+    "generate": "drizzle-kit generate",
+    "migrate": "tsx src/migrate.ts",
+    "boundaries": "tsx ../../infra/data/load-boundaries.ts",
+    "seed": "tsx src/seed.ts",
+    "import-history": "tsx src/scripts/import-history.ts",
+    "studio": "drizzle-kit studio",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@meteo/core": "workspace:*",
+    "@meteo/i18n": "workspace:*",
+    "better-auth": "^1.7.10",
+    "dotenv": "^17.3.1",
+    "drizzle-orm": "^0.45.4",
+    "postgres": "^3.4.9"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "drizzle-kit": "^0.31.11",
+    "tsx": "^4.20.5",
+    "typescript": "^5.9.3"
+  }
+}
