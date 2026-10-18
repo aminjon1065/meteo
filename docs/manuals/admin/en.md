@@ -155,6 +155,8 @@ The portal receives station data in three ways; none depends on the equipment ve
 
 **File source**: "Add source" → fill in the fields:
 
+![Figure 10. "Add source" form in the "File sources" block: an SFTP example with the "column per pollutant" mapping template](../img/admin-station-source-form.png)
+
 | Field | How to fill |
 |---|---|
 | Type | SFTP (SSH), FTP, FTPS or HTTP(S) — file by URL |
@@ -169,19 +171,23 @@ After saving click "Check now": within a minute the source row shows the status 
 
 **How to verify that data flows**: the "Automatic data intake" block in the card (time and channel of the last intake, accepted/rejected), the "Automatic intake" column on the dashboard (section 3), `measurements.ingest` and `measurements.pull` entries by `station:<code>` in the audit log (section 6). Rejected records are not lost silently: the reason for each (`unknownPollutant`, `unit`, `time`, `futureTime` …) is returned to the sender and appears in the source summary.
 
+![Figure 11. "Automatic data intake" block after the first API intake: state, time and channel of the last intake, accepted/rejected, data period and agent version](../img/admin-station-ingest.png)
+
+![Figure 12. Dashboard: the "Automatic intake" column in the "Data freshness by station" table and the counter of stations without intake for longer than the threshold](../img/admin-dashboard-ingest.png)
+
 **E-mails to administrators**: when a source delivers no value for longer than its threshold or a station with API intake stays silent for more than 3 hours, all administrators (and the `ADMIN_ALERT_EMAILS` addresses) receive "No data from station…"; when data resumes — "Data is arriving again".
 
 ## 5. Measurements
 
 "Measurements" (`/admin/measurements`) combines manual entry, CSV import, data browsing and the quality‑control queue; recent import batches are listed at the bottom.
 
-![Figure 10. "Measurements" section](../img/admin-measurements.png)
+![Figure 13. "Measurements" section](../img/admin-measurements.png)
 
 ### 5.1. Manual entry
 
 For posts with discrete samples and laboratory data.
 
-![Figure 11. Manual entry: time × pollutant grid for the selected date](../img/admin-entry.png)
+![Figure 14. Manual entry: time × pollutant grid for the selected date](../img/admin-entry.png)
 
 1. Choose the station and the date (local time, Dushanbe). The grid shows only the pollutants ticked for the station, with its input units.
 2. Default time rows depend on the station's sampling mode (01:00, 07:00, 13:00, 19:00 for discrete samples); times can be changed and rows added or removed (up to 48 rows).
@@ -199,7 +205,7 @@ What happens on save:
 
 For files from posts, from a laboratory information system or from automatic sensors. Import has two steps: validation, then writing.
 
-![Figure 12. CSV import, step 1: choosing the file and the default station](../img/admin-import-step1.png)
+![Figure 15. CSV import, step 1: choosing the file and the default station](../img/admin-import-step1.png)
 
 File format:
 
@@ -213,7 +219,7 @@ File format:
 
 A template with correct headers is available via "Download CSV template". A training file can be generated with the command from the training materials (`node docs/training/make-sample-csv.mjs`).
 
-![Figure 13. CSV import, step 2: validation report with "Apply" / "Reject" buttons](../img/admin-import-report.png)
+![Figure 16. CSV import, step 2: validation report with "Apply" / "Reject" buttons](../img/admin-import-report.png)
 
 After "Check file" a report is shown: rows in the file, valid, rejected (with row number and reason), out of range. "Apply (N)" writes the valid rows; rows with errors are skipped — fix them in the file and upload separately. "Reject" discards the batch without writing. A validated batch is kept for a limited time: if "Validation expired" appears, upload the file again.
 
@@ -221,7 +227,7 @@ Out‑of‑range values are stored with the "invalid" flag and wait for a decisi
 
 ### 5.3. Browsing data
 
-![Figure 14. Data browsing: filters by station, pollutant and period](../img/admin-browse.png)
+![Figure 17. Data browsing: filters by station, pollutant and period](../img/admin-browse.png)
 
 Filters: station, pollutant, period. The table shows the time (local), the value in the pollutant unit, averaging (20 — single sample, 60 — hour, 1440 — day), the QC flag and the source (manual entry / import / API / sensor). Flags:
 
@@ -245,7 +251,7 @@ Automatic quality control (QC) runs in the background every 15 minutes and on en
 | Stuck sensor | the same value for many hours in a row → "suspect" |
 | Outlier against the station history | robust criterion (MAD) over the station history → "suspect" |
 
-![Figure 15. Quality‑control queue](../img/admin-qc.png)
+![Figure 18. Quality‑control queue](../img/admin-qc.png)
 
 The operator's decision for each value:
 
@@ -253,7 +259,7 @@ The operator's decision for each value:
 - **Correct** — enter a new value and a reason (for example "typing error: extra zero"); the original value is kept, flag "corrected".
 - **Reject** — exclude from calculations and charts; flag "invalid".
 
-![Figure 16. Correction dialog with a reason](../img/admin-qc-correct.png)
+![Figure 19. Correction dialog with a reason](../img/admin-qc-correct.png)
 
 After a decision the value is locked for automatic QC (it will not return to the queue), the station index is recalculated and an audit record with "before → after" and the reason is written. The filter "Decision → Already processed" shows the decision history.
 
@@ -261,7 +267,7 @@ After a decision the value is locked for automatic QC (it will not return to the
 
 "Audit log" (`/admin/audit`) keeps every action in the panel: who (e‑mail and role), when, what (`stations.update`, `measurement.correct`, `news.publish`, `user.ban` and so on), on which object, and the "before" / "after" state as JSON. Records cannot be edited or deleted — not even by an administrator; when a user is deleted, their actions stay in the log with the e‑mail.
 
-![Figure 17. Audit log with object and period filters and search](../img/admin-audit.png)
+![Figure 20. Audit log with object and period filters and search](../img/admin-audit.png)
 
 Search by action, e‑mail or identifier; filter by object and period. Use the log when investigating disputed values, restoring accidentally changed settings and during inspections.
 
@@ -269,7 +275,7 @@ Search by action, e‑mail or identifier; filter by object and period. Use the l
 
 "Scales and thresholds" (`/admin/scales`) — administrators only. Changes apply to the index calculation immediately and affect the whole portal, widgets and API; change thresholds only according to an approved methodology and document the decision.
 
-![Figure 18. List of index scales](../img/admin-scales.png)
+![Figure 21. List of index scales](../img/admin-scales.png)
 
 Three scales are supplied:
 
@@ -281,7 +287,7 @@ Three scales are supplied:
 
 ### 7.1. Editing a scale
 
-![Figure 19. Scale card: basics, levels, pollutant thresholds](../img/admin-scale-edit.png)
+![Figure 22. Scale card: basics, levels, pollutant thresholds](../img/admin-scale-edit.png)
 
 - **Basics**: name and description in three languages, "Enabled" and "Public default scale" (exactly one scale can be public), order.
 - **Levels**: labels of the five levels in three languages; colours are fixed by the design system (green, yellow, orange, red, purple).
@@ -291,7 +297,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 ### 7.2. Limit values and hazard classes
 
-![Figure 20. Limit values and hazard classes table](../img/admin-limits.png)
+![Figure 23. Limit values and hazard classes table](../img/admin-limits.png)
 
 "Limit values and hazard classes" (`/admin/scales/limits`): daily, maximum single and annual limit values (MPC) in the pollutant unit, plus the hazard class (1–4) used by the IZA. An empty field means no limit is set. Default values come from SanPiN 1.2.3685‑21 and must be confirmed by the Agency.
 
@@ -299,7 +305,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 "Health advice" (`/admin/health-advice`) holds the texts the portal shows next to the index: on the home page, station pages, the "Health" section and in widgets.
 
-![Figure 21. Advice matrix: level × population group × language](../img/admin-health-advice.png)
+![Figure 24. Advice matrix: level × population group × language](../img/admin-health-advice.png)
 
 - Choose the scale (normally the public default).
 - For each level (1–5) and each population group (general population, children, pregnant and breastfeeding, elderly, chronic respiratory diseases, cardiovascular diseases) fill in the title and text in three languages.
@@ -313,9 +319,9 @@ Texts must be agreed with medical experts; the portal shows a disclaimer that th
 
 "Alerts" (`/admin/alerts`): rules by which the portal shows an exceedance banner and e‑mails subscribers.
 
-![Figure 22. List of alert rules](../img/admin-alerts.png)
+![Figure 25. List of alert rules](../img/admin-alerts.png)
 
-![Figure 23. Rule form: condition, scope, delivery](../img/admin-alert-new.png)
+![Figure 26. Rule form: condition, scope, delivery](../img/admin-alert-new.png)
 
 | Field | Description |
 |---|---|
@@ -330,13 +336,13 @@ How evaluation works: every 10 minutes a background job takes the latest availab
 
 ### 9.2. Exceedance events
 
-![Figure 24. Exceedance events: active and resolved](../img/admin-alert-events.png)
+![Figure 27. Exceedance events: active and resolved](../img/admin-alert-events.png)
 
 "Exceedance events" (`/admin/alerts/events`): start, end, peak, whether e‑mails were sent. An active event can be closed manually with "Resolve" (for example after rejecting a wrong value in QC).
 
 ### 9.3. Subscribers
 
-![Figure 25. Subscribers: statuses, topics, export](../img/admin-subscribers.png)
+![Figure 28. Subscribers: statuses, topics, export](../img/admin-subscribers.png)
 
 "Subscribers" (`/admin/subscribers`) shows addresses, language, status (confirmed / pending / unsubscribed) and topics: all stations, selected stations, newsletter. Visitors subscribe on `/subscribe` and confirm through a link in the e‑mail (double opt‑in); every message contains an unsubscribe link. Addresses cannot be edited in the panel — this protects against mailing without consent. "Export CSV" downloads the list for reporting; treat it as personal data.
 
@@ -344,7 +350,7 @@ How evaluation works: every 10 minutes a background job takes the latest availab
 
 "CAP messages" (`/admin/cap`) — weather warnings from the SmartMet Alert editor in CAP 1.2 format. The portal does not create them: a background job reads the feed every 5 minutes (the IT service sets the address in `CAP_FEED_URL`) and stores the messages; they then appear in the portal's "Warnings" section, on the map, on the home page, in the widget and in the API.
 
-![Figure 26. CAP message list with synchronisation status](../img/admin-cap.png)
+![Figure 29. CAP message list with synchronisation status](../img/admin-cap.png)
 
 Statuses in the list:
 
@@ -358,13 +364,13 @@ Statuses in the list:
 
 The "Synchronisation" block at the top shows the result of the last run (ok / partial / error / not modified / source not configured) and parsing errors of individual files.
 
-![Figure 27. CAP message card: info blocks by language, areas, parameters, source XML](../img/admin-cap-detail.png)
+![Figure 30. CAP message card: info blocks by language, areas, parameters, source XML](../img/admin-cap-detail.png)
 
 The message card shows all `info` blocks (by language), affected areas mapped to warning regions, parameters and an "XML" button for the source file. This helps to understand why a message is displayed differently than expected (for example, there is no Tajik block — the fallback and the event dictionary are used).
 
 ### 10.1. Event dictionary
 
-![Figure 28. CAP event type dictionary](../img/admin-cap-events.png)
+![Figure 31. CAP event type dictionary](../img/admin-cap-events.png)
 
 "Event types" (`/admin/cap/events`): translations of the `event` field (for example `Strong wind` → «Сильный ветер» / «Шамоли сахт») into three languages. They are used when a message has no `info` block in the portal language. New event types appear in the dictionary automatically after the first synchronisation — fill in the translations, otherwise the portal shows the original text from the message.
 
@@ -374,9 +380,9 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 "News" (`/admin/news`): publications for the portal's "News" section, home‑page cards, RSS and API.
 
-![Figure 29. News list with statuses](../img/admin-news.png)
+![Figure 32. News list with statuses](../img/admin-news.png)
 
-![Figure 30. News editor: three languages, Markdown with preview, cover, publishing options](../img/admin-news-edit.png)
+![Figure 33. News editor: three languages, Markdown with preview, cover, publishing options](../img/admin-news-edit.png)
 
 | Field | Description |
 |---|---|
@@ -391,19 +397,19 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 "Publish" / "Unpublish" change the status without re‑saving the form. "Open on the portal" leads to the news page. Categories are managed on the "Categories" page (name in three languages, slug, order).
 
-![Figure 31. News categories](../img/admin-news-categories.png)
+![Figure 34. News categories](../img/admin-news-categories.png)
 
 ### 11.2. Media
 
-![Figure 32. Media library](../img/admin-media.png)
+![Figure 35. Media library](../img/admin-media.png)
 
 "Media" (`/admin/media`): images and PDFs for news and bulletins. JPEG, PNG, WebP, GIF and PDF up to 10 MB are accepted; the type is detected from the file content, so renamed files of other formats (for example SVG) are rejected. After upload, "Copy link" gives an address like `/uploads/2026/10/….png` for Markdown. Deleting a file breaks links to it in already published news.
 
 ### 11.3. Bulletins
 
-![Figure 33. Bulletin list](../img/admin-bulletins.png)
+![Figure 36. Bulletin list](../img/admin-bulletins.png)
 
-![Figure 34. New bulletin: subject and body in three languages, linked news item](../img/admin-bulletin-new.png)
+![Figure 37. New bulletin: subject and body in three languages, linked news item](../img/admin-bulletin-new.png)
 
 "Bulletins" (`/admin/bulletins`) — mailing to subscribers who chose the newsletter.
 
@@ -418,7 +424,7 @@ If the mail queue on the dashboard shows growing errors, the mailing is not deli
 
 "Settings" (`/admin/settings`) — administrators only.
 
-![Figure 35. Settings: SMTP test, integration addresses, branding](../img/admin-settings.png)
+![Figure 38. Settings: SMTP test, integration addresses, branding](../img/admin-settings.png)
 
 - **Mail (SMTP)**: shows whether SMTP is configured (`SMTP_URL` is set on the server). "Send test e‑mail" queues a message and shows its status (queued → sent / error with text). The test checks the whole path: queue → SMTP → mailbox. Without `SMTP_URL`, messages are only written to the background‑service log — development mode.
 - **Integration addresses**: SmartMet, SILAM, SmartMet Alert, portal address — read‑only; credentials are hidden. Only the IT service can change them through environment variables (see the runbook).
@@ -428,17 +434,17 @@ If the mail queue on the dashboard shows growing errors, the mailing is not deli
 
 "Users" (`/admin/users`) — administrators only.
 
-![Figure 36. User list: role, 2FA, status, sessions](../img/admin-users.png)
+![Figure 39. User list: role, 2FA, status, sessions](../img/admin-users.png)
 
 ### 13.1. Creating a user
 
-![Figure 37. Create‑user dialog](../img/admin-user-create.png)
+![Figure 40. Create‑user dialog](../img/admin-user-create.png)
 
 "Create user": name, e‑mail (login), role, interface language, password (at least 10 characters; "Generate password" and "Copy" buttons). Hand the password over through a secure channel and ask the employee to have it changed at the first sign‑in through "Reset password" (there is no self‑service password change in the panel yet — an administrator sets a new one on request). An administrator must set up 2FA at the first sign‑in.
 
 ### 13.2. Actions
 
-![Figure 38. User actions menu](../img/admin-user-actions.png)
+![Figure 41. User actions menu](../img/admin-user-actions.png)
 
 | Action | Effect |
 |---|---|

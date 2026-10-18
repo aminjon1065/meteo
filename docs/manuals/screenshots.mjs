@@ -2,7 +2,7 @@
 /**
  * Скриншоты интерфейса для руководств (docs/manuals/img/*.png), общие для tg/ru/en.
  *
- *   node docs/manuals/screenshots.mjs prepare   # демо-данные через интерфейс: импорт CSV, пользователи
+ *   node docs/manuals/screenshots.mjs prepare   # демо-данные через интерфейс: импорт CSV, пользователи, приём по API
  *   node docs/manuals/screenshots.mjs capture   # все снимки админки и портала
  *
  * Нужен запущенный портал (production-сборка: PORT=3005 pnpm -C apps/web start) и Chromium Playwright
@@ -13,7 +13,9 @@
  *   DOCS_TOTP_SECRET    ключ TOTP, если 2FA уже включена (иначе берётся из файла состояния)
  *   DOCS_DEMO_CSV       CSV для импорта в режиме prepare (по умолчанию генерируется docs/training/make-sample-csv.mjs)
  *   DOCS_STATE_DIR      каталог состояния (сессия, ключ TOTP); по умолчанию во временной папке ОС
- *   DOCS_STEPS          только перечисленные шаги capture, например DOCS_STEPS=map,qc (список — в коде)
+ *   DOCS_INGEST_STATION код станции для демо‑приёма по API и снимков раздела 4.3 руководства (DU-01)
+ *   DOCS_STEPS          только перечисленные шаги, например DOCS_STEPS=map,qc (список — в коде); действует
+ *                       и для prepare (import, users, ingest); снимки входа и 2FA — шаг login
  *
  * Если у администратора 2FA ещё не включена, скрипт проходит мастер включения (как E2E) и сохраняет
  * ключ в DOCS_STATE_DIR/totp.secret. Ключ и резервные коды на снимках размываются.
@@ -50,6 +52,7 @@ const cfg = {
   stateDir: process.env.DOCS_STATE_DIR ?? resolve(tmpdir(), "meteo-docs-screenshots"),
   imgDir: resolve(here, "img"),
   demoCsv: process.env.DOCS_DEMO_CSV ?? "",
+  ingestStation: process.env.DOCS_INGEST_STATION ?? "DU-01",
 };
 if (!cfg.password) {
   console.error("Не задан пароль администратора (DOCS_ADMIN_PASSWORD или SEED_ADMIN_PASSWORD).");
@@ -172,6 +175,48 @@ async function selectByText(select, re) {
   const value = await option.getAttribute("value");
   if (value === null) throw new Error(`option ${re} не найден`);
   await select.selectOption(value);
+}
+
+const escapeRe = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/** Область окна, охватывающая прямоугольники с отступом (для clip). */
+function clipAround(boxes, viewport, pad = 12) {
+  const x = Math.max(0, Math.min(...boxes.map((b) => b.x)) - pad);
+  const y = Math.max(0, Math.min(...boxes.map((b) => b.y)) - pad);
+  const right = Math.min(viewport.width, Math.max(...boxes.map((b) => b.x + b.width)) + pad);
+  const bottom = Math.min(viewport.height, Math.max(...boxes.map((b) => b.y + b.height)) + pad);
+  return { x, y, width: right - x, height: bottom - y };
+}
+
+/** Снимок верха страницы, обрезанный до перечисленных элементов (заголовок + карточка и т. п.). */
+async function shotRegion(page, locators, name) {
+  await page.evaluate(() => window.scrollTo(0, 0));
+  await settle(page);
+  const boxes = (await Promise.all(locators.map((l) => l.boundingBox()))).filter(Boolean);
+  if (boxes.length === 0) throw new Error(`${name}: элементы для снимка не найдены`);
+  const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+  await shot(page, name, { clip: clipAround(boxes, viewport) });
+}
+
+/** Снимок одного элемента (карточки) целиком: окно временно увеличивается, если элемент выше него. */
+async function shotElement(locator, name) {
+  const page = locator.page();
+  const viewport = page.viewportSize() ?? { width: 1280, height: 800 };
+  const size = await locator.boundingBox();
+  if (size && size.height + 48 > viewport.height) {
+    await page.setViewportSize({
+      width: viewport.width,
+      height: Math.min(4000, Math.ceil(size.height) + 48),
+    });
+  }
+  await locator.scrollIntoViewIfNeeded();
+  await settle(page);
+  const box = await locator.boundingBox();
+  if (!box) throw new Error(`${name}: элемент для снимка не найден`);
+  await shot(page, name, {
+    clip: clipAround([box], page.viewportSize() ?? viewport),
+  });
+  await page.setViewportSize(viewport);
 }
 
 /* ---------------------------------------------------------------- вход администратора */
@@ -300,52 +345,11 @@ async function importCsv(page, file, { apply, shots }) {
   await noToasts(page);
 }
 
-/* ---------------------------------------------------------------- prepare */
-async function prepare(browser) {
-  const { context, page } = await adminContext(browser, { shots: true });
-  let csv = cfg.demoCsv;
-  if (!csv) {
-    csv = resolve(cfg.stateDir, "measurements-demo.csv");
-    const { makeSampleCsv } = await import(resolve(repoRoot, "docs/training/make-sample-csv.mjs"));
-    writeFileSync(csv, makeSampleCsv({ stations: ["DU-01", "SU-01", "KT-01"], minute: 30 }));
-  }
-  console.info(`импорт ${csv}`);
-  await importCsv(page, csv, { apply: true, shots: true });
-
-  // Пользователи для снимков: оператор и редактор (пароли показываются только в диалоге).
-  await page.goto(url("/admin/users"));
-  for (const u of [
-    { name: "Оператор мониторинга", email: "operator.demo@meteo.tj", role: "operator" },
-    { name: "Редактор новостей", email: "editor.demo@meteo.tj", role: "editor" },
-  ]) {
-    if (
-      await page
-        .getByText(u.email)
-        .first()
-        .isVisible()
-        .catch(() => false)
-    )
-      continue;
-    await page.getByRole("button", { name: t("usersAdmin.create"), exact: true }).click();
-    const dialog = page.getByRole("dialog");
-    await dialog.locator("#nu-name").fill(u.name);
-    await dialog.locator("#nu-email").fill(u.email);
-    await dialog.locator("#nu-role").selectOption(u.role);
-    await dialog.getByRole("button", { name: t("usersAdmin.generate"), exact: true }).click();
-    if (u.role === "operator") {
-      await blur(page, ["#nu-password"]);
-      await shot(page, "admin-user-create");
-    }
-    await dialog.locator("button[type=submit]").click();
-    await dialog.waitFor({ state: "hidden", timeout: 30_000 });
-    await noToasts(page);
-  }
-  await context.close();
-}
-
 /* ---------------------------------------------------------------- шаги с продолжением при ошибке */
 const failures = [];
 const onlySteps = process.env.DOCS_STEPS ? process.env.DOCS_STEPS.split(",") : null;
+/** Снимки входа и 2FA делаются при полном прогоне или по шагу login. */
+const loginShots = !onlySteps || onlySteps.includes("login");
 /** Шаг снимков; DOCS_STEPS=map,qc ограничивает запуск перечисленными шагами. */
 async function step(name, fn) {
   if (onlySteps && !onlySteps.includes(name)) return;
@@ -365,13 +369,156 @@ async function firstHref(page, re) {
   }, re.source);
 }
 
+/* ---------------------------------------------------------------- демо‑приём по API (раздел 4.3) */
+/** Идентификатор станции по коду — через публичный API портала. */
+async function stationIdByCode(code) {
+  const res = await fetch(`${cfg.baseUrl}/api/v1/stations`);
+  if (!res.ok) throw new Error(`/api/v1/stations: HTTP ${res.status}`);
+  const { features } = await res.json();
+  const found = features.find((f) => f.properties?.code === code);
+  if (!found) throw new Error(`станция ${code} не найдена (DOCS_INGEST_STATION)`);
+  return found.properties.id;
+}
+
+/** Новый ключ API через карточку станции («Сгенерировать ключ» / «Обновить ключ»); прежний ключ перестаёт действовать. */
+async function rotateApiKey(page, stationId) {
+  await page.goto(url(`/admin/stations/${stationId}`));
+  const card = page.locator("[data-slot=card]").filter({
+    has: page.locator("[data-slot=card-title]", { hasText: t("stations.apiKey.title") }),
+  });
+  const buttonName = new RegExp(
+    `^(${escapeRe(t("stations.apiKey.generate"))}|${escapeRe(t("stations.apiKey.rotate"))})$`,
+  );
+  await card.getByRole("button", { name: buttonName }).click();
+  const key = card.getByText(/^mst_[A-Za-z0-9_-]+$/);
+  await key.waitFor({ timeout: 30_000 });
+  await noToasts(page);
+  return ((await key.textContent()) ?? "").trim();
+}
+
+/** Демонстрационные измерения за последние три часа с шагом 20 минут — как их прислал бы агент станции. */
+function demoIngestRecords(now = Date.now()) {
+  const STEP = 20 * 60_000;
+  const last = Math.floor(now / STEP) * STEP - STEP;
+  const series = {
+    PM25: [34, 6, 1],
+    PM10: [71, 12, 1],
+    NO2: [28, 7, 1],
+    SO2: [8, 2, 1],
+    CO: [0.9, 0.2, 2],
+    O3: [52, 9, 1],
+  };
+  const records = [];
+  for (let i = 9; i >= 0; i -= 1) {
+    const time = new Date(last - i * STEP).toISOString();
+    for (const [pollutant, [base, amplitude, digits]] of Object.entries(series)) {
+      const value = Number((base + amplitude * Math.sin((i + base) / 2)).toFixed(digits));
+      records.push({ time, pollutant, value });
+    }
+  }
+  return records;
+}
+
+/** POST /api/v1/ingest/{code} с заголовками агента станции. */
+async function postDemoIngest(stationCode, apiKey) {
+  const agent = JSON.parse(
+    readFileSync(resolve(repoRoot, "apps/station-agent/package.json"), "utf8"),
+  );
+  const res = await fetch(`${cfg.baseUrl}/api/v1/ingest/${stationCode}`, {
+    method: "POST",
+    headers: {
+      authorization: `Bearer ${apiKey}`,
+      "content-type": "application/json",
+      "user-agent": `meteo-station-agent/${agent.version} (${stationCode}; node ${process.version})`,
+    },
+    body: JSON.stringify(demoIngestRecords()),
+  });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok)
+    throw new Error(
+      `ingest ${stationCode}: HTTP ${res.status} ${body.message ?? body.error ?? ""}`,
+    );
+  console.info(`  приём ${stationCode}: принято ${body.accepted}, отклонено ${body.rejected}`);
+}
+
+/** Демо‑приём для снимков раздела 4.3: ключ API через карточку и отправка измерений от имени агента. */
+async function prepareIngest(page) {
+  const id = await stationIdByCode(cfg.ingestStation);
+  const apiKey = await rotateApiKey(page, id);
+  await postDemoIngest(cfg.ingestStation, apiKey);
+}
+
+/* ---------------------------------------------------------------- prepare */
+async function prepare(browser) {
+  const { context, page } = await adminContext(browser, { shots: loginShots });
+
+  await step("import", async () => {
+    let csv = cfg.demoCsv;
+    if (!csv) {
+      csv = resolve(cfg.stateDir, "measurements-demo.csv");
+      const { makeSampleCsv } = await import(
+        resolve(repoRoot, "docs/training/make-sample-csv.mjs")
+      );
+      writeFileSync(csv, makeSampleCsv({ stations: ["DU-01", "SU-01", "KT-01"], minute: 30 }));
+    }
+    console.info(`импорт ${csv}`);
+    await importCsv(page, csv, { apply: true, shots: true });
+  });
+
+  // Пользователи для снимков: оператор и редактор (пароли показываются только в диалоге).
+  await step("users", async () => {
+    await page.goto(url("/admin/users"));
+    for (const u of [
+      { name: "Оператор мониторинга", email: "operator.demo@meteo.tj", role: "operator" },
+      { name: "Редактор новостей", email: "editor.demo@meteo.tj", role: "editor" },
+    ]) {
+      if (
+        await page
+          .getByText(u.email)
+          .first()
+          .isVisible()
+          .catch(() => false)
+      )
+        continue;
+      await page.getByRole("button", { name: t("usersAdmin.create"), exact: true }).click();
+      const dialog = page.getByRole("dialog");
+      await dialog.locator("#nu-name").fill(u.name);
+      await dialog.locator("#nu-email").fill(u.email);
+      await dialog.locator("#nu-role").selectOption(u.role);
+      await dialog.getByRole("button", { name: t("usersAdmin.generate"), exact: true }).click();
+      if (u.role === "operator") {
+        await blur(page, ["#nu-password"]);
+        await shot(page, "admin-user-create");
+      }
+      await dialog.locator("button[type=submit]").click();
+      await dialog.waitFor({ state: "hidden", timeout: 30_000 });
+      await noToasts(page);
+    }
+  });
+
+  // Раздел 4.3 руководства: ключ API станции и измерения, отправленные как агентом станции.
+  await step("ingest", () => prepareIngest(page));
+
+  await context.close();
+}
+
 /* ---------------------------------------------------------------- capture: админка */
 async function captureAdmin(browser) {
-  const { context, page } = await adminContext(browser, { shots: true });
+  const { context, page } = await adminContext(browser, { shots: loginShots });
 
   await step("dashboard", async () => {
     await page.goto(url("/admin"));
     await shot(page, "admin-dashboard", { fullPage: true });
+  });
+
+  await step("dashboard-ingest", async () => {
+    await page.goto(url("/admin"));
+    const table = page.getByRole("table", { name: t("admin.freshness.title") });
+    await table.waitFor({ timeout: 30_000 });
+    await shotElement(
+      table.locator("xpath=ancestor::*[@data-slot='card'][1]"),
+      "admin-dashboard-ingest",
+    );
   });
 
   await step("stations", async () => {
@@ -382,6 +529,40 @@ async function captureAdmin(browser) {
       await page.goto(`${cfg.baseUrl}${href}`);
       await shot(page, "admin-station-edit", { fullPage: true });
     }
+  });
+
+  // Раздел 4.3: блок «Автоматический приём данных» после демо‑приёма (prepare, шаг ingest).
+  await step("station-ingest", async () => {
+    const id = await stationIdByCode(cfg.ingestStation);
+    await page.goto(url(`/admin/stations/${id}`));
+    const card = page.locator("[data-testid=station-ingest-card]");
+    await card.waitFor({ timeout: 30_000 });
+    const header = page.locator("h1").first().locator("xpath=ancestor::div[2]");
+    await shotRegion(page, [header, card], "admin-station-ingest");
+  });
+
+  // Раздел 4.3: открытая форма «Добавить источник» с примером SFTP (не сохраняется).
+  await step("station-source", async () => {
+    const id = await stationIdByCode(cfg.ingestStation);
+    await page.goto(url(`/admin/stations/${id}`));
+    await page.getByRole("button", { name: t("stations.sources.add"), exact: true }).click();
+    const form = page.locator("[data-testid=station-source-form]");
+    await form.waitFor({ timeout: 10_000 });
+    await form.locator("#src-label").fill("Экспорт вендора, пост № 1");
+    await form.locator("#src-host").fill("sftp.vendor.example");
+    await form.locator("#src-path").fill(`/export/${cfg.ingestStation}`);
+    await form.locator("#src-pattern").fill(`${cfg.ingestStation}_*.csv`);
+    await form.locator("#src-username").fill("meteo");
+    await form.locator("#src-password").fill("demo-password");
+    await form.locator("#src-fp").fill("SHA256:7Qk3pZtX9mVbLwRn2sDhG5yUaJcE1fK8oTiB4vNxM0W");
+    await form
+      .getByRole("button", { name: t("stations.sources.templates.wide"), exact: true })
+      .click();
+    await shotElement(
+      form.locator("xpath=ancestor::*[@data-slot='card'][1]"),
+      "admin-station-source-form",
+    );
+    await form.getByRole("button", { name: t("common.actions.cancel"), exact: true }).click();
   });
 
   await step("station-new", async () => {
