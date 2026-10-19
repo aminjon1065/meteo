@@ -1,5 +1,5 @@
 import "server-only";
-import { DUSHANBE_TZ, utcToDushanbeLocal } from "@meteo/core";
+import { csvCell, DUSHANBE_TZ, utcToDushanbeLocal } from "@meteo/core";
 import { and, asc, eq, gte, inArray, lte, sql } from "@meteo/db";
 import { measurements, pollutants, stationPollutants } from "@meteo/db/schema";
 import { getDb } from "@/lib/db";
@@ -154,9 +154,4 @@ export function seriesToCsv(
     }
   }
   return `﻿${lines.join("\r\n")}\r\n`;
-}
-
-function csvCell(v: string | number): string {
-  const s = String(v);
-  return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
 }

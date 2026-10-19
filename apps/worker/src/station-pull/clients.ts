@@ -6,6 +6,7 @@ import { Writable } from "node:stream";
 import { Client as FtpClient } from "basic-ftp";
 import { type SFTPWrapper, Client as SshClient } from "ssh2";
 import { fetchWithRetry } from "../resilience";
+import { assertAllowedTarget } from "./target";
 
 export interface RemoteFile {
   name: string;
@@ -217,6 +218,7 @@ function openHttp(cfg: ClientConfig): RemoteClient {
       return [{ name: httpFileName(url), size: null, mtime: null }];
     },
     async read(url, _name, maxBytes, conditional) {
+      assertAllowedTarget("http", url);
       const h = { ...headers };
       if (conditional?.etag) h["if-none-match"] = conditional.etag;
       if (conditional?.mtime) h["if-modified-since"] = conditional.mtime.toUTCString();
@@ -250,6 +252,8 @@ function openHttp(cfg: ClientConfig): RemoteClient {
 }
 
 export async function openRemoteClient(cfg: ClientConfig): Promise<RemoteClient> {
+  // HTTP проверяется по URL при чтении (host задан в path источника); sftp/ftp — здесь.
+  if (cfg.kind !== "http") assertAllowedTarget(cfg.kind, cfg.host);
   switch (cfg.kind) {
     case "sftp":
       return openSftp(cfg);

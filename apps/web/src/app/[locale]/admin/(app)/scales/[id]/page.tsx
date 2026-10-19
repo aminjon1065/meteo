@@ -7,7 +7,8 @@ import { ScaleEditor } from "@/components/admin/scales/scale-editor";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 import { requireAdminSession } from "@/lib/session";
-import { listPollutants, saveScale } from "../actions";
+import { listPollutants } from "../_data";
+import { saveScale } from "../actions";
 
 export const dynamic = "force-dynamic";
 

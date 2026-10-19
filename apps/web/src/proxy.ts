@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import createIntlMiddleware from "next-intl/middleware";
 import { routing } from "@/i18n/routing";
 import { buildCsp, generateNonce, isEmbedPath, parseEmbedAncestors } from "@/lib/security/csp";
-import { enforceRateLimit } from "@/lib/security/limits";
+import { enforceRateLimit, subscribeActionGroup } from "@/lib/security/limits";
 
 const intl = createIntlMiddleware(routing);
 const adminPath = /^(?:\/(tg|ru|en))?\/admin(?:\/(.*))?$/;
@@ -11,7 +11,8 @@ const isDev = process.env.NODE_ENV === "development";
 const embedAncestors = parseEmbedAncestors(process.env.EMBED_FRAME_ANCESTORS);
 
 /**
- * 1. /api/v1 и /api/auth — ограничение частоты запросов (Redis, на IP), остальное API не трогаем.
+ * 1. /api/v1 и /api/auth — ограничение частоты запросов (Redis, на IP), остальное API не трогаем;
+ *    отдельный лимит — у server action формы подписки (POST /subscribe с Next-Action).
  * 2. Оптимистичная защита /admin: без cookie сессии — на страницу входа.
  *    Полная проверка сессии и роли выполняется в layout админки на сервере.
  * 3. Локализация маршрутов next-intl (rewrite на /{locale}/… или redirect).
@@ -22,6 +23,13 @@ const embedAncestors = parseEmbedAncestors(process.env.EMBED_FRAME_ANCESTORS);
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   if (pathname.startsWith("/api/")) return enforceRateLimit(request);
+
+  // Server action публичной формы подписки — лимит на IP (письма подтверждения ставятся без входа).
+  const subscribeGroup = subscribeActionGroup(request);
+  if (subscribeGroup) {
+    const limited = await enforceRateLimit(request, subscribeGroup);
+    if (limited.status === 429) return limited;
+  }
 
   const match = pathname.match(adminPath);
   if (match && !(match[2] ?? "").startsWith("login")) {

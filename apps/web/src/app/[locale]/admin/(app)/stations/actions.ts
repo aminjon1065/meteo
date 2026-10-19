@@ -1,7 +1,7 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
-import { type FeedMapping, ForbiddenError, slugify } from "@meteo/core";
+import { type FeedMapping, slugify } from "@meteo/core";
 import { isEnvSecret, sealSecret, secretKeyFromEnv } from "@meteo/core/secret-box";
 import { eq } from "@meteo/db";
 import { stationPollutants, stationSources, stations } from "@meteo/db/schema";
@@ -171,15 +171,6 @@ export async function rotateStationApiKey(
   await db.update(stations).set({ apiKeyHash }).where(eq(stations.id, id));
   await recordAudit(session, { action: "station.apiKey.rotate", entity: "stations", entityId: id });
   return { ok: true, apiKey };
-}
-
-export async function assertStationsWrite(locale: Locale): Promise<void> {
-  try {
-    await requireAdminSession(locale, "stations.write");
-  } catch (error) {
-    if (error instanceof ForbiddenError) throw error;
-    throw error;
-  }
 }
 
 // ---------------------------------------------------------------------------

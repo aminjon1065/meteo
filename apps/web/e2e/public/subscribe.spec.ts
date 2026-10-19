@@ -48,4 +48,34 @@ test("подписка с двойным подтверждением: форм�
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(
     t("ru", "subscribe.confirm.invalid.title"),
   );
+
+  // Ревью 10.2026: повторная форма для подтверждённого адреса не меняет темы без подтверждения —
+  // иначе любой, кто знает e-mail, переписал бы чужую подписку. Изменения ждут ссылки из письма.
+  await page.goto("/en/subscribe");
+  await page.getByRole("textbox", { name: t("en", "subscribe.email"), exact: true }).fill(email);
+  await page.getByRole("checkbox", { name: t("en", "subscribe.consent") }).click();
+  await page.getByRole("button", { name: t("en", "subscribe.submit") }).click();
+  await expect(page.getByText(t("en", "subscribe.doneTitle"))).toBeVisible();
+  const [untouched] = await db.select().from(subscribers).where(eq(subscribers.email, email));
+  expect(untouched?.status).toBe("confirmed");
+  expect(untouched?.locale).toBe("ru");
+  expect(untouched?.topics).toMatchObject({ all: true, newsletter: true });
+  expect(untouched?.topics.pending).toMatchObject({ all: true, newsletter: false, locale: "en" });
+  expect(untouched?.confirmToken).not.toBe(pending?.confirmToken);
+  const mails = await db.select().from(emailOutbox).where(eq(emailOutbox.to, email));
+  expect(mails.length).toBe(2);
+  const changeUrl = String(
+    (mails.find((m) => m.id !== mail?.id)?.payload as { confirmUrl?: string } | undefined)
+      ?.confirmUrl ?? "",
+  );
+  expect(changeUrl).toContain(`token=${untouched?.confirmToken}`);
+  await page.goto(new URL(changeUrl).pathname + new URL(changeUrl).search);
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
+    t("en", "subscribe.confirm.confirmed.title"),
+  );
+  const [applied] = await db.select().from(subscribers).where(eq(subscribers.email, email));
+  expect(applied?.status).toBe("confirmed");
+  expect(applied?.locale).toBe("en");
+  expect(applied?.topics).toMatchObject({ all: true, newsletter: false });
+  expect(applied?.topics.pending).toBeUndefined();
 });

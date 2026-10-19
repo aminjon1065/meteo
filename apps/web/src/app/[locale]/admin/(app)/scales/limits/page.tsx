@@ -4,7 +4,8 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LimitsEditor } from "@/components/admin/scales/limits-editor";
 import { getDb } from "@/lib/db";
 import { requireAdminSession } from "@/lib/session";
-import { listPollutants, saveLimits } from "../actions";
+import { listPollutants } from "../_data";
+import { saveLimits } from "../actions";
 
 export const dynamic = "force-dynamic";
 

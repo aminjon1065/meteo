@@ -26,9 +26,10 @@ export default async function UnsubscribePage({
       where: eq(subscribers.unsubscribeToken, token),
     });
     if (sub) {
+      const { pending: _pending, ...topics } = sub.topics;
       await db
         .update(subscribers)
-        .set({ status: "unsubscribed", unsubscribedAt: new Date() })
+        .set({ status: "unsubscribed", unsubscribedAt: new Date(), topics })
         .where(eq(subscribers.id, sub.id));
       state = "done";
     }

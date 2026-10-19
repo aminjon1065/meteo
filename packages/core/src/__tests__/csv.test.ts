@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { detectDelimiter, parseCsv, parseCsvRecords } from "../csv";
+import { csvCell, detectDelimiter, parseCsv, parseCsvRecords } from "../csv";
 
 describe("parseCsvRecords", () => {
   it("кавычки, экранированные кавычки, разделители и переводы строк внутри полей", () => {
@@ -36,5 +36,27 @@ describe("detectDelimiter / parseCsv", () => {
       ["01.01.2024 07:00", "DU-01", "45,2"],
       ["02.01.2024 07:00", "DU-01", ""],
     ]);
+  });
+});
+
+describe("csvCell", () => {
+  it("экранирует кавычки, разделители и переводы строк", () => {
+    expect(csvCell('a "b"')).toBe('"a ""b"""');
+    expect(csvCell("x,y")).toBe('"x,y"');
+    expect(csvCell("x;y")).toBe('"x;y"');
+    expect(csvCell("line\nbreak")).toBe('"line\nbreak"');
+    expect(csvCell("plain")).toBe("plain");
+  });
+  it("нейтрализует формулы Excel/Calc, не трогая числа", () => {
+    expect(csvCell("=HYPERLINK(1)")).toBe("'=HYPERLINK(1)");
+    expect(csvCell("+cmd|' /C calc'!A0")).toBe("'+cmd|' /C calc'!A0");
+    expect(csvCell("@SUM(A1)")).toBe("'@SUM(A1)");
+    expect(csvCell("-DU-01")).toBe("'-DU-01");
+    expect(csvCell("\tcalc")).toBe("'\tcalc");
+    expect(csvCell("-5.5")).toBe("-5.5");
+    expect(csvCell("+12")).toBe("+12");
+    expect(csvCell(-3)).toBe("-3");
+    expect(csvCell(Number.NaN)).toBe("");
+    expect(csvCell(null)).toBe("");
   });
 });

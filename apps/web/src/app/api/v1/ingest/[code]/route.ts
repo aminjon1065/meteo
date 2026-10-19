@@ -4,6 +4,7 @@ import { after, type NextRequest, NextResponse } from "next/server";
 import { IngestRequestSchema } from "@/lib/api/schemas";
 import { getDb } from "@/lib/db";
 import { enqueueJob } from "@/lib/jobs";
+import { BodyTooLargeError, readBodyWithLimit } from "@/lib/security/body";
 import { clientIp } from "@/lib/security/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -56,14 +57,17 @@ export async function POST(req: NextRequest, ctx: { params: Promise<{ code: stri
   if (station.status !== "active")
     return error(403, "station_inactive", `Station ${station.code} is ${station.status}`);
 
-  const declared = Number(req.headers.get("content-length") ?? 0);
-  if (declared > MAX_BODY_BYTES)
-    return error(413, "payload_too_large", `Body must be at most ${MAX_BODY_BYTES} bytes`);
+  // Тело читается потоком и обрывается при превышении предела (Content-Length может отсутствовать).
+  let text: string;
+  try {
+    text = await readBodyWithLimit(req, MAX_BODY_BYTES);
+  } catch (e) {
+    if (e instanceof BodyTooLargeError)
+      return error(413, "payload_too_large", `Body must be at most ${MAX_BODY_BYTES} bytes`);
+    return error(400, "invalid_json", "Body could not be read");
+  }
   let raw: unknown;
   try {
-    const text = await req.text();
-    if (text.length > MAX_BODY_BYTES)
-      return error(413, "payload_too_large", `Body must be at most ${MAX_BODY_BYTES} bytes`);
     raw = JSON.parse(text);
   } catch {
     return error(400, "invalid_json", "Body must be valid JSON");

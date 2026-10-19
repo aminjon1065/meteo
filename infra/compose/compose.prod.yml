@@ -79,14 +79,25 @@ services:
       HOSTNAME: 0.0.0.0
       SILAM_DIR: /app/silam
       UPLOADS_DIR: /app/uploads
+      # Пакеты импорта CSV между предпросмотром и применением; корневая ФС только для чтения,
+      # поэтому каталог — в tmpfs (после перезапуска неприменённый пакет надо загрузить заново).
+      IMPORTS_DIR: /tmp/imports
       RATE_LIMIT_API_PER_MINUTE: ${RATE_LIMIT_API_PER_MINUTE:-120}
       RATE_LIMIT_AUTH_PER_MINUTE: ${RATE_LIMIT_AUTH_PER_MINUTE:-30}
+      RATE_LIMIT_INGEST_PER_MINUTE: ${RATE_LIMIT_INGEST_PER_MINUTE:-60}
+      RATE_LIMIT_SUBSCRIBE_PER_MINUTE: ${RATE_LIMIT_SUBSCRIBE_PER_MINUTE:-10}
       EMBED_FRAME_ANCESTORS: ${EMBED_FRAME_ANCESTORS:-https://meteo.tj https://*.meteo.tj}
+      STATION_INGEST_STALE_MIN: ${STATION_INGEST_STALE_MIN:-180}
+      # Ключ шифрования учётных данных источников станций — один и тот же у web (шифрует) и worker
+      # (расшифровывает); пустое значение = BETTER_AUTH_SECRET.
+      STATION_SOURCES_KEY: ${STATION_SOURCES_KEY:-}
+      # Для признака «SMTP настроен» на дашборде админки (отправляет письма worker).
+      SMTP_URL: ${SMTP_URL:-}
     volumes:
       - uploads:/app/uploads
       - silam:/app/silam:ro
     tmpfs:
-      # кэш next/image и временные файлы — единственное, что web пишет вне томов
+      # кэш next/image, пакеты импорта и временные файлы — единственное, что web пишет вне томов
       - /tmp
       - /app/apps/web/.next/cache
     depends_on:
@@ -112,15 +123,43 @@ services:
       context: ../..
       dockerfile: apps/worker/Dockerfile
     restart: unless-stopped
+    # Задачи (SILAM, pull‑источники) могут выполняться минутами: даём им завершиться штатно.
+    stop_grace_period: 60s
     <<: *hardening
     environment:
       <<: *app-env
       WORKER_PORT: 3001
-      WORKER_CONCURRENCY: 4
-      LOG_LEVEL: info
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-4}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       SILAM_DIR: /app/silam
+      UPLOADS_DIR: /app/uploads
+      # Переменные из .env доступны контейнеру только перечисленные здесь (compose не передаёт
+      # .env целиком). Пустое значение (переменная не задана) worker считает отсутствующим.
+      SMTP_URL: ${SMTP_URL:-}
+      MAIL_FROM: ${MAIL_FROM:-Метеопортал <noreply@meteo.tj>}
+      ADMIN_ALERT_EMAILS: ${ADMIN_ALERT_EMAILS:-}
+      SMARTMET_URL: ${SMARTMET_URL:-}
+      SMARTMET_PRODUCER: ${SMARTMET_PRODUCER:-}
+      SMARTMET_API_KEY: ${SMARTMET_API_KEY:-}
+      SMARTMET_HOURLY_STEPS: ${SMARTMET_HOURLY_STEPS:-}
+      SMARTMET_DAILY_DAYS: ${SMARTMET_DAILY_DAYS:-}
+      SILAM_NCSS_URL: ${SILAM_NCSS_URL:-}
+      SILAM_DATASET: ${SILAM_DATASET:-}
+      SILAM_KEEP_RUNS: ${SILAM_KEEP_RUNS:-}
+      CAP_FEED_URL: ${CAP_FEED_URL:-}
+      CAP_TIMEOUT_MS: ${CAP_TIMEOUT_MS:-}
+      INTEGRATION_ALERT_FAILURES: ${INTEGRATION_ALERT_FAILURES:-}
+      INTEGRATION_CIRCUIT_FAILURES: ${INTEGRATION_CIRCUIT_FAILURES:-}
+      INTEGRATION_CIRCUIT_COOLDOWN_MIN: ${INTEGRATION_CIRCUIT_COOLDOWN_MIN:-}
+      INTEGRATION_CIRCUIT_MAX_COOLDOWN_MIN: ${INTEGRATION_CIRCUIT_MAX_COOLDOWN_MIN:-}
+      STATION_SOURCES_KEY: ${STATION_SOURCES_KEY:-}
+      STATION_PULL_TIMEOUT_MS: ${STATION_PULL_TIMEOUT_MS:-}
+      STATION_PULL_MAX_FILE_MB: ${STATION_PULL_MAX_FILE_MB:-}
+      STATION_PULL_LOOKBACK_DAYS: ${STATION_PULL_LOOKBACK_DAYS:-}
+      STATION_INGEST_STALE_MIN: ${STATION_INGEST_STALE_MIN:-}
     volumes:
       - silam:/app/silam
+      - uploads:/app/uploads:ro
     tmpfs:
       - /tmp
     depends_on:

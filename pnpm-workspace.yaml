@@ -12,8 +12,10 @@ allowBuilds:
   msgpackr-extract: true
   sharp: true
   unrs-resolver: true
-  cpu-features: set this to true or false
-  ssh2: set this to true or false
+  # ssh2 (station-pull) работает без нативного дополнения; cpu-features — его необязательная зависимость.
+  # Явное false нужно: с заглушкой pnpm 12 в CI (сборка образов) падает с ERR_PNPM_IGNORED_BUILDS.
+  cpu-features: false
+  ssh2: false
 
 minimumReleaseAgeExclude:
   - better-auth@1.7.10

@@ -11,7 +11,7 @@ import {
 } from "./rate-limit";
 
 export interface RateLimitGroup {
-  name: "api" | "auth" | "ingest";
+  name: "api" | "auth" | "ingest" | "subscribe";
   rule: RateLimitRule;
 }
 
@@ -73,20 +73,47 @@ function primaryStore(): RateLimitStore {
   return globalRef.__meteoRateLimitRedis ?? memoryStore();
 }
 
+const SUBSCRIBE_PATH = /^(?:\/(?:tg|ru|en))?\/subscribe\/?$/;
+
+/**
+ * Server action формы подписки (POST на страницу /subscribe с заголовком Next-Action): отдельный
+ * лимит на IP (RATE_LIMIT_SUBSCRIBE_PER_MINUTE, по умолчанию 10), иначе форма без входа позволяет
+ * массово ставить письма подтверждения в очередь. Остальные страницы лимитом не покрываются.
+ */
+export function subscribeActionGroup(request: {
+  method: string;
+  nextUrl: { pathname: string };
+  headers: Headers;
+}): RateLimitGroup | null {
+  if (request.method !== "POST" || !request.headers.has("next-action")) return null;
+  if (!SUBSCRIBE_PATH.test(request.nextUrl.pathname)) return null;
+  return {
+    name: "subscribe",
+    rule: { limit: perMinute("RATE_LIMIT_SUBSCRIBE_PER_MINUTE", 10), windowMs: WINDOW_MS },
+  };
+}
+
 /** Ключ счётчика: группа + IP; для ingest — ещё код станции из пути. */
 export function rateLimitKey(group: RateLimitGroup, pathname: string, ip: string): string {
   if (group.name === "ingest") {
-    const code = decodeURIComponent(pathname.split("/")[4] ?? "")
-      .toUpperCase()
-      .slice(0, 32);
-    return `ingest:${code}:${ip}`;
+    const segment = pathname.split("/")[4] ?? "";
+    let code: string;
+    try {
+      code = decodeURIComponent(segment);
+    } catch {
+      // Некорректное percent-кодирование не должно валить proxy ошибкой 500.
+      code = segment;
+    }
+    return `ingest:${code.toUpperCase().slice(0, 32)}:${ip}`;
   }
   return `${group.name}:${ip}`;
 }
 
 /** Проверяет лимит для запроса к API; возвращает 429 или пропускает дальше с заголовками X-RateLimit-*. */
-export async function enforceRateLimit(request: NextRequest): Promise<NextResponse> {
-  const group = rateLimitGroupFor(request.nextUrl.pathname);
+export async function enforceRateLimit(
+  request: NextRequest,
+  group: RateLimitGroup | null = rateLimitGroupFor(request.nextUrl.pathname),
+): Promise<NextResponse> {
   if (!group) return NextResponse.next();
   const result = await checkRateLimit(
     primaryStore(),

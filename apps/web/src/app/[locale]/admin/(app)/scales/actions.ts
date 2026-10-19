@@ -1,6 +1,6 @@
 "use server";
 
-import { asc, computeStationIndexes, eq } from "@meteo/db";
+import { and, computeStationIndexes, eq } from "@meteo/db";
 import {
   healthAdvice,
   indexBreakpoints,
@@ -154,9 +154,11 @@ export async function saveLimits(locale: Locale, raw: unknown): Promise<SimpleRe
         ["annual", row.annual],
       ] as const) {
         if (value === null) {
+          // Оба условия обязательны: `eq(...) && eq(...)` в JS оставил бы только второе
+          // и удалил бы нормативы этого вида у всех веществ.
           await tx
             .delete(limitValues)
-            .where(eq(limitValues.pollutantId, row.pollutantId) && eq(limitValues.kind, kind));
+            .where(and(eq(limitValues.pollutantId, row.pollutantId), eq(limitValues.kind, kind)));
         } else {
           await tx
             .insert(limitValues)
@@ -209,9 +211,11 @@ export async function saveHealthAdvice(locale: Locale, raw: unknown): Promise<Si
         await tx
           .delete(healthAdvice)
           .where(
-            eq(healthAdvice.scaleId, scaleId) &&
-              eq(healthAdvice.level, level) &&
+            and(
+              eq(healthAdvice.scaleId, scaleId),
+              eq(healthAdvice.level, level),
               eq(healthAdvice.audience, e.audience),
+            ),
           );
         continue;
       }
@@ -231,18 +235,4 @@ export async function saveHealthAdvice(locale: Locale, raw: unknown): Promise<Si
     after: entries,
   });
   return { ok: true };
-}
-
-/** Справочник веществ для редакторов. */
-export async function listPollutants() {
-  return getDb()
-    .select({
-      id: pollutants.id,
-      code: pollutants.code,
-      shortName: pollutants.shortName,
-      unit: pollutants.unit,
-      hazardClass: pollutants.hazardClass,
-    })
-    .from(pollutants)
-    .orderBy(asc(pollutants.sortOrder));
 }

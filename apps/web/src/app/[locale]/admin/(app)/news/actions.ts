@@ -9,7 +9,13 @@ import { getDb } from "@/lib/db";
 import { isUniqueViolation } from "@/lib/db-errors";
 import { requireAdminSession } from "@/lib/session";
 import { fieldErrorsOf } from "@/lib/validation/common";
-import { categoryInput, type NewsStatus, type NewsValues, newsInput } from "@/lib/validation/news";
+import {
+  categoryInput,
+  type NewsStatus,
+  type NewsValues,
+  newsInput,
+  newsStatuses,
+} from "@/lib/validation/news";
 
 export type NewsResult =
   | { ok: true; id: number; slug: string }
@@ -115,6 +121,9 @@ export async function setPostStatus(
   id: number,
   status: NewsStatus,
 ): Promise<NewsResult> {
+  // Аргументы server action приходят от клиента: статус проверяем по списку, а не доверяем типу.
+  if (!(newsStatuses as readonly string[]).includes(status))
+    return { ok: false, message: "validation" };
   const session = await requireAdminSession(
     locale,
     status === "published" ? "content.publish" : "content.write",

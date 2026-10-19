@@ -930,7 +930,8 @@
     "errors": {
       "validation": "Check the address and consent",
       "topics": "Select at least one station or the newsletter",
-      "insert": "Could not save the subscription"
+      "insert": "Could not save the subscription",
+      "rateLimited": "Too many attempts. Please try again in a minute"
     },
     "confirm": {
       "confirmed": {

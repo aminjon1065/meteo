@@ -38,6 +38,35 @@ test.describe("заголовки безопасности (docs/security-checkl
     }
   });
 
+  test("CAP XML отдаётся с CSP sandbox (XSLT из внешнего документа не выполняется)", async ({
+    request,
+  }) => {
+    const list = (await (await request.get("/api/v1/alerts?lang=ru")).json()) as {
+      alerts: Array<{ id: number; identifier: string; xml: string }>;
+    };
+    const alert = list.alerts.find((a) => a.identifier === E2E.capIdentifier);
+    expect(alert).toBeTruthy();
+    const xml = await request.get(`/api/v1/alerts/${alert?.id}/xml`);
+    expect(xml.status()).toBe(200);
+    expect(xml.headers()["content-type"]).toContain("application/cap+xml");
+    expect(xml.headers()["content-security-policy"]).toBe("default-src 'none'; sandbox");
+    expect(xml.headers()["x-content-type-options"]).toBe("nosniff");
+    expect(await xml.text()).toContain(E2E.capIdentifier);
+    // Админский маршрут без сессии — 401, а не содержимое.
+    expect((await request.get(`/api/admin/cap/${alert?.id}/xml`)).status()).toBe(401);
+    expect((await request.get("/api/admin/subscribers.csv")).status()).toBe(401);
+  });
+
+  test("healthz: состояние БД и Redis без секретов", async ({ request }) => {
+    const res = await request.get("/api/healthz");
+    expect(res.status()).toBe(200);
+    const body = (await res.json()) as { status: string; db: string; redis: string };
+    expect(body.db).toBe("ok");
+    expect(["ok", "not-configured"]).toContain(body.redis);
+    expect(body.status).toBe("ok");
+    expect(res.headers()["cache-control"]).toContain("no-store");
+  });
+
   test("загрузки: путь вне каталога и неверный формат → 404", async ({ request }) => {
     expect((await request.get("/uploads/2026/10/../../.env")).status()).toBe(404);
     expect((await request.get("/uploads/2026/10/not-a-uuid.png")).status()).toBe(404);

@@ -37,15 +37,22 @@ export function SubscribeForm({
     e.preventDefault();
     const form = new FormData(e.currentTarget);
     startTransition(async () => {
-      const r = await action({
-        email: String(form.get("email") ?? ""),
-        locale,
-        all,
-        stations: selected,
-        newsletter,
-        consent,
-        website: String(form.get("website") ?? ""),
-      });
+      let r: SubscribeResult;
+      try {
+        r = await action({
+          email: String(form.get("email") ?? ""),
+          locale,
+          all,
+          stations: selected,
+          newsletter,
+          consent,
+          website: String(form.get("website") ?? ""),
+        });
+      } catch {
+        // Лимит запросов (429 от proxy) или сбой сети: сообщение вместо аварийной страницы.
+        toast.error(t("errors.rateLimited"));
+        return;
+      }
       if (!r.ok) {
         toast.error(translateOr(t, `errors.${r.message}`, r.message));
         return;

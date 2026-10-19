@@ -1,17 +1,16 @@
-import { can } from "@meteo/core";
+import { csvCell } from "@meteo/core";
 import { desc } from "@meteo/db";
 import { subscribers } from "@meteo/db/schema";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { requireApiSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
 /** Экспорт подписчиков (CSV) — только для роли с правом subscribers.manage. */
 export async function GET() {
-  const session = await getSession();
-  if (!session || !can(session.user.role, "subscribers.manage"))
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requireApiSession("subscribers.manage");
+  if (auth.response) return auth.response;
   const rows = await getDb().select().from(subscribers).orderBy(desc(subscribers.createdAt));
   const lines = ["email,locale,status,all,stations,regions,newsletter,confirmed_at,created_at"];
   for (const s of rows) {
@@ -27,7 +26,7 @@ export async function GET() {
         s.confirmedAt?.toISOString() ?? "",
         s.createdAt.toISOString(),
       ]
-        .map((v) => (/[",\r\n]/.test(v) ? `"${v.replace(/"/g, '""')}"` : v))
+        .map(csvCell)
         .join(","),
     );
   }
@@ -35,6 +34,7 @@ export async function GET() {
     headers: {
       "Content-Type": "text/csv; charset=utf-8",
       "Content-Disposition": 'attachment; filename="subscribers.csv"',
+      "Cache-Control": "private, no-store",
     },
   });
 }

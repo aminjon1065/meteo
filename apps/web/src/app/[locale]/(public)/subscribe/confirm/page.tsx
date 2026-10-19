@@ -1,6 +1,6 @@
 import { eq } from "@meteo/db";
 import { subscribers } from "@meteo/db/schema";
-import type { Locale } from "@meteo/i18n";
+import { isLocale, type Locale } from "@meteo/i18n";
 import { Button } from "@meteo/ui/components/button";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -26,11 +26,25 @@ export default async function ConfirmPage({
       where: eq(subscribers.confirmToken, token),
     });
     if (sub) {
-      if (sub.status === "confirmed") state = "already";
-      else {
+      const { pending, ...current } = sub.topics;
+      if (sub.status === "confirmed" && pending) {
+        // Подтверждение изменений уже действующей подписки (см. subscribe/actions.ts).
+        const { locale: pendingLocale, ...topics } = pending;
         await db
           .update(subscribers)
-          .set({ status: "confirmed", confirmedAt: new Date() })
+          .set({
+            topics: { ...current, ...topics },
+            locale: pendingLocale && isLocale(pendingLocale) ? pendingLocale : sub.locale,
+            confirmedAt: new Date(),
+          })
+          .where(eq(subscribers.id, sub.id));
+        state = "confirmed";
+      } else if (sub.status === "confirmed") {
+        state = "already";
+      } else {
+        await db
+          .update(subscribers)
+          .set({ status: "confirmed", confirmedAt: new Date(), unsubscribedAt: null })
           .where(eq(subscribers.id, sub.id));
         state = "confirmed";
       }

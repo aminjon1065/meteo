@@ -25,6 +25,10 @@ const nextConfig: NextConfig = {
   images: {
     formats: ["image/avif", "image/webp"],
   },
+  experimental: {
+    // Импорт измерений (CSV/XLSX до 20 МБ) идёт через server action: лимит тела по умолчанию 1 МБ.
+    serverActions: { bodySizeLimit: "25mb" },
+  },
   turbopack: {
     rules: {
       "*.css": {

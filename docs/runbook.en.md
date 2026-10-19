@@ -84,6 +84,10 @@ Integrations (can be set later, section 9): `SMARTMET_URL`, `SMARTMET_PRODUCER`,
 Backups: `RESTIC_PASSWORD` (`openssl rand -base64 32`, **store it in the password manager separately from the server**),
 `RESTIC_REPOSITORY`, `RESTIC_AWS_ACCESS_KEY_ID`/`RESTIC_AWS_SECRET_ACCESS_KEY`, `BACKUP_TIME_UTC`, `BACKUP_KEEP_*`.
 The paths `SILAM_DIR`, `UPLOADS_DIR`, `TILES_DIR` are set by compose (volumes) in production — do not change them.
+Containers receive only the variables listed in `infra/compose/compose.prod.yml` (the whole `.env` is not passed
+through): a new variable must be added both to `.env.example` and to compose. An unset variable arrives as an empty
+string, which the applications treat as absent. `STATION_SOURCES_KEY` must be identical for web and worker (it is a
+single value in `.env`).
 
 ### 1.4. Images
 

@@ -85,6 +85,10 @@ git clone <адрес репозитория> /opt/meteoportal && cd /opt/meteop
 Бэкапы: `RESTIC_PASSWORD` (`openssl rand -base64 32`, **сохранить в менеджере паролей отдельно от сервера**),
 `RESTIC_REPOSITORY`, `RESTIC_AWS_ACCESS_KEY_ID`/`RESTIC_AWS_SECRET_ACCESS_KEY`, `BACKUP_TIME_UTC`, `BACKUP_KEEP_*`.
 Пути `SILAM_DIR`, `UPLOADS_DIR`, `TILES_DIR` в продакшене задаёт compose (тома) — не менять.
+Контейнеры получают только переменные, перечисленные в `infra/compose/compose.prod.yml` (`.env` целиком не
+передаётся): новая переменная добавляется и в `.env.example`, и в compose. Незаданная переменная приходит
+пустой строкой — приложения считают её отсутствующей. `STATION_SOURCES_KEY` должен быть одинаковым у web и worker
+(он один и задаётся в `.env`).
 
 ### 1.4. Образы
 

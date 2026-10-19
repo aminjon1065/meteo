@@ -110,3 +110,17 @@ export function parseCsv(text: string, options: CsvParseOptions = {}): CsvTable 
   });
   return { delimiter, header, rows };
 }
+
+/**
+ * Ячейка CSV для выгрузок портала: кавычки по RFC 4180 и защита от инъекции формул в Excel/Calc.
+ * Строки, начинающиеся с `=`, `+`, `-`, `@`, табуляции или возврата каретки, табличные редакторы
+ * трактуют как формулы (включая DDE‑вызовы) — им добавляется ведущий апостроф. Числа (в том числе
+ * отрицательные) и пустые значения остаются как есть.
+ */
+export function csvCell(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return "";
+  if (typeof value === "number") return Number.isFinite(value) ? String(value) : "";
+  let s = value;
+  if (/^[=+\-@\t\r]/.test(s) && !/^[-+]?\d*\.?\d+(e[-+]?\d+)?$/i.test(s)) s = `'${s}`;
+  return /[",\r\n;]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+}

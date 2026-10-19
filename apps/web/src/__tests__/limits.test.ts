@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { rateLimitGroupFor, rateLimitKey } from "@/lib/security/limits";
+import { rateLimitGroupFor, rateLimitKey, subscribeActionGroup } from "@/lib/security/limits";
 
 describe("rateLimitGroupFor / rateLimitKey", () => {
   it("ingest — отдельная группа с лимитом по умолчанию 60 и ключом «станция + IP»", () => {
@@ -23,5 +23,34 @@ describe("rateLimitGroupFor / rateLimitKey", () => {
       ReturnType<typeof rateLimitGroupFor>
     >;
     expect(rateLimitKey(api, "/api/v1/stations", "1.2.3.4")).toBe("api:1.2.3.4");
+  });
+});
+
+describe("rateLimitKey: некорректное percent-кодирование", () => {
+  it("не бросает URIError и использует сегмент как есть", () => {
+    const group = rateLimitGroupFor("/api/v1/ingest/%E0%A4%A") as NonNullable<
+      ReturnType<typeof rateLimitGroupFor>
+    >;
+    expect(rateLimitKey(group, "/api/v1/ingest/%E0%A4%A", "1.2.3.4")).toBe(
+      "ingest:%E0%A4%A:1.2.3.4",
+    );
+    expect(rateLimitKey(group, "/api/v1/ingest/%ZZ", "1.2.3.4")).toBe("ingest:%ZZ:1.2.3.4");
+  });
+});
+
+describe("subscribeActionGroup", () => {
+  const req = (method: string, pathname: string, action = true) => ({
+    method,
+    nextUrl: { pathname },
+    headers: new Headers(action ? { "next-action": "abc" } : {}),
+  });
+  it("лимитирует только POST server action страницы подписки", () => {
+    expect(subscribeActionGroup(req("POST", "/subscribe"))?.name).toBe("subscribe");
+    expect(subscribeActionGroup(req("POST", "/ru/subscribe"))?.rule.limit).toBe(10);
+    expect(subscribeActionGroup(req("POST", "/en/subscribe/"))?.name).toBe("subscribe");
+    expect(subscribeActionGroup(req("GET", "/ru/subscribe"))).toBeNull();
+    expect(subscribeActionGroup(req("POST", "/ru/subscribe", false))).toBeNull();
+    expect(subscribeActionGroup(req("POST", "/ru/subscribe/confirm"))).toBeNull();
+    expect(subscribeActionGroup(req("POST", "/ru/admin/stations"))).toBeNull();
   });
 });

@@ -58,17 +58,28 @@ const schema = z.object({
   STATION_INGEST_STALE_MIN: z.coerce.number().int().positive().default(180),
 });
 
-const parsed = schema.safeParse(process.env);
-if (!parsed.success) {
-  const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
-  throw new Error(`Некорректное окружение worker: ${issues}`);
+/**
+ * Разбор окружения worker'а. Пустые значения (`VAR=` в compose.prod.yml, когда переменная не задана
+ * в .env) считаются незаданными — иначе `CAP_FEED_URL=` или `SILAM_DIR=` ломали бы запуск или пути.
+ */
+export function parseWorkerEnv(raw: Record<string, string | undefined>, cwd = process.cwd()) {
+  const cleaned = Object.fromEntries(
+    Object.entries(raw).filter(([, v]) => v !== undefined && v !== ""),
+  );
+  const parsed = schema.safeParse(cleaned);
+  if (!parsed.success) {
+    const issues = parsed.error.issues.map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
+    throw new Error(`Некорректное окружение worker: ${issues}`);
+  }
+  return {
+    ...parsed.data,
+    PUBLIC_URL:
+      parsed.data.PUBLIC_URL ?? parsed.data.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
+    SMARTMET_PRODUCER:
+      parsed.data.SMARTMET_PRODUCER ??
+      (parsed.data.SMARTMET_URL.includes("opendata.fmi.fi") ? "ecmwf" : undefined),
+    SILAM_DIR: parsed.data.SILAM_DIR ?? resolve(cwd, "../../data/silam"),
+  };
 }
 
-export const env = {
-  ...parsed.data,
-  PUBLIC_URL: parsed.data.PUBLIC_URL ?? parsed.data.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000",
-  SMARTMET_PRODUCER:
-    parsed.data.SMARTMET_PRODUCER ??
-    (parsed.data.SMARTMET_URL.includes("opendata.fmi.fi") ? "ecmwf" : undefined),
-  SILAM_DIR: parsed.data.SILAM_DIR ?? resolve(process.cwd(), "../../data/silam"),
-};
+export const env = parseWorkerEnv(process.env);

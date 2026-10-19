@@ -2,6 +2,7 @@ import { and, eq } from "@meteo/db";
 import { capAlerts } from "@meteo/db/schema";
 import { NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
+import { XML_DOWNLOAD_HEADERS } from "@/lib/security/headers";
 
 export const dynamic = "force-dynamic";
 
@@ -19,6 +20,7 @@ export async function GET(_req: Request, ctx: { params: Promise<{ id: string }> 
   if (!row) return NextResponse.json({ error: "not found" }, { status: 404 });
   return new NextResponse(row.rawXml, {
     headers: {
+      ...XML_DOWNLOAD_HEADERS,
       "Content-Type": "application/cap+xml; charset=utf-8",
       "Content-Disposition": `inline; filename="${row.identifier.replace(/[^\w.-]+/g, "_")}.xml"`,
       "Cache-Control": "public, max-age=300",

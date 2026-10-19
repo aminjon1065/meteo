@@ -87,6 +87,17 @@ export interface SubscriberTopics {
   stations?: number[];
   regions?: number[];
   newsletter?: boolean;
+  /**
+   * Изменения, запрошенные через форму для уже подтверждённого адреса; применяются при переходе
+   * по ссылке подтверждения (новый confirm_token). Рассылки читают только поля выше.
+   */
+  pending?: {
+    all?: boolean;
+    stations?: number[];
+    regions?: number[];
+    newsletter?: boolean;
+    locale?: string;
+  };
 }
 
 /** Подписчики на уведомления и бюллетень (double opt‑in). */

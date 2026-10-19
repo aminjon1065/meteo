@@ -1,9 +1,9 @@
-import { can, detectFileType, MAX_UPLOAD_BYTES } from "@meteo/core";
+import { detectFileType, MAX_UPLOAD_BYTES } from "@meteo/core";
 import { media } from "@meteo/db/schema";
 import { NextResponse } from "next/server";
 import { recordAudit } from "@/lib/audit";
 import { getDb } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { requireApiSession } from "@/lib/session";
 import { storeUpload, uploadUrl } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -13,10 +13,13 @@ export const dynamic = "force-dynamic";
  * Тип определяется по содержимому (сигнатуры), а не по заголовку клиента; лимит 10 МБ.
  */
 export async function POST(req: Request) {
-  const session = await getSession();
-  if (!session) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  if (!can(session.user.role, "content.write"))
-    return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  const auth = await requireApiSession("content.write");
+  if (auth.response) return auth.response;
+  const { session } = auth;
+  // Размер проверяем до чтения тела: multipart целиком буферизуется в памяти.
+  const declared = Number(req.headers.get("content-length") ?? 0);
+  if (declared > MAX_UPLOAD_BYTES + 64 * 1024)
+    return NextResponse.json({ error: "size" }, { status: 413 });
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "file" }, { status: 400 });

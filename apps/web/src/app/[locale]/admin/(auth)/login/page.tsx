@@ -10,6 +10,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { LoginForm } from "@/components/admin/login-form";
 import { Logo } from "@/components/site/logo";
 import { redirect } from "@/i18n/navigation";
+import { safeAdminNext } from "@/lib/security/redirects";
 import { getSession } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +31,7 @@ export default async function LoginPage({
   }
   const t = await getTranslations("auth");
   const tc = await getTranslations("common");
-  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
+  const safeNext = safeAdminNext(next);
 
   return (
     <main className="flex min-h-dvh items-center justify-center bg-muted/40 p-4">
