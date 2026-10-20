@@ -27,10 +27,10 @@ export default async function AdminLayout({
     <SidebarProvider>
       <AdminSidebar role={session.user.role ?? "editor"} />
       <SidebarInset>
-        <header className="flex h-14 items-center gap-2 border-b px-4">
+        <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b bg-card/95 px-4 backdrop-blur">
           <SidebarTrigger className="-ml-1" />
           <Separator orientation="vertical" className="mr-2 h-4" />
-          <span className="text-sm font-medium">{t("title")}</span>
+          <span className="font-heading text-sm font-bold">{t("title")}</span>
           <div className="ml-auto flex items-center gap-1">
             <LanguageSwitcher />
             <ThemeToggle />

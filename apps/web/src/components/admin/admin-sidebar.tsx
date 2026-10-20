@@ -184,7 +184,7 @@ export function AdminSidebar({ role }: { role: string }) {
             <SidebarMenuButton size="lg" render={<Link href="/admin" />}>
               <Logo className="size-8" />
               <div className="flex flex-col leading-tight">
-                <span className="font-semibold">{tc("siteName")}</span>
+                <span className="font-heading font-bold">{tc("siteName")}</span>
                 <span className="text-xs text-muted-foreground">{t("title")}</span>
               </div>
             </SidebarMenuButton>

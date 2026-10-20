@@ -1,10 +1,10 @@
 import { symbolPath } from "@meteo/core";
 import { cn } from "@meteo/ui/lib/utils";
-import { CloudSunIcon } from "lucide-react";
 
 /**
  * Символ погоды FMI SmartSymbol (SVG из apps/web/public/weather-symbols, тема light/dark).
- * Без кода — нейтральная иконка: провайдер не отдал SmartSymbol (например, открытые данные ECMWF).
+ * Без кода символа ничего не рисуется: провайдер не отдал SmartSymbol (открытые данные ECMWF),
+ * и на месте иконки остаётся текстовое описание рядом, а не пустая картинка.
  */
 export function WeatherSymbol({
   code,
@@ -17,21 +17,7 @@ export function WeatherSymbol({
 }) {
   const light = symbolPath(code, "light");
   const dark = symbolPath(code, "dark");
-  if (!light || !dark) {
-    return (
-      <span
-        role="img"
-        aria-label={label}
-        title={label}
-        className={cn(
-          "inline-flex shrink-0 items-center justify-center text-muted-foreground/50",
-          className,
-        )}
-      >
-        <CloudSunIcon className="size-[70%]" strokeWidth={1.5} aria-hidden="true" />
-      </span>
-    );
-  }
+  if (!light || !dark) return null;
   return (
     <span className={cn("inline-block shrink-0", className)} title={label}>
       {/* biome-ignore lint/performance/noImgElement: статический SVG из public, оптимизация next/image не нужна */}
@@ -46,4 +32,9 @@ export function WeatherSymbol({
       />
     </span>
   );
+}
+
+/** Есть ли у кода символа картинка (чтобы решить, нужен ли текст вместо неё). */
+export function hasSymbol(code: number | null | undefined): boolean {
+  return Boolean(symbolPath(code, "light"));
 }

@@ -52,7 +52,7 @@ export default async function ConfirmPage({
   }
   return (
     <div className="container-page flex max-w-xl flex-col items-center gap-4 py-20 text-center">
-      <h1 className="text-2xl font-semibold">{t(`confirm.${state}.title`)}</h1>
+      <h1 className="text-h1">{t(`confirm.${state}.title`)}</h1>
       <p className="text-muted-foreground">{t(`confirm.${state}.text`)}</p>
       <Button render={<Link href="/" />} nativeButton={false}>
         {t("backHome")}

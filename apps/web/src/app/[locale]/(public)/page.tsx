@@ -1,420 +1,452 @@
-import { clampAqLevel } from "@meteo/core";
+import { type AqLevelOrNone, clampAqLevel, markdownExcerpt } from "@meteo/core";
 import {
-  count,
-  eq,
+  getLocationForecast,
   getSilamTomorrow,
   latestPublishedEcoBulletin,
   listPublishedNews,
+  localDateKey,
   type NewsPostRow,
-  ne,
   type SilamDaySummary,
 } from "@meteo/db";
-import { forecastLocations, regions, stations } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { AqBadge } from "@meteo/ui/components/aq-badge";
-import { Button } from "@meteo/ui/components/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@meteo/ui/components/card";
-import { CloudSun, MapPin, Newspaper, TriangleAlert, Wind } from "lucide-react";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { ExceedanceBanner } from "@/components/air/exceedance-banner";
-import { StationMapSection } from "@/components/air/station-map-section";
+import { ExceedanceNotice } from "@/components/air/exceedance-notice";
+import { MapPanel } from "@/components/air/map-panel";
+import { StationFeed } from "@/components/air/station-feed";
+import { Panel, StatusBand, type StatusChip } from "@/components/air/status-band";
 import { ecoDateValue } from "@/components/eco-bulletins/date";
+import { type EditorialItem, EditorialList } from "@/components/news/editorial-list";
 import { SeverityDot } from "@/components/warnings/severity-badge";
-import { WarningsBanner } from "@/components/warnings/warnings-banner";
-import { WeatherSymbol } from "@/components/weather/weather-symbol";
+import { CityWeatherList, type CityWeatherRow } from "@/components/weather/city-weather-list";
+import { hasSymbol, WeatherSymbol } from "@/components/weather/weather-symbol";
 import { Link } from "@/i18n/navigation";
-import { displayValue, effectiveLevel, loadCurrentAq, loadHealthAdvice } from "@/lib/aq";
+import { loadHealthAdvice } from "@/lib/aq";
+import { resolveCity } from "@/lib/city";
+import { type CityAir, loadStationSummaries, summarizeCityAir } from "@/lib/city-air";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
-import { type LocationOverview, loadWeatherOverview, symbolLabel } from "@/lib/weather";
+import {
+  aggregateDay,
+  type DayAggregate,
+  type LocationOverview,
+  loadWeatherOverview,
+  symbolLabel,
+  windDirectionKey,
+} from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
 
 async function loadHomeData(locale: Locale) {
+  const empty = {
+    city: null,
+    cityAir: null as CityAir | null,
+    advice: null as { text: Record<string, string | undefined> } | null,
+    scaleLevels: undefined as readonly number[] | undefined,
+    stations: [] as Awaited<ReturnType<typeof loadStationSummaries>>["stations"],
+    pollutantsById: new Map(),
+    weather: [] as LocationOverview[],
+    cityWeather: null as LocationOverview | null,
+    tomorrowWeather: null as DayAggregate | null,
+    silam: { run: null, byLocation: new Map<number, SilamDaySummary | null>() },
+    warnings: [] as LocalizedWarning[],
+    news: [] as NewsPostRow[],
+    ecoBulletin: null as Awaited<ReturnType<typeof latestPublishedEcoBulletin>> | null,
+    cityAirByLocation: new Map<number, AqLevelOrNone>(),
+    degraded: true,
+  };
   try {
     const db = getDb();
-    const [stationsRow, featured, stationRows, aq, weather, warnings, news] = await Promise.all([
-      db.select({ n: count() }).from(stations).where(eq(stations.status, "active")),
-      db
-        .select({ slug: forecastLocations.slug, name: forecastLocations.name })
-        .from(forecastLocations)
-        .where(eq(forecastLocations.featured, true))
-        .orderBy(forecastLocations.sortOrder),
-      db
-        .select({
-          id: stations.id,
-          slug: stations.slug,
-          name: stations.name,
-          regionCode: regions.code,
-        })
-        .from(stations)
-        .leftJoin(regions, eq(regions.id, stations.regionId))
-        .where(ne(stations.status, "decommissioned")),
-      loadCurrentAq(),
-      loadWeatherOverview({ featuredOnly: true }).catch(() => [] as LocationOverview[]),
-      loadLocalizedWarnings(locale, { horizonDays: 2 }).catch(() => [] as LocalizedWarning[]),
-      listPublishedNews(db, { pageSize: 3 }).catch(() => ({ rows: [] as NewsPostRow[], total: 0 })),
+    const [{ city, cities }, { aq, stations }, weather, warnings, news, ecoBulletin] =
+      await Promise.all([
+        resolveCity(),
+        loadStationSummaries(),
+        loadWeatherOverview().catch(() => [] as LocationOverview[]),
+        loadLocalizedWarnings(locale, { horizonDays: 2 }).catch(() => [] as LocalizedWarning[]),
+        listPublishedNews(db, { pageSize: 3 }).catch(() => ({
+          rows: [] as NewsPostRow[],
+          total: 0,
+        })),
+        latestPublishedEcoBulletin(db).catch(() => null),
+      ]);
+    const cityAir = city
+      ? summarizeCityAir({ lon: city.geom.x, lat: city.geom.y }, stations, aq.pollutantsById)
+      : null;
+    const level = cityAir?.level ?? 0;
+    const advice =
+      cityAir && aq.scale && level > 0
+        ? ((await loadHealthAdvice(aq.scale.id, level)).find((a) => a.audience === "general") ??
+          null)
+        : null;
+    const shownWeather = weather.filter(
+      (w) => w.location.featured || w.location.slug === city?.slug,
+    );
+    const now = new Date();
+    const tomorrowKey = localDateKey(new Date(now.getTime() + 86_400_000));
+    const [silam, cityForecast] = await Promise.all([
+      getSilamTomorrow(
+        db,
+        shownWeather.map((w) => w.location.id),
+        now,
+      ).catch(() => ({ run: null, byLocation: new Map<number, SilamDaySummary | null>() })),
+      city
+        ? getLocationForecast(db, city.id, { hours: 48, days: 3, now }).catch(() => null)
+        : Promise.resolve(null),
     ]);
-    const silam = await getSilamTomorrow(
-      db,
-      weather.map((w) => w.location.id),
-    ).catch(() => ({ run: null, byLocation: new Map<number, SilamDaySummary | null>() }));
-    // Станция для hero: с актуальным индексом, предпочтительно в Душанбе; иначе — самая свежая.
-    const candidates = stationRows
-      .map((s) => ({ ...s, idx: aq.byStation.get(s.id) }))
-      .filter((s) => s.idx && !s.idx.stale)
-      .sort((a, b) => {
-        const du = Number(b.regionCode === "DU") - Number(a.regionCode === "DU");
-        return du !== 0 ? du : (b.idx?.time.getTime() ?? 0) - (a.idx?.time.getTime() ?? 0);
-      });
-    const hero = candidates[0] ?? null;
-    const level = effectiveLevel(hero?.idx);
-    const advice = hero && aq.scale ? await loadHealthAdvice(aq.scale.id, level) : [];
-    const ecoBulletin = await latestPublishedEcoBulletin(db).catch(() => null);
+    // Завтра: суточная точка провайдера, иначе агрегат из часового ряда за местные сутки.
+    const tomorrowWeather = cityForecast
+      ? aggregateDay(
+          cityForecast.daily.find((d) => localDateKey(d.time) === tomorrowKey) ?? null,
+          cityForecast.hourly,
+          tomorrowKey,
+        )
+      : null;
+    const cityAirByLocation = new Map<number, AqLevelOrNone>(
+      shownWeather.map((w) => [
+        w.location.id,
+        summarizeCityAir(
+          { lon: w.location.geom.x, lat: w.location.geom.y },
+          stations,
+          aq.pollutantsById,
+        ).level,
+      ]),
+    );
     return {
-      stationsCount: stationsRow[0]?.n ?? 0,
-      ecoBulletin,
-      featured,
-      hero,
-      level,
-      dominant: hero?.idx?.dominantPollutantId
-        ? aq.pollutantsById.get(hero.idx.dominantPollutantId)
-        : undefined,
-      advice: advice.find((a) => a.audience === "general") ?? null,
-      weather,
+      ...empty,
+      city,
+      cities,
+      cityAir,
+      advice,
+      scaleLevels: aq.scale?.levels.map((l) => l.level),
+      stations,
+      pollutantsById: aq.pollutantsById,
+      weather: shownWeather,
+      cityWeather: weather.find((w) => w.location.slug === city?.slug) ?? null,
+      tomorrowWeather,
       silam,
       warnings,
       news: news.rows,
-      pollutantsById: aq.pollutantsById,
+      ecoBulletin,
+      cityAirByLocation,
       degraded: false,
     };
   } catch {
-    return {
-      stationsCount: 0,
-      ecoBulletin: null,
-      featured: [],
-      hero: null,
-      level: 0 as const,
-      dominant: undefined,
-      advice: null,
-      weather: [] as LocationOverview[],
-      silam: { run: null, byLocation: new Map<number, SilamDaySummary | null>() },
-      warnings: [] as LocalizedWarning[],
-      news: [] as NewsPostRow[],
-      pollutantsById: new Map(),
-      degraded: true,
-    };
+    return { ...empty, cities: [] };
   }
 }
 
 export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = (await params) as { locale: Locale };
   setRequestLocale(locale);
-  const [t, tc, tl, tp, ti, tsym, tw, format, data] = await Promise.all([
+  const [t, tc, tl, tp, ti, tsym, tw, tn, te, format, data] = await Promise.all([
     getTranslations("home"),
     getTranslations("common"),
     getTranslations("levels"),
-    getTranslations("pollutants"),
+    getTranslations("pollutantHints"),
     getTranslations("index"),
     getTranslations("weatherSymbols"),
-    getTranslations("warnings"),
+    getTranslations("weather"),
+    getTranslations("news"),
+    getTranslations("ecoBulletin"),
     getFormatter(),
     loadHomeData(locale),
   ]);
   const deg = (v: number | null | undefined) =>
     v === null || v === undefined ? "—" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
-  const hero = data.hero;
-  const dominantValue =
-    hero?.idx && data.dominant
-      ? displayValue(data.dominant, hero.idx.subIndices[String(data.dominant.id)]?.value)
-      : null;
+  const cityName = data.city ? name(data.city.name, locale) : "";
+  const air = data.cityAir;
+  const level = air?.level ?? 0;
+  const scaleTotal = data.scaleLevels?.length ?? 5;
+  const chips: StatusChip[] = (air?.chips ?? []).map((c) => ({
+    key: c.pollutant.code,
+    level: c.level,
+    value: format.number(c.value, { maximumFractionDigits: c.pollutant.decimals }),
+    label: c.pollutant.shortName,
+    unit: c.pollutant.unit !== "µg/m³" ? c.pollutant.unit : undefined,
+    title: tp.has(c.pollutant.code as "PM10") ? tp(c.pollutant.code as "PM10") : undefined,
+  }));
+  const activeWarnings = data.warnings.filter((w) => w.active).slice(0, 2);
+
+  // Текст под уровнем: совет общей группы, иначе — почему данных нет.
+  const advice = data.advice
+    ? name(data.advice.text, locale)
+    : air && air.stations.length === 0
+      ? air.nearest
+        ? `${t("noCityStations", { city: cityName })} ${t("nearestStation", {
+            station: name(air.nearest.station.name, locale),
+            distance: format.number(air.nearest.distanceKm, { maximumFractionDigits: 0 }),
+          })}`
+        : t("noCityStations", { city: cityName })
+      : air?.lastAt
+        ? t("noFreshData", { time: format.relativeTime(air.lastAt) })
+        : t("heroNoStation");
+
+  const wx = data.cityWeather;
+  const nowCode = wx?.now?.params.symbol ?? wx?.today?.symbol ?? null;
+  const ws = wx?.now?.params.ws ?? null;
+  const wd = wx?.now?.params.wd ?? null;
+  const rh = wx?.now?.params.rh ?? null;
+  const tomorrowSilam = data.city ? (data.silam.byLocation.get(data.city.id) ?? null) : null;
+  const tomorrowLevel = clampAqLevel(tomorrowSilam?.level ?? 0);
+  const tomorrowWx = data.tomorrowWeather;
+
+  const editorial: EditorialItem[] = [
+    ...data.news.map((post) => ({
+      key: `news-${post.id}`,
+      href: `/news/${post.slug}`,
+      title: name(post.title, locale),
+      kind: post.category ? name(post.category.name, locale) : tn("title"),
+      date: post.publishedAt,
+      excerpt: name(post.excerpt, locale) || markdownExcerpt(name(post.body, locale), 140),
+    })),
+    ...(data.ecoBulletin
+      ? [
+          {
+            key: `eco-${data.ecoBulletin.id}`,
+            href: `/air/bulletins/${data.ecoBulletin.id}`,
+            title: te("public.forDate", {
+              date: format.dateTime(ecoDateValue(data.ecoBulletin.date), { dateStyle: "long" }),
+            }),
+            kind: te("public.kind"),
+            date: data.ecoBulletin.publishedAt ?? ecoDateValue(data.ecoBulletin.date),
+            excerpt: name(data.ecoBulletin.data.city.name, locale),
+          },
+        ]
+      : []),
+  ]
+    .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
+    .slice(0, 3);
+
+  const cityRows: CityWeatherRow[] = data.weather.map((o) => ({
+    overview: o,
+    airLevel: data.cityAirByLocation.get(o.location.id) ?? 0,
+    selected: o.location.slug === data.city?.slug,
+  }));
 
   return (
-    <div className="container-page flex flex-col gap-10 py-10">
-      <WarningsBanner locale={locale} warnings={data.warnings} />
-      <ExceedanceBanner locale={locale} />
-      <section className="grid gap-6 lg:grid-cols-[3fr_2fr] lg:items-center">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl lg:text-5xl">
-            {t("title")}
-          </h1>
-          <p className="max-w-2xl text-pretty text-lg text-muted-foreground">{t("subtitle")}</p>
-          <div className="flex flex-wrap gap-2 pt-2">
-            {data.featured.map((loc) => (
-              <Link
-                key={loc.slug}
-                href={`/weather/${loc.slug}`}
-                className="inline-flex items-center gap-1 rounded-full border bg-card px-3 py-1 text-sm transition-colors hover:bg-accent"
-              >
-                <MapPin className="size-3.5 text-muted-foreground" aria-hidden="true" />
-                {name(loc.name, locale)}
-              </Link>
-            ))}
-          </div>
-        </div>
-
-        <Card
-          className={
-            data.level > 0
-              ? `border-aq-${data.level}/50 bg-gradient-to-br from-card to-brand-soft/60 dark:to-accent/40`
-              : "border-brand/20 bg-gradient-to-br from-card to-brand-soft/60 dark:to-accent/40"
-          }
-        >
-          <CardHeader>
-            <CardDescription className="flex items-center gap-2">
-              <Wind className="size-4" aria-hidden="true" />
-              {t("airNow")}
-              {hero ? ` · ${name(hero.name, locale)}` : ""}
-            </CardDescription>
-            <CardTitle className="flex flex-wrap items-center gap-3">
-              <span className="text-5xl font-semibold tabular-nums">
-                {dominantValue !== null && data.dominant
-                  ? format.number(dominantValue, { maximumFractionDigits: data.dominant.decimals })
-                  : "—"}
-              </span>
-              {data.dominant ? (
-                <span className="text-sm font-normal text-muted-foreground">
-                  {data.dominant.unit} ·{" "}
-                  {tp.has(data.dominant.code as "PM25")
-                    ? tp(data.dominant.code as "PM25")
-                    : data.dominant.shortName}
-                </span>
-              ) : null}
-              <AqBadge level={data.level} label={tl(`${data.level}` as "0")} size="lg" />
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-2 text-sm text-muted-foreground">
-            {hero?.idx ? (
-              <p>{t("heroUpdated", { time: format.relativeTime(hero.idx.time) })}</p>
-            ) : (
-              <p>{t("heroNoStation")}</p>
-            )}
-            {data.advice ? (
-              <p className="text-foreground">{name(data.advice.text, locale)}</p>
+    <>
+      <StatusBand
+        as="h1"
+        eyebrow={cityName ? `${t("airNow")} · ${cityName}` : t("airNow")}
+        level={level}
+        levelLabel={tl(`${level}` as "0")}
+        scaleLabel={t("scaleLabel", { level, total: scaleTotal, label: tl(`${level}` as "0") })}
+        scaleLevels={data.scaleLevels}
+        advice={advice}
+        chips={chips}
+        meta={
+          <>
+            {chips.length > 0 ? <span>{t("hourlyMeans")}</span> : null}
+            {air?.updatedAt ? (
+              <span>{t("heroUpdated", { time: format.relativeTime(air.updatedAt) })}</span>
             ) : null}
-            <p>{t("stationsCount", { count: data.stationsCount })}</p>
-            {data.ecoBulletin ? (
-              <p>
-                <Link
-                  href={`/air/bulletins/${data.ecoBulletin.id}`}
-                  className="underline-offset-4 hover:underline"
-                >
-                  {t("ecoBulletin", {
-                    date: format.dateTime(ecoDateValue(data.ecoBulletin.date), {
-                      dateStyle: "long",
-                    }),
-                  })}
-                </Link>
-              </p>
-            ) : null}
-            <div className="flex flex-wrap gap-2 pt-1">
-              {hero ? (
-                <Button
-                  size="sm"
-                  render={<Link href={`/air/stations/${hero.slug}`} />}
-                  nativeButton={false}
-                >
-                  {t("viewStation")}
-                </Button>
-              ) : null}
-              <Button
-                variant="outline"
-                size="sm"
-                render={<Link href="/map" />}
-                nativeButton={false}
-              >
-                {tc("actions.openMap")}
-              </Button>
-            </div>
-            <p>
-              {ti("scale")}: {ti("scaleDefault")} ·{" "}
-              <Link href="/air/index" className="underline-offset-4 hover:underline">
-                {ti("about")}
+            {air && air.stations.length > 0 ? (
+              <Link href="/air" className="hover:underline">
+                {t("cityStations", { count: air.stations.length })}
               </Link>
-            </p>
-          </CardContent>
-        </Card>
-      </section>
-
-      <section className="overflow-hidden rounded-xl border">
-        <StationMapSection locale={locale} className="h-72 w-full" compact />
-      </section>
-
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <CloudSun className="size-4 text-brand" aria-hidden="true" />
-              {t("forecastToday")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {data.weather.length === 0 ? (
-              <p className="text-muted-foreground">{t("noForecast")}</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {data.weather.map((o) => {
-                  const code = o.now?.params.symbol ?? o.today?.symbol ?? null;
-                  return (
-                    <li key={o.location.id}>
-                      <Link
-                        href={`/weather/${o.location.slug}`}
-                        className="flex items-center gap-2 rounded-md hover:bg-accent/40"
-                      >
-                        <WeatherSymbol
-                          code={code}
-                          label={symbolLabel(tsym, code)}
-                          className="size-7"
-                        />
-                        <span className="flex-1 truncate">{name(o.location.name, locale)}</span>
-                        <span className="font-semibold tabular-nums">{deg(o.now?.params.t)}</span>
-                        <span className="w-16 text-right text-xs text-muted-foreground tabular-nums">
-                          {o.today ? `${deg(o.today.tmax)} / ${deg(o.today.tmin)}` : ""}
-                        </span>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            <Link
-              href="/weather"
-              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-            >
-              {t("allCities")}
+            ) : null}
+            <Link href="/air/index" className="font-semibold text-brand hover:underline">
+              {t("howToRead")}
             </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Wind className="size-4 text-brand" aria-hidden="true" />
-              {t("airTomorrow")}
-            </CardTitle>
-            <CardDescription>{t("silamSource")}</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {!data.silam.run || data.weather.length === 0 ? (
-              <p className="text-muted-foreground">{t("noForecast")}</p>
-            ) : (
-              <ul className="flex flex-col gap-1.5">
-                {data.weather.map((o) => {
-                  const day = data.silam.byLocation.get(o.location.id) ?? null;
-                  const level = clampAqLevel(day?.level ?? 0);
-                  const dominant = day?.dominantPollutantId
-                    ? data.pollutantsById.get(day.dominantPollutantId)
-                    : undefined;
-                  return (
-                    <li key={o.location.id} className="flex items-center gap-2">
-                      <Link
-                        href={`/weather/${o.location.slug}`}
-                        className="flex-1 truncate hover:underline"
-                      >
-                        {name(o.location.name, locale)}
-                      </Link>
-                      {dominant ? (
-                        <span className="text-xs text-muted-foreground">
-                          {tp.has(dominant.code as "PM25")
-                            ? tp(dominant.code as "PM25")
-                            : dominant.shortName}
-                        </span>
-                      ) : null}
-                      <AqBadge level={level} label={tl(`${level}` as "0")} size="sm" />
-                    </li>
-                  );
-                })}
-              </ul>
-            )}
-            <Link
-              href="/map"
-              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
+          </>
+        }
+        aside={
+          <>
+            <Panel
+              className="grid grid-cols-[auto_1fr] items-center gap-3.5"
+              data-testid="weather-today"
             >
-              {tc("actions.openMap")}
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <TriangleAlert className="size-4 text-brand" aria-hidden="true" />
-              {t("warningsActive")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {data.warnings.length === 0 ? (
-              <p className="text-muted-foreground">{t("noWarnings")}</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {data.warnings.slice(0, 3).map((w) => (
-                  <li key={w.id} className="flex gap-2">
-                    <SeverityDot severity={w.severity} className="mt-1" />
-                    <Link href="/warnings" className="flex min-w-0 flex-col hover:underline">
-                      <span className="font-medium">{w.headline}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {w.regions.length
-                          ? w.regions.map((r) => name(r.name, locale) || r.code).join(", ")
-                          : w.areaDescs.join(", ")}
-                        {w.upcoming ? ` · ${tw("upcoming").toLowerCase()}` : ""}
-                      </span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link
-              href="/warnings"
-              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-            >
-              {t("allWarnings")}
-            </Link>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-base">
-              <Newspaper className="size-4 text-brand" aria-hidden="true" />
-              {t("latestNews")}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-3 text-sm">
-            {data.news.length === 0 ? (
-              <p className="text-muted-foreground">{t("noNews")}</p>
-            ) : (
-              <ul className="flex flex-col gap-2">
-                {data.news.map((post) => (
-                  <li key={post.id} className="flex flex-col">
-                    <Link href={`/news/${post.slug}`} className="font-medium hover:underline">
-                      {name(post.title, locale)}
-                    </Link>
-                    <span className="text-xs text-muted-foreground">
-                      {post.publishedAt
-                        ? format.dateTime(post.publishedAt, { dateStyle: "medium" })
-                        : ""}
-                      {post.category ? ` · ${name(post.category.name, locale)}` : ""}
+              {hasSymbol(nowCode) ? (
+                <WeatherSymbol
+                  code={nowCode}
+                  label={symbolLabel(tsym, nowCode)}
+                  className="size-13"
+                />
+              ) : (
+                <span
+                  className="size-13 rounded-full bg-[radial-gradient(circle_at_35%_35%,#ffd66b,#f3a43a_70%)] shadow-[0_0_0_6px_rgba(243,164,58,0.15)]"
+                  aria-hidden="true"
+                />
+              )}
+              <div>
+                <p className="eyebrow">
+                  {t("forecastToday")}
+                  {cityName ? ` · ${cityName}` : ""}
+                </p>
+                <p className="num mt-0.5 font-heading text-[2.6rem] leading-none font-bold">
+                  {deg(wx?.now?.params.t)}
+                </p>
+                <p className="mt-1 flex flex-wrap gap-x-3.5 gap-y-0.5 text-sm text-muted-foreground">
+                  {wx?.today ? (
+                    <span className="num">
+                      {tw("maxMin", { max: deg(wx.today.tmax), min: deg(wx.today.tmin) })}
                     </span>
-                  </li>
-                ))}
-              </ul>
-            )}
-            <Link
-              href="/news"
-              className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-            >
-              {t("allNews")}
+                  ) : null}
+                  {nowCode !== null ? (
+                    <span>{symbolLabel(tsym, nowCode).toLowerCase()}</span>
+                  ) : null}
+                  {ws !== null ? (
+                    <span>
+                      {ws < 0.5
+                        ? tw("calm")
+                        : `${tw("windShort", { value: format.number(ws, { maximumFractionDigits: 0 }) })}${
+                            wd !== null ? ` ${tw(`windDirections.${windDirectionKey(wd)}`)}` : ""
+                          }`}
+                    </span>
+                  ) : null}
+                  {rh !== null ? (
+                    <span>
+                      {tw("humidityShort", {
+                        value: format.number(rh, { maximumFractionDigits: 0 }),
+                      })}
+                    </span>
+                  ) : null}
+                  {!wx || (!wx.now && !wx.today) ? <span>{t("noForecast")}</span> : null}
+                </p>
+                {wx ? (
+                  <Link
+                    href={`/weather/${wx.location.slug}`}
+                    className="mt-1 inline-block text-caption font-semibold text-brand hover:underline"
+                  >
+                    {tw("openForecast")}
+                  </Link>
+                ) : null}
+              </div>
+            </Panel>
+            <Panel className="grid gap-2" data-testid="tomorrow">
+              <p className="eyebrow">{t("tomorrow")}</p>
+              <div className="flex items-center justify-between gap-2.5 text-sm">
+                <span>{t("airBySilam")}</span>
+                {data.silam.run && tomorrowSilam ? (
+                  <AqBadge level={tomorrowLevel} label={tl(`${tomorrowLevel}` as "0")} size="sm" />
+                ) : (
+                  <span className="text-muted-foreground">{t("noForecast")}</span>
+                )}
+              </div>
+              <div className="flex items-center justify-between gap-2.5 text-sm">
+                <span>{tw("title")}</span>
+                <span className="num text-muted-foreground">
+                  {tomorrowWx
+                    ? `${deg(tomorrowWx.tmax)} / ${deg(tomorrowWx.tmin)}${
+                        tomorrowWx.precipSum
+                          ? ` · ${t("precip", { value: format.number(tomorrowWx.precipSum, { maximumFractionDigits: 1 }) })}`
+                          : hasSymbol(tomorrowWx.symbol)
+                            ? ` · ${symbolLabel(tsym, tomorrowWx.symbol).toLowerCase()}`
+                            : ` · ${t("noPrecip")}`
+                      }`
+                    : t("noForecast")}
+                </span>
+              </div>
+            </Panel>
+            {activeWarnings.length > 0 ? (
+              <div
+                className="flex items-start gap-2.5 rounded-xl border border-l-4 border-l-warn-severe bg-card px-3.5 py-3 text-sm"
+                data-testid="warnings-notice"
+              >
+                <div className="grid gap-1">
+                  {activeWarnings.map((w) => (
+                    <p key={w.id} className="flex items-start gap-2">
+                      <SeverityDot severity={w.severity} className="mt-1.5 size-2" />
+                      <span>
+                        <Link href="/warnings" className="font-semibold hover:underline">
+                          {w.headline}
+                        </Link>
+                        {w.regions.length ? (
+                          <span className="text-muted-foreground">
+                            {" "}
+                            · {w.regions.map((r) => name(r.name, locale) || r.code).join(", ")}
+                          </span>
+                        ) : null}
+                      </span>
+                    </p>
+                  ))}
+                  <p>
+                    <Link href="/warnings" className="font-semibold text-brand hover:underline">
+                      {t("allWarnings")}
+                    </Link>
+                  </p>
+                </div>
+              </div>
+            ) : null}
+            <ExceedanceNotice locale={locale} />
+          </>
+        }
+      />
+
+      <div className="container-page flex flex-col gap-9 py-8">
+        <section aria-labelledby="stations-now">
+          <div className="section-head">
+            <h2 id="stations-now" className="text-h2">
+              {t("stationsNow")}
+            </h2>
+            <Link href="/air" className="text-sm font-semibold text-brand hover:underline">
+              {t("allStations", { count: data.stations.length })} →
             </Link>
-          </CardContent>
-        </Card>
-      </section>
-    </div>
+          </div>
+          {data.stations.length === 0 ? (
+            <p className="text-muted-foreground">{t("heroNoStation")}</p>
+          ) : (
+            <StationFeed stations={data.stations.slice(0, 8)} locale={locale} />
+          )}
+        </section>
+
+        <section className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+          <div>
+            <div className="section-head">
+              <h2 className="text-h2">{t("mapTitle")}</h2>
+              <Link href="/map" className="text-sm font-semibold text-brand hover:underline">
+                {t("openFullMap")} →
+              </Link>
+            </div>
+            <MapPanel locale={locale} levels={data.scaleLevels} />
+          </div>
+          <div>
+            <div className="section-head">
+              <h2 className="text-h2">{t("weatherByCity")}</h2>
+              <Link href="/weather" className="text-sm font-semibold text-brand hover:underline">
+                {t("allCities")} →
+              </Link>
+            </div>
+            <Panel className="py-1">
+              {cityRows.length === 0 ? (
+                <p className="py-2 text-sm text-muted-foreground">{t("noForecast")}</p>
+              ) : (
+                <CityWeatherList rows={cityRows} locale={locale} />
+              )}
+            </Panel>
+          </div>
+        </section>
+
+        <section aria-labelledby="news-heading">
+          <div className="section-head">
+            <h2 id="news-heading" className="text-h2">
+              {t("newsTitle")}
+            </h2>
+            <Link href="/news" className="text-sm font-semibold text-brand hover:underline">
+              {t("allMaterials")} →
+            </Link>
+          </div>
+          {editorial.length === 0 ? (
+            <p className="text-muted-foreground">{t("noNews")}</p>
+          ) : (
+            <EditorialList items={editorial} />
+          )}
+        </section>
+
+        <p className="text-sm text-muted-foreground">
+          {ti("scale")}: {ti("scaleDefault")} ·{" "}
+          <Link href="/air/index" className="underline-offset-4 hover:underline">
+            {ti("about")}
+          </Link>
+          {" · "}
+          <Link href="/subscribe" className="underline-offset-4 hover:underline">
+            {t("subscribe")}
+          </Link>
+          {" · "}
+          <span>{tc("fintaj")}</span>
+        </p>
+      </div>
+    </>
   );
 }

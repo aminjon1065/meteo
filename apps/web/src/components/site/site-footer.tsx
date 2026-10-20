@@ -17,48 +17,38 @@ export async function SiteFooter() {
   const note = pick(branding.footerNote, locale);
   const address = pick(branding.address, locale);
   const hasContacts = Boolean(branding.email || branding.phone || address || branding.website);
+  const sections = [
+    { href: "/air/index", label: t("aboutIndex") },
+    { href: "/health", label: tn("health") },
+    { href: "/air/bulletins", label: t("ecoBulletins") },
+    { href: "/data", label: tn("data") },
+    { href: "/data/api", label: t("api") },
+    { href: "/subscribe", label: t("subscribe") },
+    { href: "/about", label: tn("about") },
+  ];
 
   return (
-    <footer className="border-t bg-card">
-      <div className="container-page grid gap-8 py-10 text-sm text-muted-foreground md:grid-cols-[2fr_1fr_1fr]">
+    <footer className="mt-10 border-t bg-card">
+      <div className="container-page grid gap-8 py-8 pb-10 text-sm text-muted-foreground md:grid-cols-[2fr_1fr_1fr] md:gap-6">
         <div className="max-w-md space-y-2">
-          <p className="font-medium text-foreground">{agency}</p>
+          <p className="font-semibold text-foreground">{agency}</p>
           <p>{tc("fintaj")}</p>
           {note ? <p>{note}</p> : null}
+          <p>{t("dataLicense")}</p>
         </div>
-        <nav className="flex flex-col gap-2" aria-label={t("sections")}>
-          <Link href="/about" className="hover:text-foreground">
-            {tn("about")}
-          </Link>
-          <Link href="/air/index" className="hover:text-foreground">
-            {t("aboutIndex")}
-          </Link>
-          <Link href="/air/bulletins" className="hover:text-foreground">
-            {t("ecoBulletins")}
-          </Link>
-          <Link href="/data" className="hover:text-foreground">
-            {tn("data")}
-          </Link>
-          <Link href="/data/api" className="hover:text-foreground">
-            {t("api")}
-          </Link>
-          <Link href="/subscribe" className="hover:text-foreground">
-            {t("subscribe")}
-          </Link>
-          <Link href="/admin" className="hover:text-foreground">
-            {tn("admin")}
-          </Link>
+        <nav className="flex flex-col gap-1.5" aria-label={t("sections")}>
+          <p className="mb-0.5 font-semibold text-foreground">{t("sections")}</p>
+          {sections.map((s) => (
+            <Link key={s.href} href={s.href} className="w-fit hover:text-foreground">
+              {s.label}
+            </Link>
+          ))}
         </nav>
-        <div className="space-y-2 md:text-right">
+        <div className="space-y-2">
+          <p className="font-semibold text-foreground">{t("contacts")}</p>
           {hasContacts ? (
             <address className="space-y-1 not-italic">
-              {branding.email ? (
-                <p>
-                  <a href={`mailto:${branding.email}`} className="hover:text-foreground">
-                    {branding.email}
-                  </a>
-                </p>
-              ) : null}
+              {address ? <p>{address}</p> : null}
               {branding.phone ? (
                 <p>
                   <a
@@ -69,7 +59,13 @@ export async function SiteFooter() {
                   </a>
                 </p>
               ) : null}
-              {address ? <p>{address}</p> : null}
+              {branding.email ? (
+                <p>
+                  <a href={`mailto:${branding.email}`} className="hover:text-foreground">
+                    {branding.email}
+                  </a>
+                </p>
+              ) : null}
               {branding.website ? (
                 <p>
                   <a href={branding.website} className="hover:text-foreground" rel="noopener">
@@ -78,9 +74,15 @@ export async function SiteFooter() {
                 </p>
               ) : null}
             </address>
-          ) : null}
-          <p>{t("rights", { year })}</p>
-          <p>{t("dataLicense")}</p>
+          ) : (
+            <p>{t("contactsSoon")}</p>
+          )}
+          <p className="pt-2">{t("rights", { year })}</p>
+          <p>
+            <Link href="/admin" className="hover:text-foreground">
+              {tn("admin")}
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

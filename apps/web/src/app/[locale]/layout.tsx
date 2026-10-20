@@ -3,8 +3,8 @@ import { localeTags } from "@meteo/i18n";
 import "@meteo/ui/globals.css";
 import { Toaster } from "@meteo/ui/components/sonner";
 import { TooltipProvider } from "@meteo/ui/components/tooltip";
-import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import type { Metadata, Viewport } from "next";
+import { Inter, Inter_Tight } from "next/font/google";
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { hasLocale, NextIntlClientProvider } from "next-intl";
@@ -12,15 +12,36 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme-provider";
 import { routing } from "@/i18n/routing";
 
+/*
+ * Inter — текст, Inter Tight — заголовки и крупные числа (docs/03-design-system.md §5).
+ * Подмножества cyrillic + cyrillic-ext обязательны: таджикские буквы ғ ӣ қ ӯ ҳ ҷ лежат в
+ * расширенной кириллице (U+0490–U+04FF), без неё они выпадали бы в системный шрифт.
+ * latin-ext не нужен (tg/ru/en), а Inter Tight не предзагружается: на медленной сети
+ * текст (LCP) получает Inter первым, заголовки дорисовываются по мере загрузки.
+ */
 const inter = Inter({
-  subsets: ["latin", "latin-ext", "cyrillic", "cyrillic-ext"],
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
   variable: "--font-inter",
   display: "swap",
+});
+const interTight = Inter_Tight({
+  subsets: ["latin", "cyrillic", "cyrillic-ext"],
+  variable: "--font-inter-tight",
+  display: "swap",
+  preload: false,
 });
 
 export function generateStaticParams() {
   return routing.locales.map((locale) => ({ locale }));
 }
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#f2f5f9" },
+    { media: "(prefers-color-scheme: dark)", color: "#0f1724" },
+  ],
+};
 
 export async function generateMetadata({
   params,
@@ -54,7 +75,7 @@ export default async function LocaleLayout({
     <html
       lang={localeTags[locale as Locale]}
       suppressHydrationWarning
-      className={`${inter.variable} font-sans`}
+      className={`${inter.variable} ${interTight.variable} font-sans`}
     >
       <body className="min-h-dvh">
         <ThemeProvider nonce={nonce}>

@@ -1,15 +1,9 @@
 import { and, asc, eq, ne } from "@meteo/db";
 import { stations } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@meteo/ui/components/card";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { PageHeader } from "@/components/site/page-header";
 import { SubscribeForm } from "@/components/subscribe/subscribe-form";
 import { getDb } from "@/lib/db";
 import { subscribe } from "./actions";
@@ -46,20 +40,11 @@ export default async function SubscribePage({
   ]);
   const initialStation = Number(sp.station) || undefined;
   return (
-    <div className="container-page max-w-2xl py-10">
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-2xl">{t("title")}</CardTitle>
-          <CardDescription>{t("intro")}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <SubscribeForm
-            stations={stationRows}
-            action={subscribe}
-            initialStation={initialStation}
-          />
-        </CardContent>
-      </Card>
+    <div className="container-page flex max-w-2xl flex-col gap-6 py-8">
+      <PageHeader title={t("title")} intro={t("intro")} />
+      <div className="rounded-xl border bg-card px-4 py-5 sm:px-6">
+        <SubscribeForm stations={stationRows} action={subscribe} initialStation={initialStation} />
+      </div>
     </div>
   );
 }

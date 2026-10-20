@@ -2,9 +2,9 @@ import { CAP_SEVERITIES, maxSeverity } from "@meteo/core";
 import { listWarningRegions, localDateKey, localMidnightUtc } from "@meteo/db";
 import type { Locale } from "@meteo/i18n";
 import { cn } from "@meteo/ui/lib/utils";
-import { SirenIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
+import { PageHeader, Section } from "@/components/site/page-header";
 import { SeverityBadge, SeverityDot } from "@/components/warnings/severity-badge";
 import { WarningCard } from "@/components/warnings/warning-card";
 import { Link } from "@/i18n/navigation";
@@ -94,6 +94,7 @@ export default async function WarningsPage({
   );
   const activeList = isToday ? dayList.filter((w) => w.active) : dayList;
   const upcomingList = isToday ? dayList.filter((w) => !w.active) : [];
+  const activeCount = warnings.filter((w) => w.active).length;
   const dayLabel = (d: DayColumn, i: number) =>
     i === 0
       ? t("today")
@@ -104,17 +105,22 @@ export default async function WarningsPage({
     format.dateTime(new Date(d.start.getTime() + 3_600_000), { day: "numeric", month: "short" });
 
   return (
-    <div className="container-page flex flex-col gap-8 py-10">
-      <div className="flex flex-col gap-3">
-        <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight">
-          <SirenIcon className="size-8 text-brand" aria-hidden="true" />
-          {t("title")}
-        </h1>
-        <p className="max-w-3xl text-muted-foreground">{t("intro")}</p>
-      </div>
+    <div className="container-page flex flex-col gap-9 py-8">
+      <PageHeader
+        title={t("title")}
+        intro={activeCount > 0 ? t("summaryActive", { count: activeCount }) : t("summaryNone")}
+      >
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+          {CAP_SEVERITIES.filter((s) => s !== "Unknown").map((s) => (
+            <span key={s} className="inline-flex items-center gap-1.5">
+              <SeverityDot severity={s} className="size-2" />
+              {t(`severity.${s}` as "severity.Severe")}
+            </span>
+          ))}
+        </div>
+      </PageHeader>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-xl font-semibold">{t("byRegion")}</h2>
+      <Section title={t("byRegion")} id="by-region">
         <div className="overflow-x-auto rounded-xl border bg-card">
           <table className="w-full text-sm">
             <caption className="sr-only">{t("dayNav")}</caption>
@@ -135,12 +141,12 @@ export default async function WarningsPage({
                       }}
                       aria-current={d.key === selected.key ? "date" : undefined}
                       className={cn(
-                        "inline-flex flex-col rounded-md px-2 py-1 leading-tight hover:bg-accent",
-                        d.key === selected.key && "bg-accent text-accent-foreground",
+                        "inline-flex flex-col rounded-lg px-2 py-1 leading-tight hover:bg-muted",
+                        d.key === selected.key && "bg-muted text-foreground",
                       )}
                     >
                       <span className="font-medium">{dayLabel(d, i)}</span>
-                      <span className="text-xs text-muted-foreground">{dayDate(d)}</span>
+                      <span className="text-caption text-muted-foreground">{dayDate(d)}</span>
                     </Link>
                   </th>
                 ))}
@@ -200,26 +206,30 @@ export default async function WarningsPage({
         {regionFilter || sp.region === "" ? (
           <Link
             href={{ pathname: "/warnings", query: { day: selected.key } }}
-            className="w-fit text-sm text-muted-foreground underline-offset-4 hover:underline"
+            className="mt-2 inline-block text-sm text-muted-foreground underline-offset-4 hover:underline"
           >
             {t("allRegions")}
           </Link>
         ) : null}
-      </section>
+      </Section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">
-          {isToday ? t("activeNow") : dayDate(selected)}
-          {regionFilter
-            ? ` · ${name(regions.find((r) => r.code === regionFilter)?.name, locale) || regionFilter}`
-            : ""}
-        </h2>
+      <Section
+        title={
+          <>
+            {isToday ? t("activeNow") : dayDate(selected)}
+            {regionFilter
+              ? ` · ${name(regions.find((r) => r.code === regionFilter)?.name, locale) || regionFilter}`
+              : ""}
+          </>
+        }
+        id="active-heading"
+      >
         {activeList.length === 0 ? (
-          <p className="rounded-lg border bg-card p-4 text-sm text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             {isToday && !regionFilter ? t("none") : t("noneForDay")}
           </p>
         ) : (
-          <div className="grid gap-4 lg:grid-cols-2">
+          <div className="grid gap-3 lg:grid-cols-2">
             {activeList.map((w) => (
               <WarningCard key={w.id} warning={w} locale={locale} />
             ))}
@@ -227,18 +237,18 @@ export default async function WarningsPage({
         )}
         {upcomingList.length > 0 ? (
           <>
-            <h2 className="text-xl font-semibold">{t("upcoming")}</h2>
-            <div className="grid gap-4 lg:grid-cols-2">
+            <h3 className="mt-6 mb-3 text-h3">{t("upcoming")}</h3>
+            <div className="grid gap-3 lg:grid-cols-2">
               {upcomingList.map((w) => (
                 <WarningCard key={w.id} warning={w} locale={locale} />
               ))}
             </div>
           </>
         ) : null}
-      </section>
+      </Section>
 
       <section className="flex flex-col gap-2 text-sm text-muted-foreground">
-        <p className="font-medium text-foreground">{t("legend")}</p>
+        <p className="font-semibold text-foreground">{t("legend")}</p>
         <div className="flex flex-wrap gap-2">
           {CAP_SEVERITIES.filter((s) => s !== "Unknown").map((s) => (
             <SeverityBadge key={s} severity={s} label={t(`severity.${s}` as "severity.Severe")} />

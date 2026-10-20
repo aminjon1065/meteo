@@ -1,11 +1,12 @@
 import { severityStyle } from "@meteo/core";
 import { cn } from "@meteo/ui/lib/utils";
 
-const BADGE: Record<0 | 2 | 3 | 4, string> = {
-  0: "bg-aq-0 text-aq-0-foreground",
-  2: "bg-aq-2 text-aq-2-foreground",
-  3: "bg-aq-3 text-aq-3-foreground",
-  4: "bg-aq-4 text-aq-4-foreground",
+/** Уровень CAP → токены уровня воздуха того же цвета: жёлтый (2), оранжевый (3), красный (4). */
+const TINT: Record<0 | 2 | 3 | 4, string> = {
+  0: "bg-aq-0-tint",
+  2: "bg-aq-2-tint",
+  3: "bg-aq-3-tint",
+  4: "bg-aq-4-tint",
 };
 
 const BORDER: Record<0 | 2 | 3 | 4, string> = {
@@ -22,7 +23,7 @@ const DOT: Record<0 | 2 | 3 | 4, string> = {
   4: "bg-aq-4",
 };
 
-/** Цветная плашка уровня опасности CAP (жёлтый / оранжевый / красный). */
+/** Плашка уровня опасности CAP: точка цвета + подпись на лёгкой заливке. */
 export function SeverityBadge({
   severity,
   label,
@@ -36,11 +37,15 @@ export function SeverityBadge({
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-xs font-medium whitespace-nowrap",
-        BADGE[style.level],
+        "inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap text-foreground",
+        TINT[style.level],
         className,
       )}
     >
+      <span
+        className={cn("inline-block size-2 rounded-full", DOT[style.level])}
+        aria-hidden="true"
+      />
       {label}
     </span>
   );

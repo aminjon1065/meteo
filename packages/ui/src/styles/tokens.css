@@ -1,142 +1,170 @@
 /*
- * Дизайн‑токены метеопортала (docs/03-design-system.md §5).
- * Семантические переменные shadcn (--background, --primary, …) заданы здесь же,
- * чтобы все компоненты автоматически получали фирменные цвета.
- * Светлая тема — :root, тёмная — .dark (переключается next-themes).
+ * Дизайн‑токены метеопортала (docs/03-design-system.md §5): «спокойный государственный сервис».
+ * Холодный светлый фон с синим уклоном, тёмно‑синий текст, синий Агентства как единственный
+ * акцентный цвет, песочный — редко. Уровни качества воздуха — цвет + тинт для заливок полос.
+ * Семантические переменные shadcn (--background, --primary, …) заданы здесь же, чтобы все
+ * компоненты автоматически получали фирменные цвета. Светлая тема — :root, тёмная — .dark
+ * (переключается next-themes), тёмная использует те же имена токенов.
  */
 :root {
   /* Бренд */
-  --brand-primary: #0e5ea8;
-  --brand-primary-strong: #0b4c87;
-  --brand-primary-soft: #e3eefb;
-  --brand-accent: #f2994a;
+  --brand-primary: #164a7c;
+  --brand-primary-strong: #0f3a63;
+  --brand-primary-soft: #e6eef8;
+  --brand-accent: #c98a1f;
 
   /* Поверхности и текст */
-  --background: #f6f8fb;
-  --foreground: #0f172a;
+  --background: #f2f5f9;
+  --foreground: #142238;
   --card: #ffffff;
-  --card-foreground: #0f172a;
+  --card-foreground: #142238;
+  --surface-2: #e9eef5;
   --popover: #ffffff;
-  --popover-foreground: #0f172a;
+  --popover-foreground: #142238;
   --primary: var(--brand-primary);
   --primary-foreground: #ffffff;
-  --secondary: #eef2f7;
-  --secondary-foreground: #0f172a;
-  --muted: #eef2f7;
-  --muted-foreground: #475569;
+  --secondary: var(--surface-2);
+  --secondary-foreground: #142238;
+  --muted: var(--surface-2);
+  --muted-foreground: #4e5f78;
   --accent: var(--brand-primary-soft);
   --accent-foreground: var(--brand-primary-strong);
   /* Текст на тонированном фоне (bg-destructive/10, /90 поверх него) и белый на сплошном — ≥ 4.5:1 */
   --destructive: #b0182c;
   --destructive-foreground: #ffffff;
-  --border: #d9e1ec;
-  --input: #d9e1ec;
-  --ring: #2563eb;
-  --radius: 0.75rem;
+  --border: #d5deea;
+  --input: #d5deea;
+  --ring: #2f6fb5;
+  /* 10 px: элементы (lg), 14 px: панели и карточки (xl), 999: фишки */
+  --radius: 0.625rem;
 
   /* Графики (нейтральный ряд для не‑семантических серий) */
-  --chart-1: #0e5ea8;
-  --chart-2: #2e9e5b;
-  --chart-3: #f28c28;
-  --chart-4: #7b2cbf;
+  --chart-1: #164a7c;
+  --chart-2: #2f9e5b;
+  --chart-3: #ea8a2b;
+  --chart-4: #7d3fc2;
   --chart-5: #64748b;
 
   /* Боковая панель админки */
   --sidebar: #ffffff;
-  --sidebar-foreground: #0f172a;
+  --sidebar-foreground: #142238;
   --sidebar-primary: var(--brand-primary);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #eef2f7;
-  --sidebar-accent-foreground: #0f172a;
-  --sidebar-border: #d9e1ec;
-  --sidebar-ring: #2563eb;
+  --sidebar-accent: var(--surface-2);
+  --sidebar-accent-foreground: #142238;
+  --sidebar-border: #d5deea;
+  --sidebar-ring: #2f6fb5;
 
   /*
-   * Шкала качества воздуха: 0 — нет данных, 1 хороший … 5 очень плохой.
-   * Цвет текста подобран под контраст WCAG AA ≥ 4.5:1 в обеих темах
-   * (серый и зелёный — тёмный текст, остальные — как в docs/03 §5).
+   * Шкала качества воздуха: 0 — нет данных, 1 хорошее … 5 очень плохое, 6 — опасное (US AQI).
+   * --aq-N — цвет точки/полоски/маркера на карте; --aq-N-tint — заливка полос состояния,
+   * плашек и фона графика, на ней всегда основной текст (--foreground, ≥ 7:1 в обеих темах);
+   * --aq-N-foreground — текст на сплошном цвете (легенды карты, письма).
    */
-  --aq-0: #9aa5b1;
-  --aq-0-foreground: #0f172a;
-  --aq-1: #2e9e5b;
-  --aq-1-foreground: #0f172a;
-  --aq-2: #e3b505;
+  --aq-0: #9aa6b4;
+  --aq-0-foreground: #142238;
+  --aq-0-tint: #eceff3;
+  --aq-1: #2f9e5b;
+  --aq-1-foreground: #142238;
+  --aq-1-tint: #e6f4ea;
+  --aq-2: #d9a80b;
   --aq-2-foreground: #1f2937;
-  --aq-3: #f28c28;
+  --aq-2-tint: #fbf3d6;
+  --aq-3: #ea8a2b;
   --aq-3-foreground: #1f2937;
-  --aq-4: #d7263d;
+  --aq-3-tint: #fde9d6;
+  --aq-4: #d6303f;
   --aq-4-foreground: #ffffff;
-  --aq-5: #7b2cbf;
+  --aq-4-tint: #fbe0e3;
+  --aq-5: #7d3fc2;
   --aq-5-foreground: #ffffff;
+  --aq-5-tint: #ede1fa;
   --aq-6: #7e0023;
   --aq-6-foreground: #ffffff;
+  --aq-6-tint: #f3dbe2;
 
   /* Серьёзность предупреждений CAP */
-  --warn-minor: #f2c94c;
-  --warn-moderate: #f2994a;
-  --warn-severe: #eb5757;
+  --warn-minor: #d9a80b;
+  --warn-moderate: #ea8a2b;
+  --warn-severe: #d6303f;
   --warn-extreme: #8b0000;
 
   /* Статусы данных: цвет индикатора и цвет текста на тонированном фоне (/15) — ≥ 4.5:1 */
-  --status-fresh: #2e9e5b;
+  --status-fresh: #2f9e5b;
   --status-fresh-text: #1f6f3f;
-  --status-stale: #f28c28;
+  --status-stale: #ea8a2b;
   --status-stale-text: #9a5208;
-  --status-missing: #9aa5b1;
-  --status-missing-text: #475569;
+  --status-missing: #9aa6b4;
+  --status-missing-text: #4e5f78;
 }
 
 .dark {
-  --background: #0b1220;
-  --foreground: #e5ecf6;
-  --card: #111a2b;
-  --card-foreground: #e5ecf6;
-  --popover: #111a2b;
-  --popover-foreground: #e5ecf6;
-  --primary: #5ea3e6;
-  --primary-foreground: #06172b;
-  --secondary: #1a2538;
-  --secondary-foreground: #e5ecf6;
-  --muted: #1a2538;
-  --muted-foreground: #9fb0c7;
-  --accent: #15325a;
-  --accent-foreground: #cfe3fb;
-  --destructive: #f47a8a;
-  --destructive-foreground: #06172b;
-  --border: rgba(255, 255, 255, 0.1);
-  --input: rgba(255, 255, 255, 0.15);
-  --ring: #5ea3e6;
+  --brand-primary: #6ea8e3;
+  --brand-primary-strong: #9cc4ee;
+  --brand-primary-soft: #1b3350;
+  --brand-accent: #e0b452;
 
-  --chart-1: #5ea3e6;
+  --background: #0f1724;
+  --foreground: #e8eef7;
+  --card: #172235;
+  --card-foreground: #e8eef7;
+  --surface-2: #1f2d44;
+  --popover: #172235;
+  --popover-foreground: #e8eef7;
+  --primary: #6ea8e3;
+  --primary-foreground: #0f1724;
+  --secondary: #1f2d44;
+  --secondary-foreground: #e8eef7;
+  --muted: #1f2d44;
+  --muted-foreground: #9fb0c6;
+  --accent: #1f2d44;
+  --accent-foreground: #e8eef7;
+  --destructive: #f58b98;
+  --destructive-foreground: #0f1724;
+  --border: #2b3b54;
+  --input: #34466a;
+  --ring: #6ea8e3;
+
+  --chart-1: #6ea8e3;
   --chart-2: #4fc27f;
   --chart-3: #f5a85a;
   --chart-4: #a56ee8;
   --chart-5: #94a3b8;
 
-  --sidebar: #0f1828;
-  --sidebar-foreground: #e5ecf6;
-  --sidebar-primary: #5ea3e6;
-  --sidebar-primary-foreground: #06172b;
-  --sidebar-accent: #1a2538;
-  --sidebar-accent-foreground: #e5ecf6;
-  --sidebar-border: rgba(255, 255, 255, 0.1);
-  --sidebar-ring: #5ea3e6;
+  --sidebar: #121c2c;
+  --sidebar-foreground: #e8eef7;
+  --sidebar-primary: #6ea8e3;
+  --sidebar-primary-foreground: #0f1724;
+  --sidebar-accent: #1f2d44;
+  --sidebar-accent-foreground: #e8eef7;
+  --sidebar-border: #2b3b54;
+  --sidebar-ring: #6ea8e3;
 
-  /* Уровни в тёмной теме чуть мягче; белый/тёмный текст на них ≥ 4.5:1 */
-  --aq-0: #7c8794;
+  /* Уровни в тёмной теме чуть светлее (точки и текст ≥ 4.5:1 на фоне), тинты — глубокие */
+  --aq-0: #8d99a8;
+  --aq-0-tint: #1f2d44;
   --aq-1: #3fb06b;
-  --aq-2: #e6bd2b;
-  --aq-3: #f39a45;
-  --aq-4: #d93548;
-  --aq-5: #8a45d6;
-  --aq-6: #a3334f;
+  --aq-1-tint: #173524;
+  --aq-2: #e2b526;
+  --aq-2-tint: #3b3212;
+  --aq-3: #f09a45;
+  --aq-3-tint: #3f2a14;
+  --aq-4: #ea5b68;
+  --aq-4-tint: #45181f;
+  --aq-5: #a26ee0;
+  --aq-5-tint: #2e1f45;
+  --aq-6: #c9506d;
+  --aq-6-tint: #3d1522;
 
-  /* Статусы данных и предупреждения — чуть светлее на тёмном фоне */
+  --warn-minor: #e2b526;
+  --warn-moderate: #f09a45;
+  --warn-severe: #ea5b68;
+  --warn-extreme: #c0392b;
+
   --status-fresh: #3fb06b;
   --status-fresh-text: #6fd394;
-  --status-stale: #f39a45;
+  --status-stale: #f09a45;
   --status-stale-text: #f7bd85;
-  --status-missing: #7c8794;
+  --status-missing: #8d99a8;
   --status-missing-text: #b4bfcc;
-  --warn-extreme: #c0392b;
 }

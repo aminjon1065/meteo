@@ -6,10 +6,10 @@ test("/weather: карточки городов с температурой из
   await page.goto("/ru/weather");
   await expect(page.getByRole("heading", { level: 1 })).toContainText(t("ru", "weather.title"));
   await expect(page.getByText(t("ru", "weather.noForecast"))).toHaveCount(0);
-  const card = page.locator('[data-slot="card"]', { hasText: "Душанбе" }).first();
-  await expect(card).toBeVisible();
-  await expect(card).toContainText(/-?\d+°/);
-  await card.getByRole("link", { name: "Душанбе", exact: true }).click();
+  const row = page.getByTestId("city-weather").locator("li", { hasText: "Душанбе" }).first();
+  await expect(row).toBeVisible();
+  await expect(row).toContainText(/-?\d+°/);
+  await row.getByRole("link", { name: /Душанбе/ }).click();
   await expect(page).toHaveURL(/\/ru\/weather\/dushanbe$/);
 });
 

@@ -45,7 +45,7 @@ ${bodyHtml}
 }
 
 function button(href: string, label: string): string {
-  return `<p style="margin:20px 0"><a href="${escapeHtml(href)}" style="display:inline-block;background:#0e5ea8;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${escapeHtml(label)}</a></p>`;
+  return `<p style="margin:20px 0"><a href="${escapeHtml(href)}" style="display:inline-block;background:#164a7c;color:#ffffff;text-decoration:none;padding:10px 18px;border-radius:8px;font-weight:600">${escapeHtml(label)}</a></p>`;
 }
 
 export function renderEmail(

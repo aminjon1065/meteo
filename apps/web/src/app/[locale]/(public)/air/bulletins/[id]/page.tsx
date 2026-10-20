@@ -80,7 +80,7 @@ export default async function EcoBulletinPublicPage({
   );
 
   return (
-    <div className="container-page flex flex-col gap-6 py-10">
+    <div className="container-page flex flex-col gap-6 py-8">
       <div className="flex flex-col gap-3">
         <Link
           href="/air/bulletins"
@@ -89,7 +89,7 @@ export default async function EcoBulletinPublicPage({
           <ArrowLeftIcon className="size-4" aria-hidden="true" />
           {t("public.back")}
         </Link>
-        <h1 className="text-3xl font-semibold tracking-tight">
+        <h1 className="text-h1">
           {t("public.forDate", {
             date: format.dateTime(ecoDateValue(row.date), { dateStyle: "long" }),
           })}

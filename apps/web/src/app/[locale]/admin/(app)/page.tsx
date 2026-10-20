@@ -1,12 +1,4 @@
 import type { Locale } from "@meteo/i18n";
-import { Badge } from "@meteo/ui/components/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@meteo/ui/components/card";
 import { cn } from "@meteo/ui/lib/utils";
 import {
   Activity,
@@ -35,17 +27,23 @@ const DOT: Record<FreshnessState, string> = {
 
 type Tone = "ok" | "warn" | "bad" | "muted";
 const TONE_CLASS: Record<Tone, string> = {
-  ok: "border-transparent bg-status-fresh/15 text-foreground",
-  warn: "border-transparent bg-status-stale/20 text-foreground",
-  bad: "border-transparent bg-destructive/10 text-destructive",
-  muted: "border-border bg-muted text-muted-foreground",
+  ok: "bg-status-fresh/15 text-status-fresh-text",
+  warn: "bg-status-stale/20 text-status-stale-text",
+  bad: "bg-destructive/10 text-destructive",
+  muted: "bg-muted text-muted-foreground",
 };
 
+/** Плашка состояния: тон + подпись. */
 function StatusPill({ tone, children }: { tone: Tone; children: React.ReactNode }) {
   return (
-    <Badge variant="outline" className={cn("h-auto whitespace-normal py-0.5", TONE_CLASS[tone])}>
+    <span
+      className={cn(
+        "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold whitespace-nowrap",
+        TONE_CLASS[tone],
+      )}
+    >
       {children}
-    </Badge>
+    </span>
   );
 }
 
@@ -59,6 +57,13 @@ function integrationTone(row: IntegrationRow): { tone: Tone; key: string } {
   return { tone: "ok", key: "ok" };
 }
 
+const panel = "rounded-xl border bg-card";
+const panelHead = "flex flex-wrap items-center justify-between gap-2 border-b px-4 py-3";
+
+/**
+ * Дашборд: показатели одной строкой, свежесть данных станций и статусы интеграций —
+ * компактными строками, почта и последние действия — списками.
+ */
 export default async function AdminDashboardPage({
   params,
 }: {
@@ -91,241 +96,199 @@ export default async function AdminDashboardPage({
     : { label: t("stats.workerUnknown"), tone: "muted" as const };
   const total = data.freshness.length;
   const share = total ? Math.round((data.withoutData24h / total) * 100) : 0;
+  const prefix = locale === "tg" ? "" : `/${locale}`;
 
   return (
     <>
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">{t("dashboard")}</h1>
-        <p className="text-muted-foreground">{t("welcome", { name: session?.user.name ?? "" })}</p>
+      <div className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <h1 className="text-h2">{t("dashboard")}</h1>
+          <p className="text-sm text-muted-foreground">
+            {t("welcome", { name: session?.user.name ?? "" })}
+          </p>
+        </div>
+        <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+          <span>{t("stats.workerHeartbeat")}</span>
+          <StatusPill tone={workerStatus.tone}>{workerStatus.label}</StatusPill>
+          {data.heartbeatAt ? (
+            <span className="num">
+              {format.relativeTime(data.heartbeatAt)}
+              {data.heartbeatHost ? ` · ${data.heartbeatHost}` : ""}
+            </span>
+          ) : null}
+        </p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-6">
-        <StatCard icon={Radio} label={t("stats.stations")} value={data.stations} />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 xl:grid-cols-6">
+        <StatCard
+          icon={Radio}
+          label={t("stats.stations")}
+          value={data.stations}
+          href={`${prefix}/admin/stations`}
+        />
         <StatCard icon={Activity} label={t("stats.activeStations")} value={data.activeStations} />
-        <StatCard icon={Database} label={t("stats.measurements24h")} value={data.measurements24h} />
-        <StatCard icon={ClipboardCheck} label={t("stats.qcQueue")} value={data.qcQueue} />
-        <StatCard icon={BellRing} label={t("stats.activeAlerts")} value={data.activeAlerts} />
-        <StatCard icon={Users} label={t("stats.users")} value={data.users} />
+        <StatCard
+          icon={Database}
+          label={t("stats.measurements24h")}
+          value={data.measurements24h}
+          href={`${prefix}/admin/measurements/browse`}
+        />
+        <StatCard
+          icon={ClipboardCheck}
+          label={t("stats.qcQueue")}
+          value={data.qcQueue}
+          href={`${prefix}/admin/measurements/qc`}
+        />
+        <StatCard
+          icon={BellRing}
+          label={t("stats.activeAlerts")}
+          value={data.activeAlerts}
+          href={`${prefix}/admin/alerts/events`}
+        />
+        <StatCard
+          icon={Users}
+          label={t("stats.users")}
+          value={data.users}
+          href={`${prefix}/admin/users`}
+        />
       </div>
 
       <div className="grid gap-4 xl:grid-cols-3">
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex flex-wrap items-center justify-between gap-2 text-base">
-              {t("freshness.title")}
-              <span className="flex flex-wrap gap-2">
-                <StatusPill tone={data.withoutData24h === 0 ? "ok" : share >= 50 ? "bad" : "warn"}>
-                  {t("freshness.withoutData", { count: data.withoutData24h, total, share })}
+        <section className={cn(panel, "xl:col-span-2")} aria-labelledby="freshness-title">
+          <div className={panelHead}>
+            <div>
+              <h2 id="freshness-title" className="text-h3">
+                {t("freshness.title")}
+              </h2>
+              <p className="text-caption text-muted-foreground">{t("freshness.hint")}</p>
+            </div>
+            <span className="flex flex-wrap gap-2">
+              <StatusPill tone={data.withoutData24h === 0 ? "ok" : share >= 50 ? "bad" : "warn"}>
+                {t("freshness.withoutData", { count: data.withoutData24h, total, share })}
+              </StatusPill>
+              {data.ingestStale > 0 ? (
+                <StatusPill tone="warn">
+                  {t("freshness.ingestStaleCount", {
+                    count: data.ingestStale,
+                    minutes: data.ingestStaleAfterMin,
+                  })}
                 </StatusPill>
-                {data.ingestStale > 0 ? (
-                  <StatusPill tone="warn">
-                    {t("freshness.ingestStaleCount", {
-                      count: data.ingestStale,
-                      minutes: data.ingestStaleAfterMin,
-                    })}
-                  </StatusPill>
-                ) : null}
-              </span>
-            </CardTitle>
-            <CardDescription>{t("freshness.hint")}</CardDescription>
-          </CardHeader>
-          <CardContent className="px-0 sm:px-6">
-            {data.freshness.length === 0 ? (
-              <p className="px-6 text-sm text-muted-foreground sm:px-0">{t("freshness.empty")}</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <caption className="sr-only">{t("freshness.title")}</caption>
-                  <thead className="text-left text-xs text-muted-foreground">
-                    <tr className="border-b">
-                      <th scope="col" className="px-6 py-2 font-medium sm:px-2">
-                        {t("freshness.station")}
-                      </th>
-                      <th scope="col" className="px-2 py-2 font-medium">
-                        {t("freshness.region")}
-                      </th>
-                      <th scope="col" className="px-2 py-2 font-medium">
-                        {t("freshness.lastMeasurement")}
-                      </th>
-                      <th scope="col" className="px-2 py-2 font-medium">
-                        {t("freshness.ingest")}
-                      </th>
-                      <th scope="col" className="px-6 py-2 text-right font-medium sm:px-2">
-                        {t("freshness.state")}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.freshness.map((s) => (
-                      <tr key={s.id} className="border-b last:border-b-0">
-                        <td className="px-6 py-2 sm:px-2">
-                          <Link
-                            href={`/admin/stations/${s.id}`}
-                            className="font-medium hover:underline"
+              ) : null}
+            </span>
+          </div>
+          {data.freshness.length === 0 ? (
+            <p className="px-4 py-4 text-sm text-muted-foreground">{t("freshness.empty")}</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <caption className="sr-only">{t("freshness.title")}</caption>
+                <thead className="text-left text-caption text-muted-foreground">
+                  <tr className="border-b">
+                    <th scope="col" className="px-4 py-2 font-medium">
+                      {t("freshness.station")}
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      {t("freshness.region")}
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      {t("freshness.lastMeasurement")}
+                    </th>
+                    <th scope="col" className="px-2 py-2 font-medium">
+                      {t("freshness.ingest")}
+                    </th>
+                    <th scope="col" className="px-4 py-2 text-right font-medium">
+                      {t("freshness.state")}
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.freshness.map((s) => (
+                    <tr key={s.id} className="border-b last:border-b-0">
+                      <td className="px-4 py-1.5">
+                        <Link
+                          href={`/admin/stations/${s.id}`}
+                          className="font-medium hover:underline"
+                        >
+                          {name(s.name, locale) || s.code}
+                        </Link>
+                        <span className="block text-caption text-muted-foreground">
+                          {s.code} · {ts(`sampling.${s.sampling}` as "sampling.discrete")}
+                          {s.status !== "active"
+                            ? ` · ${ts(`status.${s.status}` as "status.suspended")}`
+                            : ""}
+                        </span>
+                      </td>
+                      <td className="px-2 py-1.5 text-muted-foreground">
+                        {name(s.region, locale) || "—"}
+                      </td>
+                      <td className="num px-2 py-1.5">
+                        {s.lastAt ? (
+                          <span title={dt(s.lastAt)}>{rel(s.lastAt)}</span>
+                        ) : (
+                          <span className="text-muted-foreground">{t("freshness.never")}</span>
+                        )}
+                      </td>
+                      <td className="num px-2 py-1.5">
+                        {s.ingestAt ? (
+                          <span
+                            className="inline-flex items-center gap-1.5 whitespace-nowrap"
+                            title={dt(s.ingestAt)}
                           >
-                            {name(s.name, locale) || s.code}
-                          </Link>
-                          <span className="block text-xs text-muted-foreground">
-                            {s.code} · {ts(`sampling.${s.sampling}` as "sampling.discrete")}
-                            {s.status !== "active"
-                              ? ` · ${ts(`status.${s.status}` as "status.suspended")}`
-                              : ""}
-                          </span>
-                        </td>
-                        <td className="px-2 py-2 text-muted-foreground">
-                          {name(s.region, locale) || "—"}
-                        </td>
-                        <td className="px-2 py-2 tabular-nums">
-                          {s.lastAt ? (
-                            <>
-                              <span>{rel(s.lastAt)}</span>
-                              <span className="block text-xs text-muted-foreground">
-                                {dt(s.lastAt)}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="text-muted-foreground">{t("freshness.never")}</span>
-                          )}
-                        </td>
-                        <td className="px-2 py-2 tabular-nums">
-                          {s.ingestAt ? (
                             <span
-                              className="inline-flex items-center gap-1.5 whitespace-nowrap"
-                              title={dt(s.ingestAt)}
-                            >
-                              <span
-                                className={cn(
-                                  "inline-block size-2.5 rounded-full",
-                                  DOT[s.ingestState],
-                                )}
-                                aria-hidden="true"
-                              />
-                              {rel(s.ingestAt)}
-                              <span className="text-xs text-muted-foreground">
-                                {t(`freshness.source.${s.ingestSource ?? "api"}`)}
-                              </span>
-                            </span>
-                          ) : s.sources > 0 ||
-                            s.dataSource === "api" ||
-                            s.dataSource === "sensor" ? (
-                            <span className="text-xs text-muted-foreground">
-                              {t("freshness.ingestNever")}
-                            </span>
-                          ) : (
-                            <span className="text-muted-foreground">—</span>
-                          )}
-                          {s.sourcesFailed > 0 ? (
-                            <span className="block text-xs text-destructive">
-                              {t("freshness.sourcesFailed", { count: s.sourcesFailed })}
-                            </span>
-                          ) : null}
-                        </td>
-                        <td className="px-6 py-2 text-right sm:px-2">
-                          <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
-                            <span
-                              className={cn("inline-block size-2.5 rounded-full", DOT[s.state])}
+                              className={cn("inline-block size-2 rounded-full", DOT[s.ingestState])}
                               aria-hidden="true"
                             />
-                            {t(`freshness.${s.state}`)}
+                            {rel(s.ingestAt)}
+                            <span className="text-caption text-muted-foreground">
+                              {t(`freshness.source.${s.ingestSource ?? "api"}`)}
+                            </span>
                           </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                        ) : s.sources > 0 || s.dataSource === "api" || s.dataSource === "sensor" ? (
+                          <span className="text-caption text-muted-foreground">
+                            {t("freshness.ingestNever")}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground">—</span>
+                        )}
+                        {s.sourcesFailed > 0 ? (
+                          <span className="block text-caption text-destructive">
+                            {t("freshness.sourcesFailed", { count: s.sourcesFailed })}
+                          </span>
+                        ) : null}
+                      </td>
+                      <td className="px-4 py-1.5 text-right">
+                        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+                          <span
+                            className={cn("inline-block size-2 rounded-full", DOT[s.state])}
+                            aria-hidden="true"
+                          />
+                          {t(`freshness.${s.state}`)}
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
 
         <div className="flex flex-col gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between gap-2 text-base">
-                {t("stats.workerHeartbeat")}
-                <StatusPill tone={workerStatus.tone}>{workerStatus.label}</StatusPill>
-              </CardTitle>
-              <CardDescription>
-                {data.heartbeatAt
-                  ? `${format.relativeTime(data.heartbeatAt)} · ${data.heartbeatHost ?? ""}`
-                  : "—"}
-              </CardDescription>
-            </CardHeader>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-base">
-                <MailIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-                {t("outbox.title")}
-              </CardTitle>
-              <CardDescription>
-                {data.outbox.smtpConfigured ? t("outbox.smtpConfigured") : t("outbox.smtpDev")}
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm">
-              <dl className="grid grid-cols-3 gap-2 text-center">
-                <div className="rounded-lg border p-2">
-                  <dt className="text-xs text-muted-foreground">{t("outbox.pending")}</dt>
-                  <dd className="text-xl font-semibold tabular-nums">{data.outbox.pending}</dd>
-                </div>
-                <div
-                  className={cn(
-                    "rounded-lg border p-2",
-                    data.outbox.failed > 0 && "border-destructive/40",
-                  )}
-                >
-                  <dt className="text-xs text-muted-foreground">{t("outbox.failed")}</dt>
-                  <dd
-                    className={cn(
-                      "text-xl font-semibold tabular-nums",
-                      data.outbox.failed > 0 && "text-destructive",
-                    )}
-                  >
-                    {data.outbox.failed}
-                  </dd>
-                </div>
-                <div className="rounded-lg border p-2">
-                  <dt className="text-xs text-muted-foreground">{t("outbox.sent24h")}</dt>
-                  <dd className="text-xl font-semibold tabular-nums">{data.outbox.sent24h}</dd>
-                </div>
-              </dl>
-              <p className="text-xs text-muted-foreground">
-                {t("outbox.lastSent")}: {rel(data.outbox.lastSentAt)}
-              </p>
-              {data.outbox.lastFailed ? (
-                <p className="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
-                  {t("outbox.lastFailed", {
-                    to: data.outbox.lastFailed.to,
-                    template: data.outbox.lastFailed.template,
-                  })}
-                  {data.outbox.lastFailed.error ? `: ${data.outbox.lastFailed.error}` : ""}
-                </p>
-              ) : null}
-              <Link
-                href="/admin/settings"
-                className="text-xs text-muted-foreground underline-offset-4 hover:underline"
-              >
-                {t("outbox.testLink")}
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">{t("stats.integrations")}</CardTitle>
-            <CardDescription>{t("stats.integrationsHint")}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col divide-y text-sm">
+          <section className={panel} aria-labelledby="integrations-title">
+            <div className={panelHead}>
+              <div>
+                <h2 id="integrations-title" className="text-h3">
+                  {t("stats.integrations")}
+                </h2>
+                <p className="text-caption text-muted-foreground">{t("stats.integrationsHint")}</p>
+              </div>
+            </div>
+            <ul className="divide-y text-sm">
               {data.integrations.map((i) => {
                 const status = integrationTone(i);
                 const until = i.state.circuit.until ? new Date(i.state.circuit.until) : null;
                 return (
-                  <li key={i.key} className="flex flex-col gap-1 py-3 first:pt-0 last:pb-0">
+                  <li key={i.key} className="grid gap-0.5 px-4 py-2.5">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <span className="font-medium">{t(`stats.${i.key}`)}</span>
                       <StatusPill tone={status.tone}>
@@ -336,7 +299,7 @@ export default async function AdminDashboardPage({
                             : t(`integration.${status.key}` as "integration.ok")}
                       </StatusPill>
                     </div>
-                    <p className="text-xs text-muted-foreground">
+                    <p className="num text-caption text-muted-foreground">
                       {t("integration.lastSuccess")}: {rel(i.lastSuccessAt)}
                       {i.originTime
                         ? ` · ${t("stats.modelRun", { time: utcTime(i.originTime) })}`
@@ -346,18 +309,21 @@ export default async function AdminDashboardPage({
                         : ""}
                     </p>
                     {i.state.lastError && i.state.status === "failed" ? (
-                      <p className="break-words text-xs text-destructive">
+                      <p className="text-caption break-words text-destructive">
                         {t("integration.failed", { count: i.state.consecutiveFailures })}:{" "}
                         {i.state.lastError}
                       </p>
                     ) : null}
                     {i.key === "cap" && i.cap?.errors && i.cap.errors.length > 0 ? (
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-caption text-muted-foreground">
                         {t("integration.capErrors", { count: i.cap.errors.length })}
                       </p>
                     ) : null}
                     {i.state.source ? (
-                      <p className="truncate text-xs text-muted-foreground" title={i.state.source}>
+                      <p
+                        className="truncate text-caption text-muted-foreground"
+                        title={i.state.source}
+                      >
                         {i.state.source}
                       </p>
                     ) : null}
@@ -365,48 +331,92 @@ export default async function AdminDashboardPage({
                 );
               })}
             </ul>
-          </CardContent>
-        </Card>
+          </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center justify-between gap-2 text-base">
-              <span className="flex items-center gap-2">
-                <ScrollTextIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-                {t("recentAudit.title")}
+          <section className={panel} aria-labelledby="outbox-title">
+            <div className={panelHead}>
+              <h2 id="outbox-title" className="flex items-center gap-2 text-h3">
+                <MailIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                {t("outbox.title")}
+              </h2>
+              <span className="text-caption text-muted-foreground">
+                {data.outbox.smtpConfigured ? t("outbox.smtpConfigured") : t("outbox.smtpDev")}
               </span>
-              <Link
-                href="/admin/audit"
-                className="text-xs font-normal text-muted-foreground underline-offset-4 hover:underline"
-              >
-                {t("recentAudit.all")}
+            </div>
+            <dl className="grid grid-cols-3 divide-x text-center">
+              {(
+                [
+                  ["pending", data.outbox.pending, false],
+                  ["failed", data.outbox.failed, data.outbox.failed > 0],
+                  ["sent24h", data.outbox.sent24h, false],
+                ] as const
+              ).map(([key, value, bad]) => (
+                <div key={key} className="px-2 py-2.5">
+                  <dt className="text-caption text-muted-foreground">{t(`outbox.${key}`)}</dt>
+                  <dd
+                    className={cn("num font-heading text-xl font-bold", bad && "text-destructive")}
+                  >
+                    {value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+            <div className="flex flex-col gap-1 border-t px-4 py-2.5 text-caption text-muted-foreground">
+              <p>
+                {t("outbox.lastSent")}: {rel(data.outbox.lastSentAt)}
+              </p>
+              {data.outbox.lastFailed ? (
+                <p className="text-destructive">
+                  {t("outbox.lastFailed", {
+                    to: data.outbox.lastFailed.to,
+                    template: data.outbox.lastFailed.template,
+                  })}
+                  {data.outbox.lastFailed.error ? `: ${data.outbox.lastFailed.error}` : ""}
+                </p>
+              ) : null}
+              <Link href="/admin/settings" className="w-fit underline-offset-4 hover:underline">
+                {t("outbox.testLink")}
               </Link>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {data.audit.length === 0 ? (
-              <p className="text-sm text-muted-foreground">{t("recentAudit.empty")}</p>
-            ) : (
-              <ol className="flex flex-col divide-y text-sm">
-                {data.audit.map((a) => (
-                  <li key={a.id} className="flex flex-col gap-0.5 py-2 first:pt-0 last:pb-0">
-                    <div className="flex flex-wrap items-center justify-between gap-2">
-                      <span className="font-mono text-xs">{a.action}</span>
-                      <time dateTime={a.at.toISOString()} className="text-xs text-muted-foreground">
-                        {dt(a.at)}
-                      </time>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {a.actorEmail ?? "—"} · {a.entity}
-                      {a.entityId ? ` #${a.entityId}` : ""}
-                    </span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </CardContent>
-        </Card>
+            </div>
+          </section>
+        </div>
       </div>
+
+      <section className={panel} aria-labelledby="audit-title">
+        <div className={panelHead}>
+          <h2 id="audit-title" className="flex items-center gap-2 text-h3">
+            <ScrollTextIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+            {t("recentAudit.title")}
+          </h2>
+          <Link href="/admin/audit" className="text-sm font-semibold text-brand hover:underline">
+            {t("recentAudit.all")} →
+          </Link>
+        </div>
+        {data.audit.length === 0 ? (
+          <p className="px-4 py-3 text-sm text-muted-foreground">{t("recentAudit.empty")}</p>
+        ) : (
+          <ol className="divide-y text-sm">
+            {data.audit.map((a) => (
+              <li key={a.id} className="grid gap-x-4 gap-y-0.5 px-4 py-2 sm:grid-cols-[1fr_auto]">
+                <span>
+                  <span className="font-mono text-xs">{a.action}</span>
+                  <span className="text-caption text-muted-foreground">
+                    {" "}
+                    · {a.actorEmail ?? "—"} · {a.entity}
+                    {a.entityId ? ` #${a.entityId}` : ""}
+                  </span>
+                </span>
+                <time
+                  dateTime={a.at.toISOString()}
+                  className="num text-caption text-muted-foreground"
+                >
+                  {dt(a.at)}
+                </time>
+              </li>
+            ))}
+          </ol>
+        )}
+      </section>
     </>
   );
 }

@@ -40,7 +40,12 @@ test("страница станции: текущий индекс, график
     "href",
     /format=csv/,
   );
-  await expect(page.getByText(t("ru", "station.passport"), { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: t("ru", "station.about") })).toBeVisible();
+  // Плитки веществ с мини‑графиками за сутки и пустые состояния для неизмеряемых веществ.
+  await expect(page.getByTestId("pollutant-tiles")).toBeVisible();
+  await expect(page.getByTestId("tile-PM10")).toContainText(
+    t("ru", "station.dayRange").split(":")[0] ?? "",
+  );
   await expect(page.getByText(E2E.station.code)).toBeVisible();
   expect(violations()).toEqual([]);
 });

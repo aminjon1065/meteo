@@ -85,7 +85,7 @@ describe("silam", () => {
     expect(r.height).toBe(4);
     expect(r.data.length).toBe(6 * 4 * 4);
     // Верхняя строка растра — север (lat 38.2 ряд: 40,50,60 → уровень 2 = жёлтый #E3B505)
-    expect([r.data[0], r.data[1], r.data[2]]).toEqual([0xe3, 0xb5, 0x05]);
+    expect([r.data[0], r.data[1], r.data[2]]).toEqual([0xd9, 0xa8, 0x0b]);
     expect(r.stats.max).toBe(60);
   });
 });

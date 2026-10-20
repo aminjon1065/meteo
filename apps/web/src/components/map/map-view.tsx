@@ -70,6 +70,8 @@ export interface MapViewProps {
   };
   /** Легенда уровней (серверный компонент) */
   legend: ReactNode;
+  /** Слой, включённый при открытии (ссылки «Прогноз SILAM» / «Предупреждения» с главной). */
+  initialLayer?: "silam" | "warnings";
 }
 
 const PLAY_INTERVAL_MS = 800;
@@ -101,10 +103,11 @@ export function MapView({
   regionsHref,
   labels,
   legend,
+  initialLayer,
 }: MapViewProps) {
   const available = catalog.run !== null && catalog.pollutants.length > 0;
-  const [silamOn, setSilamOn] = useState(false);
-  const [warningsOn, setWarningsOn] = useState(warnings.count > 0);
+  const [silamOn, setSilamOn] = useState(initialLayer === "silam" && available);
+  const [warningsOn, setWarningsOn] = useState(warnings.count > 0 || initialLayer === "warnings");
   const [regionsOn, setRegionsOn] = useState(true);
   const [regionsFill, setRegionsFill] = useState(false);
   const boundaries = useMemo<BoundariesLayer>(
@@ -196,10 +199,10 @@ export function MapView({
         boundaries={boundaries}
         unsupportedLabel={labels.unsupported}
       />
-      <aside className="absolute top-4 left-4 z-10 flex w-72 max-w-[calc(100%-2rem)] flex-col gap-3 rounded-xl border bg-background/90 p-4 text-sm shadow-md backdrop-blur">
-        <h1 className="font-semibold">{labels.title}</h1>
+      <aside className="absolute top-3 left-3 z-10 flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-xl border bg-card/95 p-3.5 text-sm shadow-md backdrop-blur">
+        <h1 className="font-heading text-base font-bold">{labels.title}</h1>
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase">{labels.layers}</p>
+          <p className="eyebrow">{labels.layers}</p>
           <div className="flex items-center gap-2">
             <Checkbox id="layer-stations" checked disabled />
             <label htmlFor="layer-stations">{labels.stations}</label>
@@ -215,7 +218,7 @@ export function MapView({
             </label>
           </div>
           {regionsOn ? (
-            <div className="flex flex-col gap-1.5 rounded-lg border bg-card/60 p-2 text-xs">
+            <div className="flex flex-col gap-1.5 rounded-lg bg-surface-2 p-2 text-xs">
               <div className="flex items-center gap-2">
                 <Checkbox
                   id="layer-regions-fill"
@@ -245,7 +248,7 @@ export function MapView({
             {!available ? <Badge variant="secondary">{labels.soon}</Badge> : null}
           </div>
           {silamOn && available && pollutant ? (
-            <div className="flex flex-col gap-2 rounded-lg border bg-card/60 p-2">
+            <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-2">
               <NativeSelect
                 aria-label={labels.pollutant}
                 value={pollutant.code}
@@ -331,7 +334,7 @@ export function MapView({
             </Badge>
           </div>
           {warningsOn ? (
-            <div className="flex flex-col gap-1 rounded-lg border bg-card/60 p-2 text-xs">
+            <div className="flex flex-col gap-1 rounded-lg bg-surface-2 p-2 text-xs">
               {warnings.count === 0 ? (
                 <p className="text-muted-foreground">{labels.warningsNone}</p>
               ) : null}
@@ -357,7 +360,7 @@ export function MapView({
           ) : null}
         </div>
         <div className="flex flex-col gap-2">
-          <p className="text-xs font-medium text-muted-foreground uppercase">{labels.legend}</p>
+          <p className="eyebrow">{labels.legend}</p>
           {legend}
         </div>
       </aside>

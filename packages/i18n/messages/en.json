@@ -29,7 +29,9 @@
     "mainNav": "Main navigation",
     "soon": "Coming soon",
     "legend": "Legend",
-    "pagination": "Pagination"
+    "pagination": "Pagination",
+    "city": "City",
+    "more": "More"
   },
   "nav": {
     "home": "Home",
@@ -41,7 +43,8 @@
     "health": "Health",
     "about": "About",
     "data": "Open data",
-    "admin": "Administration"
+    "admin": "Administration",
+    "airShort": "Air"
   },
   "levels": {
     "0": "No data",
@@ -88,7 +91,26 @@
     "noNews": "No news yet",
     "allNews": "All news",
     "ecoBulletin": "Ecological bulletin for {date}",
-    "ecoBulletinsAll": "Eco-bulletin archive"
+    "ecoBulletinsAll": "Eco-bulletin archive",
+    "scaleLabel": "Level {level} of {total}: {label}",
+    "hourlyMeans": "hourly means across the city's stations",
+    "cityStations": "{count, plural, one {# station} other {# stations}} in the city",
+    "howToRead": "How to read the levels",
+    "noCityStations": "There are no air monitoring stations in {city} yet.",
+    "nearestStation": "The nearest station is {station}, {distance} km away.",
+    "noFreshData": "The city's stations have not reported in the last 6 hours. Latest data: {time}.",
+    "tomorrow": "Tomorrow",
+    "airBySilam": "Air by SILAM forecast",
+    "noPrecip": "no precipitation",
+    "precip": "precipitation {value} mm",
+    "stationsNow": "Stations now",
+    "allStations": "All stations · {count}",
+    "mapTitle": "Map",
+    "openFullMap": "Open the full map",
+    "weatherByCity": "Weather by city",
+    "newsTitle": "News and bulletins",
+    "allMaterials": "All items",
+    "airLabel": "air"
   },
   "footer": {
     "rights": "© {year} Agency for Hydrometeorology of the Republic of Tajikistan",
@@ -97,7 +119,9 @@
     "subscribe": "Email alerts",
     "sections": "Portal sections",
     "aboutIndex": "About the index",
-    "ecoBulletins": "Eco-bulletins"
+    "ecoBulletins": "Eco-bulletins",
+    "contacts": "Contacts",
+    "contactsSoon": "Contact details will be published after approval by the Agency."
   },
   "auth": {
     "signIn": "Sign in",
@@ -449,11 +473,13 @@
   },
   "air": {
     "title": "Air quality",
-    "intro": "Data from the national network of ambient air monitoring stations. The index and colour levels appear with the first measurements.",
+    "intro": "Data from the national network of ambient air monitoring stations: the level follows the worst pollutant over the last hour and updates as measurements arrive.",
     "stationsHeading": "Monitoring stations",
     "noStations": "No stations yet",
     "viewAll": "All stations",
-    "aboutIndex": "How the index is calculated"
+    "aboutIndex": "How the index is calculated",
+    "summary": "{count, plural, one {# monitoring station} other {# monitoring stations}}, {fresh} reporting in the last 6 hours. The worst level right now is {level}.",
+    "noRegion": "Not assigned to a region"
   },
   "station": {
     "current": "Current values",
@@ -473,8 +499,45 @@
     "backToList": "Back to stations",
     "mapTitle": "Location",
     "silamTomorrow": "SILAM forecast",
-    "silamHint": "FMI SILAM model forecast for the station coordinates: daily mean level by the worst pollutant.",
-    "ecoBulletin": "Eco-bulletin for {date}"
+    "silamHint": "Daily mean level by the worst pollutant for the station's coordinates.",
+    "ecoBulletin": "Eco-bulletin for {date}",
+    "noDataSince": "No data since {date}",
+    "noDataYet": "No data yet",
+    "now": "Now",
+    "nowAt": "Now · {time}",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "breadcrumbs": "Breadcrumbs",
+    "samplingContinuous": "data every 10 minutes",
+    "samplingDiscrete": "spot samples several times a day",
+    "m": "m",
+    "km": "km",
+    "scaleLabel": "Level {level} of {total}: {label}",
+    "determines": "Driven by {pollutant}: {value} {unit} — this level starts at {threshold}.",
+    "determinesNoThreshold": "Driven by {pollutant}: {value} {unit}.",
+    "dayMax": "Daily maximum {value} {unit} at {time}.",
+    "staleSince": "Data is stale: last updated {time}.",
+    "recommendations": "Recommendations",
+    "allGroups": "For all groups",
+    "pollutantsTitle": "Pollutants",
+    "pollutantsHint": "hourly means · last 24 hours",
+    "dayRange": "24 h: min {min} · max {max}",
+    "sparklineLabel": "{pollutant} over 24 hours: from {min} to {max} {unit}",
+    "notMeasured": "This station does not measure {pollutant}.",
+    "nearestWith": "Nearest station with this pollutant:",
+    "noNearest": "No other station measures this pollutant yet.",
+    "noRecent": "No data in the last 24 hours.",
+    "lastValueAt": "Last measurement {time}.",
+    "neverReported": "This station has not reported this pollutant yet.",
+    "noDataValue": "no data",
+    "chartHint": "Coloured bands are the national scale levels for {pollutant}. Only validated measurements are shown.",
+    "forecastTitle": "Air quality forecast",
+    "forecastSource": "SILAM model, FMI",
+    "forecastNone": "The SILAM forecast for this point is not available yet.",
+    "about": "About the station",
+    "address": "Address",
+    "subscribe": "Subscribe to alerts for this station",
+    "determinesGood": "Driven by {pollutant}: {value} {unit} — below the {threshold} threshold."
   },
   "measurements": {
     "title": "Measurements",
@@ -863,7 +926,10 @@
       "elderly": "Elderly people",
       "respiratory": "Chronic respiratory diseases",
       "cardio": "Cardiovascular diseases"
-    }
+    },
+    "levelsNav": "Levels",
+    "levelOf": "level {level} of {total}",
+    "aboutIndex": "How the level is calculated"
   },
   "alerts": {
     "title": "Notification rules",
@@ -1013,7 +1079,12 @@
     "title": "{count, plural, one {Active threshold exceedance} other {Active threshold exceedances}}",
     "pollutant": "{pollutant} {value} {unit} (threshold {threshold})",
     "index": "index reached level {level}",
-    "since": "since {time}"
+    "since": "since {time}",
+    "notice": "{pollutant} above the threshold at {count, plural, one {# station} other {# stations}}",
+    "noticeOne": "{pollutant} above the threshold: {station}",
+    "stationLine": "{pollutant} {value} {unit} with a threshold of {threshold}",
+    "sinceTime": "since {time}",
+    "whatItMeans": "What this means"
   },
   "weather": {
     "title": "Weather",
@@ -1068,7 +1139,12 @@
     "embedTitle": "Website widget",
     "embedHint": "Embed the forecast on meteo.tj or any other site with one line:",
     "stale": "Forecast is stale: SmartMet synchronisation has not succeeded recently",
-    "silamStale": "SILAM forecast is stale: a new model run has not been loaded yet"
+    "silamStale": "SILAM forecast is stale: a new model run has not been loaded yet",
+    "maxMin": "max {max} · min {min}",
+    "windShort": "wind {value} m/s",
+    "humidityShort": "humidity {value} %",
+    "noForecastShort": "no forecast yet",
+    "breadcrumbs": "Breadcrumbs"
   },
   "weatherSymbols": {
     "clear": "Clear",
@@ -1196,7 +1272,9 @@
     "sourceNote": "Warnings are issued by the Agency for Hydrometeorology in CAP format (SmartMet Alert)",
     "dayNav": "Choose a day",
     "mapCount": "{count, plural, one {# active} other {# active}}",
-    "xml": "CAP XML"
+    "xml": "CAP XML",
+    "summaryActive": "{count, plural, one {# warning is} other {# warnings are}} currently in force from the Agency for Hydrometeorology. Below: by region for the coming days.",
+    "summaryNone": "No storm warnings are in force. The table shows the coming days by region; warnings are issued by the Agency for Hydrometeorology."
   },
   "capAdmin": {
     "title": "CAP messages",
@@ -1790,7 +1868,8 @@
         "title": "District boundaries",
         "description": "Districts and cities of regional subordination with simplified polygons linked to their region (GeoJSON).",
         "updates": "rarely"
-      }
+      },
+      "title": "Datasets"
     },
     "license": {
       "title": "Licence",
@@ -2073,7 +2152,8 @@
       "all": "All bulletins",
       "latest": "Eco-bulletin for {date}",
       "station": "Station",
-      "languageNote": "The documents are issued in Tajik and Russian."
+      "languageNote": "The documents are issued in Tajik and Russian.",
+      "kind": "Eco bulletin"
     },
     "errors": {
       "validation": "Check the form fields",
@@ -2095,5 +2175,20 @@
       "form4aDoc": "Form 4a",
       "readMore": "Eco-bulletin archive on the portal"
     }
+  },
+  "pollutantHints": {
+    "PM25": "PM2.5 — fine particulate matter (up to 2.5 µm): smoke, exhaust, soot",
+    "PM10": "PM10 — dust, coarse particulate matter (up to 10 µm)",
+    "NO2": "NO₂ — nitrogen dioxide: vehicle exhaust, boilers",
+    "SO2": "SO₂ — sulphur dioxide: burning coal and fuel oil",
+    "CO": "CO — carbon monoxide: incomplete fuel combustion",
+    "O3": "O₃ — ground-level ozone: forms in hot sunny weather",
+    "NO": "NO — nitric oxide: exhaust and industry",
+    "CH2O": "CH₂O — formaldehyde: industry, building materials",
+    "C6H5OH": "C₆H₅OH — phenol: industrial emissions",
+    "HF": "HF — hydrogen fluoride: aluminium production",
+    "TSP": "TSP — total suspended particles of all sizes",
+    "CO2": "CO₂ — carbon dioxide: an indicator of ventilation",
+    "TVOC": "TVOC — volatile organic compounds: solvents, fuel"
   }
 }

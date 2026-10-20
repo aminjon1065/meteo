@@ -13,10 +13,17 @@ for (const locale of locales) {
     const response = await page.goto(`${prefix(locale)}/`);
     expect(response?.status()).toBe(200);
     await expect(page.locator("html")).toHaveAttribute("lang", HTML_LANG[locale]);
-    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t(locale, "home.title"));
+    // h1 — надзаголовок полосы состояния: «Качество воздуха сейчас · <город>».
+    await expect(page.getByRole("heading", { level: 1 })).toContainText(t(locale, "home.airNow"));
+    await expect(page.getByTestId("status-level")).toBeVisible();
     const nav = page.getByRole("navigation", { name: t(locale, "common.mainNav") });
-    await expect(nav.getByRole("link", { name: t(locale, "nav.air") })).toBeVisible();
-    await expect(nav.getByRole("link", { name: t(locale, "nav.weather") })).toBeVisible();
+    // exact: по‑таджикски «Ҳаво» (воздух) — подстрока «Обу ҳаво» (погода).
+    await expect(
+      nav.getByRole("link", { name: t(locale, "nav.airShort"), exact: true }),
+    ).toBeVisible();
+    await expect(
+      nav.getByRole("link", { name: t(locale, "nav.weather"), exact: true }),
+    ).toBeVisible();
     // Карточки: погода по городам из фикстуры, действующее CAP-предупреждение, новость.
     await expect(page.getByText(t(locale, "home.forecastToday"))).toBeVisible();
     await expect(page.getByText(E2E.capHeadline[locale]).first()).toBeVisible();
@@ -31,12 +38,29 @@ for (const locale of locales) {
 
 test("переключатель языка ведёт на /ru и /en", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: t("tg", "common.language") }).click();
-  await page.getByRole("menuitem", { name: "Русский" }).click();
+  // Переключатель — три ссылки «TJ · RU · EN» в навигации «Язык» (шапка; на телефоне — в листе «Ещё»).
+  const switcher = (locale: E2eLocale) =>
+    page.getByRole("navigation", { name: t(locale, "common.language") }).first();
+  await switcher("tg")
+    .getByRole("link", { name: /Русский/ })
+    .click();
   await expect(page).toHaveURL(/\/ru$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("ru", "home.title"));
-  await page.getByRole("button", { name: t("ru", "common.language") }).click();
-  await page.getByRole("menuitem", { name: "English" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(t("ru", "home.airNow"));
+  await switcher("ru")
+    .getByRole("link", { name: /English/ })
+    .click();
   await expect(page).toHaveURL(/\/en$/);
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("en", "home.title"));
+  await expect(page.getByRole("heading", { level: 1 })).toContainText(t("en", "home.airNow"));
+});
+
+test("выбор города в шапке запоминается в cookie и меняет полосу состояния", async ({ page }) => {
+  await page.goto("/ru");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Душанбе");
+  await page.getByRole("button", { name: /Душанбе/ }).click();
+  await page.getByRole("menuitem", { name: "Худжанд" }).click();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Худжанд");
+  const cookie = (await page.context().cookies()).find((c) => c.name === "meteo-city");
+  expect(cookie?.value).toBe("khujand");
+  await page.reload();
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Худжанд");
 });

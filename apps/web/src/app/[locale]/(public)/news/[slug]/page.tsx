@@ -1,7 +1,6 @@
 import { markdownExcerpt } from "@meteo/core";
 import { getPublishedNews } from "@meteo/db";
 import { type I18nText, type Locale, locales, localeTags } from "@meteo/i18n";
-import { Badge } from "@meteo/ui/components/badge";
 import { ArrowLeftIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
@@ -100,7 +99,7 @@ export default async function NewsArticlePage({
   };
 
   return (
-    <article className="container-page flex flex-col gap-6 py-10">
+    <article className="container-page flex flex-col gap-6 py-8">
       <script
         type="application/ld+json"
         // biome-ignore lint/security/noDangerouslySetInnerHtml: JSON-LD собирается из наших данных через JSON.stringify
@@ -116,8 +115,11 @@ export default async function NewsArticlePage({
       <header className="flex max-w-3xl flex-col gap-3">
         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           {post.category ? (
-            <Link href={{ pathname: "/news", query: { category: post.category.slug } }}>
-              <Badge variant="secondary">{name(post.category.name, locale)}</Badge>
+            <Link
+              href={{ pathname: "/news", query: { category: post.category.slug } }}
+              className="rounded-full bg-surface-2 px-2.5 py-0.5 text-xs font-semibold text-foreground hover:bg-muted"
+            >
+              {name(post.category.name, locale)}
             </Link>
           ) : null}
           {post.publishedAt ? (
@@ -126,10 +128,7 @@ export default async function NewsArticlePage({
             </time>
           ) : null}
         </div>
-        <h1
-          className="text-balance text-3xl font-semibold tracking-tight sm:text-4xl"
-          lang={title.locale}
-        >
+        <h1 className="text-h1" lang={title.locale}>
           {title.value}
         </h1>
         {name(post.excerpt, locale) ? (

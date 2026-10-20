@@ -48,16 +48,19 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
     };
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: смена темы меняет CSS‑токены, которые эффект читает из DOM
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
-    const dark = resolvedTheme === "dark";
     const styles = getComputedStyle(document.documentElement);
-    const fg = styles.getPropertyValue("--foreground").trim() || (dark ? "#e5ecf6" : "#0f172a");
-    const muted = styles.getPropertyValue("--muted-foreground").trim() || "#64748b";
-    const border = styles.getPropertyValue("--border").trim() || "#d9e1ec";
-    const tempColor = styles.getPropertyValue("--brand-accent").trim() || "#f2994a";
-    const precipColor = styles.getPropertyValue("--brand-primary").trim() || "#0e5ea8";
+    const fg = styles.getPropertyValue("--foreground").trim() || "#142238";
+    const muted = styles.getPropertyValue("--muted-foreground").trim() || "#4e5f78";
+    const border = styles.getPropertyValue("--border").trim() || "#d5deea";
+    const popover = styles.getPropertyValue("--popover").trim() || "#ffffff";
+    const tempColor = styles.getPropertyValue("--brand-accent").trim() || "#c98a1f";
+    const precipColor = styles.getPropertyValue("--brand-primary").trim() || "#164a7c";
+    const fontFamily = getComputedStyle(document.body).fontFamily;
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const fmt = new Intl.DateTimeFormat(locale, {
       timeZone: "Asia/Dushanbe",
       weekday: "short",
@@ -89,13 +92,14 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
 
     chart.setOption(
       {
-        animationDuration: 300,
+        animationDuration: reduced ? 0 : 300,
+        textStyle: { fontFamily },
         grid: { left: 44, right: 44, top: 20, bottom: 32 },
         tooltip: {
           trigger: "axis",
-          backgroundColor: dark ? "#111a2b" : "#ffffff",
+          backgroundColor: popover,
           borderColor: border,
-          textStyle: { color: fg, fontSize: 12 },
+          textStyle: { color: fg, fontSize: 12, fontFamily },
           formatter: (params: unknown) => {
             const list = (Array.isArray(params) ? params : [params]) as Array<{
               seriesName: string;

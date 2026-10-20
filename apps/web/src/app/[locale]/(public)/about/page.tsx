@@ -1,15 +1,9 @@
 import type { Locale } from "@meteo/i18n";
 import { pick } from "@meteo/i18n";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@meteo/ui/components/card";
-import { CloudSunIcon, InfoIcon, RadioIcon, SirenIcon, WindIcon } from "lucide-react";
+import { CloudSunIcon, RadioIcon, SirenIcon, WindIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getBrandingCached } from "@/lib/settings";
 
@@ -66,90 +60,77 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
   ].filter((c): c is { label: string; value: string; href: string | null } => c !== null);
 
   return (
-    <div className="container-page flex flex-col gap-10 py-10">
-      <div className="flex flex-col gap-3">
-        <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight">
-          <InfoIcon className="size-8 text-brand" aria-hidden="true" />
-          {t("title")}
-        </h1>
-        <p className="max-w-3xl text-lg text-muted-foreground">{t("intro")}</p>
+    <div className="container-page flex flex-col gap-10 py-8">
+      <PageHeader title={t("title")} intro={t("intro")} />
+
+      <div className="grid gap-8 md:grid-cols-2">
+        <section>
+          <h2 className="text-h2">{t("agency.title")}</h2>
+          <p className="mt-2 font-semibold">{agency}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("agency.text")}</p>
+        </section>
+        <section>
+          <h2 className="text-h2">{t("project.title")}</h2>
+          <p className="mt-2 text-sm text-muted-foreground">{t("project.text")}</p>
+          <p className="mt-2 text-sm text-muted-foreground">{t("project.fmi")}</p>
+        </section>
       </div>
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="flex flex-col gap-3 rounded-xl border bg-card p-6">
-          <h2 className="text-xl font-semibold">{t("agency.title")}</h2>
-          <p className="font-medium">{agency}</p>
-          <p className="text-sm text-muted-foreground">{t("agency.text")}</p>
-        </div>
-        <div className="flex flex-col gap-3 rounded-xl border bg-card p-6">
-          <h2 className="text-xl font-semibold">{t("project.title")}</h2>
-          <p className="text-sm text-muted-foreground">{t("project.text")}</p>
-          <p className="text-sm text-muted-foreground">{t("project.fmi")}</p>
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">{t("sources.title")}</h2>
-        <p className="max-w-3xl text-sm text-muted-foreground">{t("sources.intro")}</p>
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <Section title={t("sources.title")} id="sources">
+        <p className="mb-4 max-w-3xl text-sm text-muted-foreground">{t("sources.intro")}</p>
+        <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-4">
           {SOURCES.map((s) => {
             const Icon = s.icon;
             return (
-              <Card key={s.key}>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2 text-base">
-                    <Icon className="size-4 text-brand" aria-hidden="true" />
-                    {t(`sources.${s.key}.title`)}
-                  </CardTitle>
-                  <CardDescription>{t(`sources.${s.key}.text`)}</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link
-                    href={s.href}
-                    className="text-sm text-brand underline-offset-4 hover:underline"
-                  >
-                    {t("sources.open")}
-                  </Link>
-                </CardContent>
-              </Card>
+              <li
+                key={s.key}
+                className="grid content-start gap-1.5 rounded-xl border bg-card px-4 py-3.5"
+              >
+                <Icon className="size-5 text-brand" aria-hidden="true" />
+                <h3 className="text-h3">{t(`sources.${s.key}.title`)}</h3>
+                <p className="text-sm text-muted-foreground">{t(`sources.${s.key}.text`)}</p>
+                <Link href={s.href} className="text-sm font-semibold text-brand hover:underline">
+                  {t("sources.open")} →
+                </Link>
+              </li>
             );
           })}
-        </div>
-      </section>
+        </ul>
+      </Section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border bg-card p-6 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("openData.title")}</h2>
+      <div className="grid gap-8 text-sm lg:grid-cols-3">
+        <section>
+          <h2 className="mb-2 text-h3">{t("openData.title")}</h2>
           <p className="text-muted-foreground">{t("openData.text")}</p>
-          <div className="mt-3 flex flex-wrap gap-3">
-            <Link href="/data" className="text-brand underline-offset-4 hover:underline">
+          <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1">
+            <Link href="/data" className="font-semibold text-brand hover:underline">
               {t("openData.data")}
             </Link>
-            <Link href="/data/api" className="text-brand underline-offset-4 hover:underline">
+            <Link href="/data/api" className="font-semibold text-brand hover:underline">
               {t("openData.api")}
             </Link>
-            <Link href="/air/index" className="text-brand underline-offset-4 hover:underline">
+            <Link href="/air/index" className="font-semibold text-brand hover:underline">
               {t("openData.index")}
             </Link>
           </div>
-        </div>
-        <div className="rounded-xl border bg-card p-6 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("languages.title")}</h2>
+        </section>
+        <section>
+          <h2 className="mb-2 text-h3">{t("languages.title")}</h2>
           <p className="text-muted-foreground">{t("languages.text")}</p>
           <p className="mt-2 text-muted-foreground">{t("accessibility")}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-6 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("contacts.title")}</h2>
+        </section>
+        <section>
+          <h2 className="mb-2 text-h3">{t("contacts.title")}</h2>
           {contacts.length === 0 ? (
             <p className="text-muted-foreground">{t("contacts.none")}</p>
           ) : (
             <dl className="grid gap-2">
               {contacts.map((c) => (
                 <div key={c.label} className="flex flex-col">
-                  <dt className="text-xs text-muted-foreground">{c.label}</dt>
+                  <dt className="text-caption text-muted-foreground">{c.label}</dt>
                   <dd>
                     {c.href ? (
-                      <a href={c.href} className="text-brand underline-offset-4 hover:underline">
+                      <a href={c.href} className="font-medium text-brand hover:underline">
                         {c.value}
                       </a>
                     ) : (
@@ -160,8 +141,8 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
               ))}
             </dl>
           )}
-        </div>
-      </section>
+        </section>
+      </div>
 
       <p className="text-sm text-muted-foreground">{t("disclaimer")}</p>
     </div>

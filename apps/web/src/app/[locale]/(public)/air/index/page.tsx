@@ -9,10 +9,10 @@ import { asc, loadIndexConfig } from "@meteo/db";
 import { limitValues, pollutants } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { AqBadge } from "@meteo/ui/components/aq-badge";
-import { GaugeIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { LevelLegend } from "@/components/air/level-legend";
+import { PageHeader } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
@@ -160,7 +160,7 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
         <table className="w-full text-sm">
           <caption className="sr-only">{t("thresholdsCaption")}</caption>
           <thead>
-            <tr className="border-b text-left text-xs text-muted-foreground">
+            <tr className="border-b bg-surface-2/60 text-left text-caption text-muted-foreground">
               <th scope="col" className="px-3 py-2 font-medium">
                 {t("pollutant")}
               </th>
@@ -169,13 +169,7 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
               </th>
               {scaleLevels.map((lv) => (
                 <th key={lv} scope="col" className="px-3 py-2 text-center font-medium">
-                  <AqBadge
-                    level={lv}
-                    label={
-                      name(scale.levels.find((l) => l.level === lv)?.label, locale) || tl(`${lv}`)
-                    }
-                    size="sm"
-                  />
+                  <AqBadge level={lv} label={tl(`${lv}`)} size="sm" />
                 </th>
               ))}
             </tr>
@@ -204,25 +198,18 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
   };
 
   return (
-    <div className="container-page flex flex-col gap-10 py-10">
-      <div className="flex flex-col gap-3">
-        <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight">
-          <GaugeIcon className="size-8 text-brand" aria-hidden="true" />
-          {t("title")}
-        </h1>
-        <p className="max-w-3xl text-lg text-muted-foreground">{t("intro")}</p>
+    <div className="container-page flex flex-col gap-10 py-8">
+      <PageHeader title={t("title")} intro={t("intro")}>
         <LevelLegend levels={publicScale?.levels.map((l) => l.level)} />
-      </div>
+      </PageHeader>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">{t("operational.title")}</h2>
+      <section className="flex flex-col gap-4" id="thresholds">
+        <h2 className="text-h2">{t("operational.title")}</h2>
         <div className="grid gap-4 md:grid-cols-3">
           {(["measure", "subindex", "max"] as const).map((step, i) => (
-            <div key={step} className="rounded-xl border bg-card p-5">
-              <p className="text-xs font-medium text-muted-foreground uppercase">
-                {t("step", { n: i + 1 })}
-              </p>
-              <h3 className="mt-1 font-semibold">{t(`operational.${step}.title`)}</h3>
+            <div key={step} className="rounded-xl border bg-card px-4 py-3.5">
+              <p className="eyebrow">{t("step", { n: i + 1 })}</p>
+              <h3 className="mt-1 text-h3">{t(`operational.${step}.title`)}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t(`operational.${step}.text`)}</p>
             </div>
           ))}
@@ -230,9 +217,8 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
         <p className="max-w-3xl text-sm text-muted-foreground">{t("operational.note")}</p>
         {publicScale ? (
           <>
-            <h3 className="text-base font-semibold">
-              {t("thresholds")} ·{" "}
-              {name(publicScale.levels.length ? undefined : undefined, locale) || publicScale.code}
+            <h3 className="text-h3">
+              {t("thresholds")} · {publicScale.code}
             </h3>
             {renderScaleTable(publicScale)}
             <p className="text-xs text-muted-foreground">{t("thresholdsHint")}</p>
@@ -243,12 +229,12 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
       </section>
 
       <section className="flex flex-col gap-4" data-testid="agency-method">
-        <h2 className="text-xl font-semibold">{t("agency.title")}</h2>
+        <h2 className="text-h2">{t("agency.title")}</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">{t("agency.intro")}</p>
         <div className="grid gap-4 md:grid-cols-3">
           {(["ratio", "sum", "cases"] as const).map((part) => (
-            <div key={part} className="rounded-xl border bg-card p-5">
-              <h3 className="font-semibold">{t(`agency.${part}.title`)}</h3>
+            <div key={part} className="rounded-xl border bg-card px-4 py-3.5">
+              <h3 className="text-h3">{t(`agency.${part}.title`)}</h3>
               <p className="mt-1 text-sm text-muted-foreground">{t(`agency.${part}.text`)}</p>
             </div>
           ))}
@@ -257,18 +243,18 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
         <p className="max-w-3xl text-sm text-muted-foreground">{t("agency.units")}</p>
       </section>
 
-      <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">{t("colors.title")}</h2>
-        <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <section className="flex flex-col gap-4" id="levels">
+        <h2 className="text-h2">{t("colors.title")}</h2>
+        <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {publicLevels.map((lv) => (
-            <li key={lv} className="flex items-start gap-3 rounded-xl border bg-card p-4">
+            <li key={lv} className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5">
               <AqBadge level={lv} label={tl(`${lv}`)} size="md" className="shrink-0" />
               <p className="text-sm text-muted-foreground">
                 {t(`colors.level${lv}` as "colors.level1")}
               </p>
             </li>
           ))}
-          <li className="flex items-start gap-3 rounded-xl border bg-card p-4">
+          <li className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5">
             <AqBadge level={0} label={tl("0")} size="md" className="shrink-0" />
             <p className="text-sm text-muted-foreground">{t("colors.level0")}</p>
           </li>
@@ -277,7 +263,7 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
       </section>
 
       <section className="flex flex-col gap-4">
-        <h2 className="text-xl font-semibold">{t("national.title")}</h2>
+        <h2 className="text-h2">{t("national.title")}</h2>
         <p className="max-w-3xl text-sm text-muted-foreground">{t("national.ratio")}</p>
         <p className="max-w-3xl text-sm text-muted-foreground">{t("national.iza")}</p>
         {izaScale && izaScale.levels.length > 0 ? (
@@ -300,7 +286,7 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
             <table className="w-full text-sm">
               <caption className="sr-only">{t("limitsCaption")}</caption>
               <thead>
-                <tr className="border-b text-left text-xs text-muted-foreground">
+                <tr className="border-b bg-surface-2/60 text-left text-caption text-muted-foreground">
                   <th scope="col" className="px-3 py-2 font-medium">
                     {t("pollutant")}
                   </th>
@@ -349,33 +335,33 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
 
       {whoScale ? (
         <section className="flex flex-col gap-4">
-          <h2 className="text-xl font-semibold">{t("who.title")}</h2>
+          <h2 className="text-h2">{t("who.title")}</h2>
           <p className="max-w-3xl text-sm text-muted-foreground">{t("who.text")}</p>
           {renderScaleTable(whoScale)}
         </section>
       ) : null}
 
-      <section className="grid gap-6 lg:grid-cols-2">
-        <div className="rounded-xl border bg-card p-6 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("quality.title")}</h2>
+      <section className="grid gap-8 lg:grid-cols-2">
+        <div className="text-sm">
+          <h2 className="mb-2 text-h3">{t("quality.title")}</h2>
           <p className="text-muted-foreground">{t("quality.text")}</p>
           <p className="mt-2 text-muted-foreground">{t("quality.stale")}</p>
         </div>
-        <div className="rounded-xl border bg-card p-6 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("more.title")}</h2>
+        <div className="text-sm">
+          <h2 className="mb-2 text-h3">{t("more.title")}</h2>
           <ul className="flex flex-col gap-1">
             <li>
-              <Link href="/health" className="text-brand underline-offset-4 hover:underline">
+              <Link href="/health" className="font-semibold text-brand hover:underline">
                 {t("more.health")}
               </Link>
             </li>
             <li>
-              <Link href="/air" className="text-brand underline-offset-4 hover:underline">
+              <Link href="/air" className="font-semibold text-brand hover:underline">
                 {t("more.air")}
               </Link>
             </li>
             <li>
-              <Link href="/data/api" className="text-brand underline-offset-4 hover:underline">
+              <Link href="/data/api" className="font-semibold text-brand hover:underline">
                 {t("more.api")}
               </Link>
             </li>

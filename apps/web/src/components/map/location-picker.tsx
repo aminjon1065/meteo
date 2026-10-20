@@ -50,7 +50,7 @@ export function LocationPicker({ lat, lon, onChange, locale, className }: Locati
     mapRef.current = map;
     map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
 
-    const marker = new maplibregl.Marker({ draggable: true, color: "#0e5ea8" });
+    const marker = new maplibregl.Marker({ draggable: true, color: "#164a7c" });
     markerRef.current = marker;
     if (hasPoint) marker.setLngLat([lon as number, lat as number]).addTo(map);
     marker.on("dragend", () => {

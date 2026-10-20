@@ -80,7 +80,7 @@ export default async function EmbedAqiPage({
         <AqBadge level={data.level} label={tl(`${data.level}` as "0")} size="lg" />
         {data.dominant && subValue !== null && !data.idx?.stale ? (
           <span className="flex flex-col text-xs text-muted-foreground">
-            <span className="text-2xl font-semibold text-foreground tabular-nums">
+            <span className="num font-heading text-2xl font-bold text-foreground">
               {format.number(subValue, { maximumFractionDigits: data.dominant.decimals })}
               <span className="ml-1 text-sm font-normal text-muted-foreground">
                 {data.dominant.unit}

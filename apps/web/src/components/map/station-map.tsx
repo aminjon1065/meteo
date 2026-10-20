@@ -119,15 +119,13 @@ function regionFillOpacity(fill: boolean): maplibregl.ExpressionSpecification {
     : ["case", HOVERED, 0.12, 0];
 }
 
-function regionFillColor(
-  fill: boolean,
-  dark: boolean,
-): maplibregl.ExpressionSpecification | string {
-  return fill ? levelColorExpression("level") : dark ? "#e2e8f0" : "#334155";
+/** Подложка светлая в обеих темах (basemap.ts), поэтому контуры всегда тёмно‑синие. */
+function regionFillColor(fill: boolean): maplibregl.ExpressionSpecification | string {
+  return fill ? levelColorExpression("level") : "#334155";
 }
 
-function boundaryLineColor(dark: boolean): string {
-  return dark ? "#cbd5e1" : "#334155";
+function boundaryLineColor(): string {
+  return "#3b4a63";
 }
 
 function parseJson(value: unknown): unknown {
@@ -184,8 +182,6 @@ export function StationMap({
   const styleReadyRef = useRef(false);
   const { resolvedTheme } = useTheme();
   const theme = resolvedTheme === "dark" ? "dark" : "light";
-  const themeRef = useRef(theme);
-  themeRef.current = theme;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: карта создаётся один раз; тема и язык — через setStyle ниже
   useEffect(() => {
@@ -368,7 +364,6 @@ export function StationMap({
         syncDiagnostics();
         return;
       }
-      const dark = themeRef.current === "dark";
       if (!map.getSource("regions")) {
         map.addSource("regions", { type: "geojson", data: b.regionsUrl });
         map.addLayer(
@@ -377,7 +372,7 @@ export function StationMap({
             type: "fill",
             source: "regions",
             paint: {
-              "fill-color": regionFillColor(b.fill, dark),
+              "fill-color": regionFillColor(b.fill),
               "fill-opacity": regionFillOpacity(b.fill),
             },
           },
@@ -390,15 +385,15 @@ export function StationMap({
             source: "regions",
             layout: { "line-join": "round", "line-cap": "round" },
             paint: {
-              "line-color": boundaryLineColor(dark),
+              "line-color": boundaryLineColor(),
               "line-width": ["case", HOVERED, 2.6, 1.3],
-              "line-opacity": dark ? 0.85 : 0.9,
+              "line-opacity": 0.9,
             },
           },
           beforeIdFor("regions-line"),
         );
       } else {
-        map.setPaintProperty("regions-fill", "fill-color", regionFillColor(b.fill, dark));
+        map.setPaintProperty("regions-fill", "fill-color", regionFillColor(b.fill));
         map.setPaintProperty("regions-fill", "fill-opacity", regionFillOpacity(b.fill));
       }
       if (
@@ -415,7 +410,7 @@ export function StationMap({
             minzoom: DISTRICTS_MIN_ZOOM,
             layout: { "line-join": "round" },
             paint: {
-              "line-color": boundaryLineColor(dark),
+              "line-color": boundaryLineColor(),
               "line-width": 0.8,
               "line-opacity": 0.7,
               "line-dasharray": [3, 2],

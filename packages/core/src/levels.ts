@@ -23,12 +23,12 @@ export interface AqLevelStyle {
 }
 
 export const AQ_LEVEL_STYLES: Record<AqLevelOrNone, AqLevelStyle> = {
-  0: { level: 0, color: "#9AA5B1", foreground: "#0F172A", key: "0" },
-  1: { level: 1, color: "#2E9E5B", foreground: "#0F172A", key: "1" },
-  2: { level: 2, color: "#E3B505", foreground: "#1F2937", key: "2" },
-  3: { level: 3, color: "#F28C28", foreground: "#1F2937", key: "3" },
-  4: { level: 4, color: "#D7263D", foreground: "#FFFFFF", key: "4" },
-  5: { level: 5, color: "#7B2CBF", foreground: "#FFFFFF", key: "5" },
+  0: { level: 0, color: "#9AA6B4", foreground: "#142238", key: "0" },
+  1: { level: 1, color: "#2F9E5B", foreground: "#142238", key: "1" },
+  2: { level: 2, color: "#D9A80B", foreground: "#1F2937", key: "2" },
+  3: { level: 3, color: "#EA8A2B", foreground: "#1F2937", key: "3" },
+  4: { level: 4, color: "#D6303F", foreground: "#FFFFFF", key: "4" },
+  5: { level: 5, color: "#7D3FC2", foreground: "#FFFFFF", key: "5" },
   6: { level: 6, color: "#7E0023", foreground: "#FFFFFF", key: "6" },
 };
 

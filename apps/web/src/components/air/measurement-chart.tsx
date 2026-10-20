@@ -1,6 +1,5 @@
 "use client";
 
-import { AQ_LEVEL_STYLES } from "@meteo/core";
 import { buttonVariants } from "@meteo/ui/components/button";
 import { NativeSelect, NativeSelectOption } from "@meteo/ui/components/native-select";
 import { Skeleton } from "@meteo/ui/components/skeleton";
@@ -37,6 +36,8 @@ export interface ChartPollutant {
   shortName: string;
   unit: string;
   decimals: number;
+  /** Подсказка (полное название и пояснение) — в список выбора. */
+  hint?: string;
 }
 
 export interface ChartBand {
@@ -59,6 +60,9 @@ export interface MeasurementChartProps {
     hourly: string;
     daily: string;
     levels: Record<string, string>;
+    /** Подпись под графиком с плейсхолдером {pollutant}. */
+    hint?: string;
+    title?: string;
   };
 }
 
@@ -78,7 +82,28 @@ interface SeriesResponse {
 
 type LevelKey = 1 | 2 | 3 | 4 | 5 | 6;
 
-/** График измерений станции: периоды 24ч/7д/30д/1г, полосы уровней шкалы, выгрузка CSV. */
+/** Токены темы для холста: полосы уровней — тинты, линия — синий Агентства, оси — приглушённые. */
+function readTokens() {
+  const styles = getComputedStyle(document.documentElement);
+  const read = (name: string, fallback: string) => styles.getPropertyValue(name).trim() || fallback;
+  return {
+    fg: read("--foreground", "#142238"),
+    muted: read("--muted-foreground", "#4e5f78"),
+    border: read("--border", "#d5deea"),
+    primary: read("--brand-primary", "#164a7c"),
+    popover: read("--popover", "#ffffff"),
+    tints: {
+      1: read("--aq-1-tint", "#e6f4ea"),
+      2: read("--aq-2-tint", "#fbf3d6"),
+      3: read("--aq-3-tint", "#fde9d6"),
+      4: read("--aq-4-tint", "#fbe0e3"),
+      5: read("--aq-5-tint", "#ede1fa"),
+      6: read("--aq-6-tint", "#f3dbe2"),
+    } as Record<LevelKey, string>,
+  };
+}
+
+/** График измерений станции: периоды 24ч/7д/30д/1г, полосы уровней шкалы тинтами, выгрузка CSV. */
 export function MeasurementChart({
   stationSlug,
   pollutants,
@@ -132,16 +157,13 @@ export function MeasurementChart({
     };
   }, []);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: смена темы меняет CSS‑токены, которые эффект читает из DOM
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !pollutant) return;
     const points = data?.series[0]?.points ?? [];
-    const dark = resolvedTheme === "dark";
-    const styles = getComputedStyle(document.documentElement);
-    const fg = styles.getPropertyValue("--foreground").trim() || (dark ? "#e5ecf6" : "#0f172a");
-    const muted = styles.getPropertyValue("--muted-foreground").trim() || "#64748b";
-    const border = styles.getPropertyValue("--border").trim() || "#d9e1ec";
-    const primary = styles.getPropertyValue("--brand-primary").trim() || "#0e5ea8";
+    const tokens = readTokens();
+    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const pollutantBands = bands[pollutant.code] ?? [];
     const maxValue = Math.max(0, ...points.map((p) => p.max ?? p.v ?? 0));
     const thirdBandTop = pollutantBands[Math.min(2, pollutantBands.length - 1)]?.hi ?? 0;
@@ -154,16 +176,18 @@ export function MeasurementChart({
       timeStyle: data?.aggregation === "hour" ? "short" : undefined,
     });
     const numFmt = new Intl.NumberFormat(locale, { maximumFractionDigits: pollutant.decimals });
+    const fontFamily = getComputedStyle(document.body).fontFamily;
 
     chart.setOption(
       {
-        animationDuration: 300,
-        grid: { left: 52, right: 16, top: 16, bottom: range === "1y" ? 56 : 32 },
+        animationDuration: reduced ? 0 : 300,
+        textStyle: { fontFamily },
+        grid: { left: 48, right: 12, top: 12, bottom: range === "1y" ? 56 : 30 },
         tooltip: {
           trigger: "axis",
-          backgroundColor: dark ? "#111a2b" : "#ffffff",
-          borderColor: border,
-          textStyle: { color: fg, fontSize: 12 },
+          backgroundColor: tokens.popover,
+          borderColor: tokens.border,
+          textStyle: { color: tokens.fg, fontSize: 12, fontFamily },
           formatter: (params: unknown) => {
             const p = (Array.isArray(params) ? params[0] : params) as
               | { data?: [number, number | null] }
@@ -174,15 +198,16 @@ export function MeasurementChart({
         },
         xAxis: {
           type: "time",
-          axisLine: { lineStyle: { color: border } },
-          axisLabel: { color: muted, fontSize: 11, hideOverlap: true },
+          axisLine: { lineStyle: { color: tokens.border } },
+          axisTick: { show: false },
+          axisLabel: { color: tokens.muted, fontSize: 11, hideOverlap: true },
           splitLine: { show: false },
         },
         yAxis: {
           type: "value",
           max: yMax,
-          axisLabel: { color: muted, fontSize: 11 },
-          splitLine: { lineStyle: { color: border, type: "dashed" } },
+          axisLabel: { color: tokens.muted, fontSize: 11 },
+          splitLine: { lineStyle: { color: tokens.border, type: "dashed" } },
         },
         dataZoom:
           range === "1y"
@@ -191,8 +216,8 @@ export function MeasurementChart({
                   type: "slider",
                   height: 20,
                   bottom: 8,
-                  borderColor: border,
-                  textStyle: { color: muted },
+                  borderColor: tokens.border,
+                  textStyle: { color: tokens.muted },
                 },
               ]
             : [],
@@ -203,24 +228,25 @@ export function MeasurementChart({
             smooth: 0.2,
             showSymbol: points.length < 60,
             symbolSize: 6,
-            lineStyle: { width: 2, color: primary },
-            itemStyle: { color: primary, borderRadius: [3, 3, 0, 0] },
-            areaStyle: data?.aggregation === "hour" ? { color: primary, opacity: 0.08 } : undefined,
+            lineStyle: { width: 2.5, color: tokens.primary },
+            itemStyle: { color: tokens.primary, borderRadius: [3, 3, 0, 0] },
             connectNulls: false,
+            z: 3,
             markArea: {
               silent: true,
               data: pollutantBands.map((b) => [
                 {
                   yAxis: b.lo,
                   itemStyle: {
-                    color: AQ_LEVEL_STYLES[Math.min(6, Math.max(1, b.level)) as LevelKey].color,
-                    opacity: dark ? 0.14 : 0.1,
+                    color: tokens.tints[Math.min(6, Math.max(1, b.level)) as LevelKey],
+                    opacity: 1,
                   },
                   label: {
                     show: true,
                     position: "insideRight",
-                    color: muted,
+                    color: tokens.muted,
                     fontSize: 10,
+                    fontFamily,
                     formatter: labels.levels[String(b.level)] ?? String(b.level),
                   },
                 },
@@ -241,9 +267,9 @@ export function MeasurementChart({
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <Tabs value={range} onValueChange={(v) => setRange(v as ChartRange)}>
-          <TabsList>
+          <TabsList aria-label={labels.title} className="bg-surface-2">
             {CHART_RANGES.map((r) => (
-              <TabsTrigger key={r} value={r}>
+              <TabsTrigger key={r} value={r} className="px-3 data-active:bg-card">
                 {labels.ranges[r]}
               </TabsTrigger>
             ))}
@@ -256,12 +282,12 @@ export function MeasurementChart({
           className="w-44"
         >
           {pollutants.map((p) => (
-            <NativeSelectOption key={p.code} value={p.code}>
+            <NativeSelectOption key={p.code} value={p.code} title={p.hint}>
               {p.shortName} · {p.unit}
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        <span className="text-xs text-muted-foreground">
+        <span className="text-caption text-muted-foreground">
           {data?.aggregation === "day" ? labels.daily : labels.hourly}
         </span>
         <a
@@ -273,7 +299,7 @@ export function MeasurementChart({
           {labels.downloadCsv}
         </a>
       </div>
-      <div className="relative h-72 w-full">
+      <div className="relative h-64 w-full sm:h-72">
         {loading && !data ? <Skeleton className="absolute inset-0" /> : null}
         {empty ? (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">
@@ -289,6 +315,11 @@ export function MeasurementChart({
           }
         />
       </div>
+      {labels.hint && pollutant ? (
+        <p className="text-caption text-muted-foreground">
+          {labels.hint.replace("{pollutant}", pollutant.shortName)}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -1,25 +1,30 @@
 import { clampAqLevel } from "@meteo/core";
 import type { SilamDaySummary } from "@meteo/db";
 import { AqBadge } from "@meteo/ui/components/aq-badge";
+import { cn } from "@meteo/ui/lib/utils";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { displayValue, type PollutantInfo } from "@/lib/aq";
 
-/** Суточная сводка SILAM: день, уровень, определяющее вещество и его среднесуточная концентрация. */
+/**
+ * Прогноз SILAM по дням плитками (макет 2): день, плашка уровня, определяющее вещество и его
+ * среднесуточная концентрация.
+ */
 export async function SilamDays({
   days,
   pollutantsById,
   todayKey,
-  compact,
+  className,
 }: {
   days: SilamDaySummary[];
   pollutantsById: Map<number, PollutantInfo>;
   todayKey: string;
+  className?: string;
+  /** Совместимость: прежний компактный режим — те же плитки. */
   compact?: boolean;
 }) {
-  const [t, tl, tp, format] = await Promise.all([
+  const [t, tl, format] = await Promise.all([
     getTranslations("weather"),
     getTranslations("levels"),
-    getTranslations("pollutants"),
     getFormatter(),
   ]);
   if (days.length === 0)
@@ -30,14 +35,10 @@ export async function SilamDays({
   const dayLabel = (key: string) => {
     if (key === todayKey) return t("today");
     if (key === tomorrowKey) return t("tomorrow");
-    return format.dateTime(new Date(`${key}T12:00:00+05:00`), {
-      weekday: "long",
-      day: "numeric",
-      month: "short",
-    });
+    return format.dateTime(new Date(`${key}T12:00:00+05:00`), { weekday: "long" });
   };
   return (
-    <ul className={compact ? "flex flex-col gap-1.5" : "flex flex-col gap-2"}>
+    <ul className={cn("flex flex-wrap gap-2", className)} data-testid="silam-days">
       {days.map((d) => {
         const level = clampAqLevel(d.level);
         const dominant = d.dominantPollutantId
@@ -45,22 +46,20 @@ export async function SilamDays({
           : undefined;
         const mean = dominant ? displayValue(dominant, d.means[String(dominant.id)]) : null;
         return (
-          <li key={d.date} className="flex flex-wrap items-center justify-between gap-2 text-sm">
-            <span className="font-medium capitalize">{dayLabel(d.date)}</span>
-            <span className="flex items-center gap-2">
-              {dominant && mean !== null ? (
-                <span className="text-xs text-muted-foreground tabular-nums">
-                  {t("dominant", {
-                    pollutant: tp.has(dominant.code as "PM25")
-                      ? tp(dominant.code as "PM25")
-                      : dominant.shortName,
-                  })}{" "}
-                  {format.number(mean, { maximumFractionDigits: dominant.decimals })}{" "}
-                  {dominant.unit}
-                </span>
-              ) : null}
-              <AqBadge level={level} label={tl(`${level}` as "0")} size="sm" />
-            </span>
+          <li
+            key={d.date}
+            className="grid flex-1 basis-32 content-start gap-1 rounded-lg bg-surface-2 px-3 py-2.5"
+          >
+            <small className="text-caption text-muted-foreground capitalize">
+              {dayLabel(d.date)}
+            </small>
+            <AqBadge level={level} label={tl(`${level}` as "0")} size="sm" className="w-fit" />
+            {dominant && mean !== null ? (
+              <small className="num text-caption text-muted-foreground">
+                {dominant.shortName}{" "}
+                {format.number(mean, { maximumFractionDigits: dominant.decimals })} {dominant.unit}
+              </small>
+            ) : null}
           </li>
         );
       })}

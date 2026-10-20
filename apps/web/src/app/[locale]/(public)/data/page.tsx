@@ -1,14 +1,8 @@
 import type { Locale } from "@meteo/i18n";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@meteo/ui/components/card";
-import { DatabaseIcon } from "lucide-react";
+import { buttonVariants } from "@meteo/ui/components/button";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 
 export const dynamic = "force-dynamic";
@@ -35,7 +29,7 @@ const DATASETS = [
   { key: "districts", href: "/api/v1/districts", page: "/map" },
 ] as const;
 
-/** Открытые данные: наборы, форматы, лицензия и ссылки на API и виджеты. */
+/** Открытые данные: наборы списком, форматы, лицензия, виджеты. */
 export default async function DataPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = (await params) as { locale: Locale };
   setRequestLocale(locale);
@@ -43,82 +37,81 @@ export default async function DataPage({ params }: { params: Promise<{ locale: s
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
 
   return (
-    <div className="container-page flex flex-col gap-8 py-10">
-      <div className="flex flex-col gap-3">
-        <h1 className="flex items-center gap-3 text-3xl font-semibold tracking-tight">
-          <DatabaseIcon className="size-8 text-brand" aria-hidden="true" />
-          {t("title")}
-        </h1>
-        <p className="max-w-3xl text-muted-foreground">{t("intro")}</p>
-        <div className="flex flex-wrap gap-3 text-sm">
-          <Link
-            href="/data/api"
-            className="rounded-md bg-primary px-3 py-1.5 font-medium text-primary-foreground hover:bg-primary/90"
-          >
-            {t("apiDocs")}
-          </Link>
-          <a
-            href={`/api/v1/openapi.json?lang=${locale}`}
-            className="rounded-md border bg-card px-3 py-1.5 font-medium hover:bg-accent"
-          >
-            OpenAPI 3.1 (JSON)
-          </a>
-        </div>
-      </div>
+    <div className="container-page flex flex-col gap-9 py-8">
+      <PageHeader
+        title={t("title")}
+        intro={t("intro")}
+        actions={
+          <>
+            <Link href="/data/api" className={buttonVariants({ size: "lg" })}>
+              {t("apiDocs")}
+            </Link>
+            <a
+              href={`/api/v1/openapi.json?lang=${locale}`}
+              className={buttonVariants({ variant: "outline", size: "lg" })}
+            >
+              OpenAPI 3.1 (JSON)
+            </a>
+          </>
+        }
+      />
 
-      <section className="grid gap-4 md:grid-cols-2">
-        {DATASETS.map((d) => (
-          <Card key={d.key}>
-            <CardHeader>
-              <CardTitle className="text-base">{t(`datasets.${d.key}.title`)}</CardTitle>
-              <CardDescription>{t(`datasets.${d.key}.description`)}</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm">
-              <p className="text-xs text-muted-foreground">
-                {t("updates")}: {t(`datasets.${d.key}.updates`)}
-              </p>
-              <code className="rounded-md bg-muted px-2 py-1 font-mono text-xs break-all">
-                GET {base}
-                {d.href}
-              </code>
-              <div className="flex flex-wrap gap-3 text-xs">
-                <Link href={d.page} className="text-brand underline-offset-4 hover:underline">
-                  {t("onPortal")}
-                </Link>
-                {d.key === "measurements" ? (
-                  <span className="text-muted-foreground">{t("csvHint")}</span>
-                ) : null}
+      <Section title={t("datasets.title")} id="datasets">
+        <ul className="divide-y rounded-xl border bg-card">
+          {DATASETS.map((d) => (
+            <li
+              key={d.key}
+              className="grid gap-x-6 gap-y-1.5 px-4 py-3.5 sm:px-5 lg:grid-cols-[1fr_auto] lg:items-start"
+            >
+              <div className="grid gap-1">
+                <h3 className="text-h3">{t(`datasets.${d.key}.title`)}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t(`datasets.${d.key}.description`)}
+                </p>
+                <code className="w-fit max-w-full rounded-md bg-surface-2 px-2 py-1 font-mono text-xs break-all">
+                  GET {base}
+                  {d.href}
+                </code>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </section>
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-caption text-muted-foreground lg:flex-col lg:items-end lg:text-right">
+                <span>
+                  {t("updates")}: {t(`datasets.${d.key}.updates`)}
+                </span>
+                <Link href={d.page} className="font-semibold text-brand hover:underline">
+                  {t("onPortal")} →
+                </Link>
+                {d.key === "measurements" ? <span>{t("csvHint")}</span> : null}
+              </div>
+            </li>
+          ))}
+        </ul>
+      </Section>
 
-      <section className="grid gap-6 lg:grid-cols-3">
-        <div className="rounded-xl border bg-card p-5 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("license.title")}</h2>
+      <div className="grid gap-8 text-sm md:grid-cols-3">
+        <section>
+          <h2 className="mb-2 text-h3">{t("license.title")}</h2>
           <p className="text-muted-foreground">{t("license.text")}</p>
           <p className="mt-2 text-muted-foreground">{t("license.attribution")}</p>
-        </div>
-        <div className="rounded-xl border bg-card p-5 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("formats.title")}</h2>
+        </section>
+        <section>
+          <h2 className="mb-2 text-h3">{t("formats.title")}</h2>
           <ul className="list-disc space-y-1 pl-5 text-muted-foreground">
             <li>{t("formats.json")}</li>
             <li>{t("formats.geojson")}</li>
             <li>{t("formats.csv")}</li>
             <li>{t("formats.xml")}</li>
           </ul>
-        </div>
-        <div className="rounded-xl border bg-card p-5 text-sm">
-          <h2 className="mb-2 text-base font-semibold">{t("widgets.title")}</h2>
+        </section>
+        <section>
+          <h2 className="mb-2 text-h3">{t("widgets.title")}</h2>
           <p className="text-muted-foreground">{t("widgets.text")}</p>
-          <ul className="mt-2 space-y-1 font-mono text-xs">
+          <ul className="mt-2 space-y-1 font-mono text-xs break-all">
             <li>{base}/embed/aqi?station=&lt;slug&gt;&amp;lang=tg</li>
             <li>{base}/embed/forecast?location=dushanbe&amp;lang=ru</li>
             <li>{base}/embed/alerts?region=DU&amp;lang=en</li>
           </ul>
-        </div>
-      </section>
+        </section>
+      </div>
 
       <p className="text-sm text-muted-foreground">{t("quality")}</p>
     </div>

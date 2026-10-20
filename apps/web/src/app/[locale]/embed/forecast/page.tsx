@@ -66,7 +66,7 @@ export default async function EmbedForecastPage({
       </div>
       <div className="flex items-center gap-3">
         <WeatherSymbol code={code} label={symbolLabel(ts, code)} className="size-14" />
-        <span className="text-4xl font-semibold tabular-nums">{deg(overview.now?.params.t)}</span>
+        <span className="num font-heading text-4xl font-bold">{deg(overview.now?.params.t)}</span>
         <span className="flex flex-col text-xs text-muted-foreground">
           {code !== null ? <span className="text-foreground">{symbolLabel(ts, code)}</span> : null}
           {overview.today ? (

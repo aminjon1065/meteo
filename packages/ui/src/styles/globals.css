@@ -10,14 +10,17 @@
 @source "../../../../apps/web/src/**/*.{ts,tsx}";
 
 @theme inline {
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  --font-heading: var(--font-sans);
+  /* Inter Tight — заголовки и крупные числа, Inter — текст; оба покрывают таджикские буквы ғ ӣ қ ӯ ҳ ҷ */
+  --font-sans: var(--font-inter), "Segoe UI", Roboto, ui-sans-serif, system-ui, sans-serif;
+  --font-heading:
+    var(--font-inter-tight), var(--font-inter), "Segoe UI", Roboto, system-ui, sans-serif;
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
   --color-card-foreground: var(--card-foreground);
+  --color-surface-2: var(--surface-2);
   --color-popover: var(--popover);
   --color-popover-foreground: var(--popover-foreground);
   --color-primary: var(--primary);
@@ -54,18 +57,25 @@
 
   --color-aq-0: var(--aq-0);
   --color-aq-0-foreground: var(--aq-0-foreground);
+  --color-aq-0-tint: var(--aq-0-tint);
   --color-aq-1: var(--aq-1);
   --color-aq-1-foreground: var(--aq-1-foreground);
+  --color-aq-1-tint: var(--aq-1-tint);
   --color-aq-2: var(--aq-2);
   --color-aq-2-foreground: var(--aq-2-foreground);
+  --color-aq-2-tint: var(--aq-2-tint);
   --color-aq-3: var(--aq-3);
   --color-aq-3-foreground: var(--aq-3-foreground);
+  --color-aq-3-tint: var(--aq-3-tint);
   --color-aq-4: var(--aq-4);
   --color-aq-4-foreground: var(--aq-4-foreground);
+  --color-aq-4-tint: var(--aq-4-tint);
   --color-aq-5: var(--aq-5);
   --color-aq-5-foreground: var(--aq-5-foreground);
+  --color-aq-5-tint: var(--aq-5-tint);
   --color-aq-6: var(--aq-6);
   --color-aq-6-foreground: var(--aq-6-foreground);
+  --color-aq-6-tint: var(--aq-6-tint);
 
   --color-warn-minor: var(--warn-minor);
   --color-warn-moderate: var(--warn-moderate);
@@ -86,6 +96,25 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  /* Типографическая шкала (docs/03 §5): display → h1 → h2 → h3 → body → caption */
+  --text-display: clamp(2.4rem, 6vw, 4rem);
+  --text-display--line-height: 1;
+  --text-display--letter-spacing: -0.02em;
+  --text-display--font-weight: 800;
+  --text-h1: clamp(1.6rem, 3.5vw, 2.3rem);
+  --text-h1--line-height: 1.1;
+  --text-h1--letter-spacing: -0.02em;
+  --text-h1--font-weight: 800;
+  --text-h2: 1.35rem;
+  --text-h2--line-height: 1.25;
+  --text-h2--letter-spacing: -0.01em;
+  --text-h2--font-weight: 700;
+  --text-h3: 1.05rem;
+  --text-h3--line-height: 1.3;
+  --text-h3--font-weight: 700;
+  --text-caption: 0.8rem;
+  --text-caption--line-height: 1.4;
 }
 
 @layer base {
@@ -94,10 +123,22 @@
   }
   html {
     scroll-behavior: smooth;
+    color-scheme: light;
+  }
+  html.dark {
+    color-scheme: dark;
   }
   body {
     @apply bg-background text-foreground antialiased;
     font-variant-numeric: tabular-nums;
+    line-height: 1.5;
+  }
+  h1,
+  h2,
+  h3 {
+    @apply font-heading;
+    text-wrap: balance;
+    letter-spacing: -0.01em;
   }
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-ring;
@@ -114,8 +155,30 @@
   }
 }
 
+/* Контейнер страницы: 1180 px по макету, отступы с учётом вырезов экрана */
 @utility container-page {
-  @apply mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8;
+  @apply mx-auto w-full max-w-[74rem];
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
+  @media (width >= 40rem) {
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
+  }
+}
+
+/* Надзаголовок секции или полосы состояния */
+@utility eyebrow {
+  @apply text-xs font-semibold tracking-[0.08em] text-muted-foreground uppercase;
+}
+
+/* Заголовок секции: название слева, ссылка «все …» справа */
+@utility section-head {
+  @apply mb-3.5 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1;
+}
+
+/* Табличные цифры для значений и дат */
+@utility num {
+  font-variant-numeric: tabular-nums;
 }
 
 /* Попапы MapLibre в цветах темы (светлой и тёмной); селекторы с двумя классами перекрывают
@@ -146,3 +209,14 @@
 .maplibregl-popup.map-hover-label .maplibregl-popup-content {
   @apply px-2 py-1 text-xs font-medium;
 }
+/* Контролы карты в цветах темы */
+.dark .maplibregl-ctrl-group {
+  background: var(--card);
+}
+.dark .maplibregl-ctrl-group button + button {
+  border-top-color: var(--border);
+}
+.dark .maplibregl-ctrl button .maplibregl-ctrl-icon {
+  filter: invert(0.85);
+}
+/* Подпись атрибуции остаётся светлой в обеих темах — подложка карты тоже светлая. */

@@ -9,7 +9,7 @@ import {
 } from "@meteo/ui/components/table";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { symbolLabel } from "@/lib/weather";
-import { WeatherSymbol } from "./weather-symbol";
+import { hasSymbol, WeatherSymbol } from "./weather-symbol";
 
 /** Таблица прогноза по дням: символ, макс/мин, осадки, ветер. */
 export async function DailyTable({ days }: { days: ForecastPoint[] }) {
@@ -46,8 +46,14 @@ export async function DailyTable({ days }: { days: ForecastPoint[] }) {
               </TableCell>
               <TableCell>
                 <span className="flex items-center gap-2">
-                  <WeatherSymbol code={d.params.symbol} label={label} className="size-8" />
-                  <span className="hidden text-muted-foreground sm:inline">{label}</span>
+                  {hasSymbol(d.params.symbol) ? (
+                    <WeatherSymbol code={d.params.symbol} label={label} className="size-8" />
+                  ) : null}
+                  {hasSymbol(d.params.symbol) ? (
+                    <span className="text-muted-foreground">{label}</span>
+                  ) : (
+                    <span className="text-muted-foreground/60">—</span>
+                  )}
                 </span>
               </TableCell>
               <TableCell className="text-right font-semibold tabular-nums">

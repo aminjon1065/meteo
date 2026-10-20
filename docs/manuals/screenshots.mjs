@@ -515,10 +515,7 @@ async function captureAdmin(browser) {
     await page.goto(url("/admin"));
     const table = page.getByRole("table", { name: t("admin.freshness.title") });
     await table.waitFor({ timeout: 30_000 });
-    await shotElement(
-      table.locator("xpath=ancestor::*[@data-slot='card'][1]"),
-      "admin-dashboard-ingest",
-    );
+    await shotElement(table.locator("xpath=ancestor::section[1]"), "admin-dashboard-ingest");
   });
 
   await step("stations", async () => {
@@ -764,16 +761,13 @@ async function capturePublic(browser) {
   });
 
   await step("language", async () => {
+    // Переключатель языка — ссылки «TJ · RU · EN» в шапке (и выбор города рядом с логотипом).
     await page
-      .getByRole("button", { name: t("common.language") })
+      .getByRole("navigation", { name: t("common.language") })
       .first()
-      .click();
-    await page
-      .getByRole("menu")
-      .waitFor({ timeout: 5000 })
-      .catch(() => {});
+      .getByRole("link", { name: /English/ })
+      .hover();
     await shot(page, "user-language", { clip: { x: 0, y: 0, width: 1280, height: 320 } });
-    await page.keyboard.press("Escape");
   });
 
   await step("air", async () => {

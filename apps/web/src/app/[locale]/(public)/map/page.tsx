@@ -65,9 +65,16 @@ async function loadSilamCatalog(): Promise<SilamCatalog> {
   }
 }
 
-export default async function MapPage({ params }: { params: Promise<{ locale: string }> }) {
+export default async function MapPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<{ layer?: string }>;
+}) {
   const { locale } = (await params) as { locale: Locale };
   setRequestLocale(locale);
+  const { layer } = await searchParams;
   const [t, tsl, ts, tw, catalog, warningList] = await Promise.all([
     getTranslations("map"),
     getTranslations("silam"),
@@ -90,9 +97,10 @@ export default async function MapPage({ params }: { params: Promise<{ locale: st
   };
 
   return (
-    <div className="relative h-[calc(100dvh-4rem)] w-full">
+    <div className="relative h-[calc(100dvh-4rem-3.75rem-env(safe-area-inset-bottom,0px))] w-full lg:h-[calc(100dvh-4rem)]">
       <MapView
         locale={locale}
+        initialLayer={layer === "silam" || layer === "warnings" ? layer : undefined}
         catalog={catalog}
         warnings={warnings}
         openLabel={t("open")}
@@ -131,7 +139,7 @@ export default async function MapPage({ params }: { params: Promise<{ locale: st
           warningsOpen: t("warningsOpen"),
           unsupported: t("webglUnsupported"),
         }}
-        legend={<LevelLegend className="flex flex-wrap gap-1.5" />}
+        legend={<LevelLegend className="gap-x-3 gap-y-1" />}
       />
     </div>
   );
