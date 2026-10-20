@@ -42,3 +42,23 @@ describe("detectOutliers", () => {
     expect(detectOutliers(samples, { median: 30, mad: 0, n: 100 })).toEqual([]);
   });
 });
+
+describe("правила QC на 10‑минутных рядах датчиков (сеть wwcs.tj)", () => {
+  const every10min = (values: number[]) =>
+    values.map((v, i) => ({ time: new Date(Date.UTC(2026, 9, 20, 0, 10 * i)), value: v }));
+  it("«залипание»: одно значение 12 часов подряд (73 точки по 10 мин) помечается целиком", () => {
+    const stuck = every10min([...Array(73).fill(561.6), 12.3, 11.8]);
+    expect(detectStuck(stuck, { hours: 12, minRun: 3 })).toEqual(
+      Array.from({ length: 73 }, (_, i) => i),
+    );
+    // 2 часа одинаковых значений — короче порога, не помечается
+    expect(detectStuck(every10min([...Array(13).fill(7.2), 7.3]), { hours: 12 })).toEqual([]);
+  });
+  it("скачок на фоне ровного 10‑минутного ряда помечается, ровный ряд — нет", () => {
+    const base = Array.from({ length: 48 }, (_, i) => 8 + Math.sin(i / 5) * 2);
+    const withSpike = [...base];
+    withSpike[20] = 561.6;
+    expect(detectSpikes(every10min(withSpike), { madMultiplier: 6 })).toEqual([20]);
+    expect(detectSpikes(every10min(base), { madMultiplier: 6 })).toEqual([]);
+  });
+});

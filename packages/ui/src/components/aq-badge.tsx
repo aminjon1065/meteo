@@ -1,7 +1,7 @@
 import { cn } from "@meteo/ui/lib/utils";
 import type { ComponentProps } from "react";
 
-export type AqLevelValue = 0 | 1 | 2 | 3 | 4 | 5;
+export type AqLevelValue = 0 | 1 | 2 | 3 | 4 | 5 | 6;
 
 const levelClasses: Record<AqLevelValue, string> = {
   0: "bg-aq-0 text-aq-0-foreground",
@@ -10,6 +10,7 @@ const levelClasses: Record<AqLevelValue, string> = {
   3: "bg-aq-3 text-aq-3-foreground",
   4: "bg-aq-4 text-aq-4-foreground",
   5: "bg-aq-5 text-aq-5-foreground",
+  6: "bg-aq-6 text-aq-6-foreground",
 };
 
 const sizeClasses = {
@@ -19,7 +20,7 @@ const sizeClasses = {
 } as const;
 
 export interface AqBadgeProps extends Omit<ComponentProps<"span">, "children"> {
-  /** Уровень 1–5; 0 — нет данных. */
+  /** Уровень 1–6 (6 — «опасный» у шестиуровневых шкал, например US AQI); 0 — нет данных. */
   level: AqLevelValue;
   /** Локализованная подпись уровня (обязательна: цвет не единственный носитель смысла). */
   label: string;

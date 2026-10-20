@@ -74,3 +74,61 @@ export function roundTo(value: number, decimals: number): number {
   const f = 10 ** decimals;
   return Math.round((value + Number.EPSILON) * f) / f;
 }
+
+// ---------------------------------------------------------------------------
+// Единицы отображения концентраций на портале (настройка администратора «display»)
+// ---------------------------------------------------------------------------
+
+/**
+ * Режим отображения: `native` — единица хранения каждого вещества (µg/m³; CO — mg/m³),
+ * `mg/m³` — массовые концентрации в мг/м³, как в ежедневных бюллетенях Агентства.
+ * Объёмные единицы (ppm, ppb) режим не затрагивает.
+ */
+export const CONCENTRATION_DISPLAY_MODES = ["native", "mg/m³"] as const;
+export type ConcentrationDisplayMode = (typeof CONCENTRATION_DISPLAY_MODES)[number];
+export const DEFAULT_CONCENTRATION_DISPLAY_MODE: ConcentrationDisplayMode = "native";
+
+export function isConcentrationDisplayMode(value: unknown): value is ConcentrationDisplayMode {
+  return (
+    typeof value === "string" && (CONCENTRATION_DISPLAY_MODES as readonly string[]).includes(value)
+  );
+}
+
+/** Параметры перевода из единицы хранения в единицу отображения. */
+export interface DisplayScale {
+  /** Единица отображения. */
+  unit: string;
+  /** Число знаков после запятой в единице отображения. */
+  decimals: number;
+  /** Множитель: значение_отображения = значение_хранения × factor. */
+  factor: number;
+}
+
+/** Единица отображения для единицы хранения в выбранном режиме. */
+export function displayUnitFor(storedUnit: string, mode: ConcentrationDisplayMode): string {
+  if (mode === "mg/m³" && storedUnit === "µg/m³") return "mg/m³";
+  return storedUnit;
+}
+
+/**
+ * Единица, точность и множитель отображения. При переводе µg/m³ → mg/m³ число знаков
+ * увеличивается на три, чтобы 35 µg/m³ показывались как 0,035 mg/m³, а не как 0,0.
+ */
+export function displayScaleFor(
+  storedUnit: string,
+  decimals: number,
+  mode: ConcentrationDisplayMode,
+): DisplayScale {
+  const unit = displayUnitFor(storedUnit, mode);
+  if (unit === storedUnit) return { unit, decimals, factor: 1 };
+  return { unit, decimals: decimals + 3, factor: 0.001 };
+}
+
+/** Значение в единице отображения с округлением до точности отображения; null — нет значения. */
+export function toDisplayValue(
+  value: number | null | undefined,
+  scale: DisplayScale,
+): number | null {
+  if (value === null || value === undefined || !Number.isFinite(value)) return null;
+  return roundTo(value * scale.factor, scale.decimals);
+}

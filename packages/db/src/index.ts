@@ -20,6 +20,7 @@ export {
 export * from "./client";
 export * from "./schema";
 export * from "./services/alerts";
+export * from "./services/bulletin";
 export * from "./services/cap";
 export * from "./services/forecast";
 export * from "./services/ingest";

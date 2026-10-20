@@ -15,7 +15,11 @@ export const I18nTextSchema = z
 
 const isoDateTime = z.iso.datetime({ offset: true }).describe("ISO 8601 timestamp (UTC)");
 const nullableIso = isoDateTime.nullable();
-const level = z.int().min(0).max(5).describe("Air quality level 1–5; 0 — no data");
+const level = z
+  .int()
+  .min(0)
+  .max(6)
+  .describe("Air quality level 1–5 (1–6 for six-category scales such as US AQI); 0 — no data");
 
 export const ErrorSchema = z.object({ error: z.string() }).describe("Error response");
 
@@ -51,7 +55,10 @@ export const StationsResponseSchema = z
 
 export const measurementsQuery = z.object({
   range: z.enum(["24h", "7d", "30d", "1y"]).default("24h"),
-  pollutant: z.string().optional().describe("Pollutant code: PM25, PM10, NO2, SO2, CO, O3"),
+  pollutant: z
+    .string()
+    .optional()
+    .describe("Pollutant code: PM25, PM10, NO2, SO2, CO, O3, NO, CH2O, C6H5OH, HF, TSP, CO2, TVOC"),
   format: z.enum(["json", "csv"]).default("json"),
 });
 
@@ -69,13 +76,17 @@ export const MeasurementsResponseSchema = z
           id: z.int(),
           code: z.string(),
           shortName: z.string(),
-          unit: z.string().describe("µg/m³ or mg/m³ (CO)"),
+          unit: z
+            .string()
+            .describe(
+              "Display unit configured by the Agency: µg/m³ or mg/m³ (CO always mg/m³; CO2 ppm, TVOC ppb). Values are converted to it",
+            ),
           decimals: z.int(),
         }),
         points: z.array(
           z.object({
             t: isoDateTime.describe("Start of the hour/day"),
-            v: z.number().nullable().describe("Mean of valid measurements"),
+            v: z.number().nullable().describe("Mean of valid measurements, in `unit`"),
             min: z.number().nullable(),
             max: z.number().nullable(),
             n: z.int().describe("Number of measurements in the bin"),
@@ -90,8 +101,40 @@ export const indexQuery = z.object({
   scale: z
     .string()
     .optional()
-    .describe("Scale code (NATIONAL_OPERATIONAL by default; also WHO_24H, IZA)"),
+    .describe("Scale code (NATIONAL_OPERATIONAL by default; also RATIO_TO_LIMIT, WHO_24H, IZA)"),
 });
+
+/** Показатели методики Агентства (только шкала RATIO_TO_LIMIT). */
+export const AgencyIndicatorsSchema = z
+  .object({
+    no2so2Sum: z
+      .number()
+      .nullable()
+      .describe(
+        "NO2 + SO2 summation: sum of the daily-limit ratios; null when one of them is not measured",
+      ),
+    highPollution: z
+      .boolean()
+      .describe("High pollution (ВЗ): a pollutant reached 10 single limits"),
+    extremeHighPollution: z
+      .boolean()
+      .describe("Extremely high pollution (ЭВЗ): a pollutant reached 50 single limits"),
+    maxSingle: z.record(
+      z.string().describe("Pollutant code"),
+      z.object({
+        value: z
+          .number()
+          .describe(
+            "Maximum single (hourly) concentration of the last 24 hours, in the display unit",
+          ),
+        ratio: z.number().nullable().describe("Ratio to the single limit; null without a limit"),
+      }),
+    ),
+    flagged: z
+      .record(z.string().describe("Pollutant code"), z.number())
+      .describe("Pollutants with high/extremely high pollution: ratio to the single limit"),
+  })
+  .describe("Agency for Hydrometeorology bulletin indicators (RATIO_TO_LIMIT scale only)");
 
 export const IndexCurrentResponseSchema = z
   .object({
@@ -109,6 +152,11 @@ export const IndexCurrentResponseSchema = z
       ),
     }),
     generatedAt: isoDateTime,
+    units: z
+      .record(z.string().describe("Pollutant code"), z.string())
+      .describe(
+        "Display unit per pollutant code (µg/m³ or mg/m³ as configured by the Agency; ppm, ppb)",
+      ),
     stations: z.array(
       z.object({
         id: z.int(),
@@ -125,8 +173,15 @@ export const IndexCurrentResponseSchema = z
           .describe("Pollutant code with the worst sub-index"),
         subIndices: z.record(
           z.string().describe("Pollutant code"),
-          z.object({ value: z.number(), level: z.int(), index: z.number() }),
+          z.object({
+            value: z.number().describe("Concentration used for the sub-index, in the display unit"),
+            level: z.int(),
+            index: z
+              .number()
+              .describe("Continuous sub-index; for RATIO_TO_LIMIT — ratio to the daily limit"),
+          }),
         ),
+        indicators: AgencyIndicatorsSchema.nullable(),
       }),
     ),
   })
@@ -371,7 +426,7 @@ const BoundaryPropertiesSchema = z.object({
   level: z
     .int()
     .min(0)
-    .max(5)
+    .max(6)
     .describe("Worst current index level among the unit's stations; 0 — no data or stale"),
 });
 
@@ -435,7 +490,7 @@ export const IngestRecordSchema = z
       .string()
       .max(64)
       .describe(
-        "Pollutant code (PM25, PM10, NO2, SO2, CO, O3) or a vendor synonym (pm2.5, Ozone, NO₂ …)",
+        "Pollutant code (PM25, PM10, NO2, SO2, CO, O3, NO, CH2O, C6H5OH, HF, TSP, CO2, TVOC) or a vendor synonym (pm2.5, Ozone, NO₂, Формальдегид …)",
       ),
     value: z
       .union([z.number(), z.string().max(32), z.null()])

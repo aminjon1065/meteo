@@ -3,7 +3,9 @@
  * Используется worker'ом (периодически) и server actions (сразу после ввода/импорта).
  */
 import {
+  type AgencyIndicators,
   type BreakpointRow,
+  computeAgencyIndicators,
   computeBreakpointIndex,
   computeIza,
   computeRatioIndex,
@@ -12,6 +14,7 @@ import {
   type LimitRow,
   type PollutantValue,
   type StationIndexResult,
+  windowMax,
   windowMean,
 } from "@meteo/core";
 import { and, asc, desc, eq, gte, inArray, lte, ne, sql } from "drizzle-orm";
@@ -30,14 +33,21 @@ export interface ScaleConfig {
 
 export interface IndexConfig {
   scales: ScaleConfig[];
-  /** Среднесуточные ПДК с классом опасности. */
+  /** Среднесуточные ПДК (ПДКс.с.) с классом опасности. */
   dailyLimits: LimitRow[];
+  /** Максимальные разовые ПДК (ПДКм.р.). */
+  maxSingleLimits: LimitRow[];
+  /** id веществ по коду (NO2, SO2 — для суммации). */
+  pollutantIdByCode: Record<string, number>;
 }
+
+/** Код шкалы «кратность ПДК» (seed): по ней считаются показатели методики Агентства. */
+export const RATIO_SCALE_CODE = "RATIO_TO_LIMIT";
 
 const HOUR = 3_600_000;
 
 export async function loadIndexConfig(db: Database): Promise<IndexConfig> {
-  const [scaleRows, bpRows, limitRows] = await Promise.all([
+  const [scaleRows, bpRows, limitRows, pollutantRows] = await Promise.all([
     db
       .select()
       .from(s.indexScales)
@@ -47,13 +57,20 @@ export async function loadIndexConfig(db: Database): Promise<IndexConfig> {
     db
       .select({
         pollutantId: s.limitValues.pollutantId,
+        kind: s.limitValues.kind,
         value: s.limitValues.value,
         hazardClass: s.pollutants.hazardClass,
       })
       .from(s.limitValues)
       .innerJoin(s.pollutants, eq(s.pollutants.id, s.limitValues.pollutantId))
-      .where(eq(s.limitValues.kind, "daily")),
+      .where(inArray(s.limitValues.kind, ["daily", "max_single"])),
+    db.select({ id: s.pollutants.id, code: s.pollutants.code }).from(s.pollutants),
   ]);
+  const toLimit = (l: (typeof limitRows)[number]): LimitRow => ({
+    pollutantId: l.pollutantId,
+    limit: l.value,
+    hazardClass: l.hazardClass,
+  });
   return {
     scales: scaleRows.map((r) => ({
       id: r.id,
@@ -71,11 +88,9 @@ export async function loadIndexConfig(db: Database): Promise<IndexConfig> {
           averagingMin: b.averagingMin,
         })),
     })),
-    dailyLimits: limitRows.map((l) => ({
-      pollutantId: l.pollutantId,
-      limit: l.value,
-      hazardClass: l.hazardClass,
-    })),
+    dailyLimits: limitRows.filter((l) => l.kind === "daily").map(toLimit),
+    maxSingleLimits: limitRows.filter((l) => l.kind === "max_single").map(toLimit),
+    pollutantIdByCode: Object.fromEntries(pollutantRows.map((p) => [p.code, p.id])),
   };
 }
 
@@ -170,6 +185,8 @@ export async function computeStationIndexes(
       const windowEnd = bucketStart;
       for (const scale of hourlyScales) {
         const values: PollutantValue[] = [];
+        // Кратность ПДК (методика Агентства): среднесуточные к ПДКс.с., максимальные разовые за сутки к ПДКм.р.
+        const maxSingle: PollutantValue[] = [];
         for (const [pollutantId, points] of byPollutant) {
           const averaging =
             scale.kind === "ratio_to_limit"
@@ -177,6 +194,10 @@ export async function computeStationIndexes(
               : (scale.breakpoints.find((b) => b.pollutantId === pollutantId)?.averagingMin ?? 60);
           const mean = windowMean(points, windowEnd, averaging);
           if (mean !== null) values.push({ pollutantId, value: mean });
+          if (scale.kind === "ratio_to_limit") {
+            const max = windowMax(points, windowEnd, 1440);
+            if (max !== null) maxSingle.push({ pollutantId, value: max });
+          }
         }
         if (values.length === 0) continue;
         const result: StationIndexResult =
@@ -184,6 +205,17 @@ export async function computeStationIndexes(
             ? computeRatioIndex(values, config.dailyLimits, bandsOf(scale.levels))
             : computeBreakpointIndex(values, scale.breakpoints);
         if (result.level === 0) continue;
+        const indicators: AgencyIndicators | null =
+          scale.kind === "ratio_to_limit"
+            ? computeAgencyIndicators({
+                dailyMeans: values,
+                maxSingle,
+                dailyLimits: config.dailyLimits,
+                maxSingleLimits: config.maxSingleLimits,
+                no2Id: config.pollutantIdByCode.NO2,
+                so2Id: config.pollutantIdByCode.SO2,
+              })
+            : null;
         rows.push({
           time: bucketStart,
           stationId,
@@ -192,6 +224,7 @@ export async function computeStationIndexes(
           level: result.level,
           dominantPollutantId: result.dominantPollutantId,
           subIndices: result.subIndices,
+          indicators,
           computedAt: new Date(),
         });
       }
@@ -282,6 +315,7 @@ async function computeMonthlyIza(
         level: result.level,
         dominantPollutantId: result.dominantPollutantId,
         subIndices: result.subIndices,
+        indicators: null,
         computedAt: new Date(),
       });
     }
@@ -306,6 +340,7 @@ async function upsertIndexRows(
           level: sql`excluded.level`,
           dominantPollutantId: sql`excluded.dominant_pollutant_id`,
           subIndices: sql`excluded.sub_indices`,
+          indicators: sql`excluded.indicators`,
           computedAt: sql`excluded.computed_at`,
         },
       });
@@ -320,6 +355,8 @@ export interface CurrentIndex {
   level: number;
   dominantPollutantId: number | null;
   subIndices: Record<string, { value: number; level: number; index: number }>;
+  /** Показатели методики Агентства (есть только у шкалы кратности ПДК). */
+  indicators: AgencyIndicators | null;
   /** Старше maxAgeHours — данные считаются устаревшими. */
   stale: boolean;
 }
@@ -354,6 +391,7 @@ export async function getCurrentIndexes(
       level: r.level,
       dominantPollutantId: r.dominantPollutantId,
       subIndices: (r.subIndices ?? {}) as CurrentIndex["subIndices"],
+      indicators: r.indicators ?? null,
       stale: Date.now() - r.time.getTime() > maxAgeHours * HOUR,
     });
   }

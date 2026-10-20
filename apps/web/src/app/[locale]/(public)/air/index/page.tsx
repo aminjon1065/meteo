@@ -1,4 +1,10 @@
-import { AQ_LEVELS } from "@meteo/core";
+import {
+  AQ_LEVELS_FIVE,
+  type AqLevel,
+  clampAqLevel,
+  type DisplayScale,
+  toDisplayValue,
+} from "@meteo/core";
 import { asc, loadIndexConfig } from "@meteo/db";
 import { limitValues, pollutants } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
@@ -10,6 +16,7 @@ import { LevelLegend } from "@/components/air/level-legend";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { displayScaleOf, getConcentrationDisplayMode } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
 
@@ -31,13 +38,21 @@ type Breakpoint = {
   averagingMin: number;
 };
 
+type PollutantRow = {
+  id: number;
+  code: string;
+  shortName: string;
+  unit: string;
+  decimals: number;
+  hazardClass: number | null;
+  /** Единица отображения портала и множитель перевода из единицы хранения. */
+  display: DisplayScale;
+};
+
 /** Таблица порогов шкалы: строки — вещества, столбцы — уровни. Берётся часовое осреднение, иначе минимальное. */
-function thresholdRows(
-  breakpoints: Breakpoint[],
-  pollutantList: Array<{ id: number; code: string; shortName: string; unit: string }>,
-) {
+function thresholdRows(breakpoints: Breakpoint[], pollutantList: PollutantRow[]) {
   const rows: Array<{
-    pollutant: { id: number; code: string; shortName: string; unit: string };
+    pollutant: PollutantRow;
     averagingMin: number;
     bands: Map<number, Breakpoint>;
   }> = [];
@@ -59,20 +74,25 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
   const { locale } = (await params) as { locale: Locale };
   setRequestLocale(locale);
   const db = getDb();
-  const [t, tl, tp, format, config, pollutantRows, limits] = await Promise.all([
+  const [t, tl, tp, format, config, storedPollutants, limits, mode] = await Promise.all([
     getTranslations("aboutIndex"),
     getTranslations("levels"),
     getTranslations("pollutants"),
     getFormatter(),
-    loadIndexConfig(db).catch(() => ({ scales: [], dailyLimits: [] })),
+    loadIndexConfig(db).catch(() => ({
+      scales: [],
+      dailyLimits: [],
+      maxSingleLimits: [],
+      pollutantIdByCode: {},
+    })),
     db
       .select({
         id: pollutants.id,
         code: pollutants.code,
         shortName: pollutants.shortName,
         unit: pollutants.unit,
+        decimals: pollutants.decimals,
         hazardClass: pollutants.hazardClass,
-        name: pollutants.name,
       })
       .from(pollutants)
       .orderBy(asc(pollutants.sortOrder))
@@ -85,21 +105,41 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
       })
       .from(limitValues)
       .catch(() => []),
+    getConcentrationDisplayMode(),
   ]);
+  // Пороги и ПДК показываем в единице отображения портала (µg/m³ или mg/m³ как в бюллетенях).
+  const pollutantRows: PollutantRow[] = storedPollutants.map((p) => ({
+    ...p,
+    display: displayScaleOf(p, mode),
+  }));
   const publicScale = config.scales.find((s) => s.isDefaultPublic) ?? config.scales[0] ?? null;
+  // Раздел «Как читать цвета»: уровни публичной шкалы (пять — оперативная, шесть — US AQI).
+  const publicLevels: readonly AqLevel[] = publicScale?.levels.length
+    ? [...publicScale.levels]
+        .map((l) => clampAqLevel(l.level))
+        .filter((l): l is AqLevel => l > 0)
+        .sort((a, b) => a - b)
+    : AQ_LEVELS_FIVE;
   const whoScale = config.scales.find((s) => s.code.startsWith("WHO")) ?? null;
   const izaScale = config.scales.find((s) => s.kind === "iza") ?? null;
   const pollutantLabel = (code: string, shortName: string) =>
     tp.has(code as "PM25") ? tp(code as "PM25") : shortName;
   const num = (v: number) => format.number(v, { maximumFractionDigits: 3 });
-  const band = (b: Breakpoint | undefined) =>
+  /** Число в единице отображения вещества (µg/m³ → mg/m³ с тремя дополнительными знаками). */
+  const conc = (v: number | null | undefined, display: DisplayScale) => {
+    const shown = toDisplayValue(v, display);
+    return shown === null
+      ? "—"
+      : format.number(shown, { maximumFractionDigits: Math.max(3, display.decimals) });
+  };
+  const band = (b: Breakpoint | undefined, display: DisplayScale) =>
     !b
       ? "—"
       : b.hi === null
-        ? `≥ ${num(b.lo)}`
+        ? `≥ ${conc(b.lo, display)}`
         : b.lo === 0
-          ? `< ${num(b.hi)}`
-          : `${num(b.lo)} – ${num(b.hi)}`;
+          ? `< ${conc(b.hi, display)}`
+          : `${conc(b.lo, display)} – ${conc(b.hi, display)}`;
   const averaging = (min: number) =>
     min >= 1440
       ? t("avg24h")
@@ -111,6 +151,10 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
 
   const renderScaleTable = (scale: NonNullable<typeof publicScale>) => {
     const rows = thresholdRows(scale.breakpoints, pollutantRows);
+    const scaleLevels = [...scale.levels]
+      .map((l) => clampAqLevel(l.level))
+      .filter((l): l is AqLevel => l > 0)
+      .sort((a, b) => a - b);
     return (
       <div className="overflow-x-auto rounded-xl border bg-card">
         <table className="w-full text-sm">
@@ -123,7 +167,7 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
               <th scope="col" className="px-3 py-2 font-medium">
                 {t("averaging")}
               </th>
-              {AQ_LEVELS.map((lv) => (
+              {scaleLevels.map((lv) => (
                 <th key={lv} scope="col" className="px-3 py-2 text-center font-medium">
                   <AqBadge
                     level={lv}
@@ -142,13 +186,13 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
                 <th scope="row" className="px-3 py-2 text-left font-medium">
                   {pollutantLabel(r.pollutant.code, r.pollutant.shortName)}
                   <span className="block text-xs font-normal text-muted-foreground">
-                    {r.pollutant.shortName}, {r.pollutant.unit}
+                    {r.pollutant.shortName}, {r.pollutant.display.unit}
                   </span>
                 </th>
                 <td className="px-3 py-2 text-muted-foreground">{averaging(r.averagingMin)}</td>
-                {AQ_LEVELS.map((lv) => (
+                {scaleLevels.map((lv) => (
                   <td key={lv} className="px-3 py-2 text-center tabular-nums">
-                    {band(r.bands.get(lv))}
+                    {band(r.bands.get(lv), r.pollutant.display)}
                   </td>
                 ))}
               </tr>
@@ -167,7 +211,7 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
           {t("title")}
         </h1>
         <p className="max-w-3xl text-lg text-muted-foreground">{t("intro")}</p>
-        <LevelLegend />
+        <LevelLegend levels={publicScale?.levels.map((l) => l.level)} />
       </div>
 
       <section className="flex flex-col gap-4">
@@ -198,10 +242,25 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
         )}
       </section>
 
+      <section className="flex flex-col gap-4" data-testid="agency-method">
+        <h2 className="text-xl font-semibold">{t("agency.title")}</h2>
+        <p className="max-w-3xl text-sm text-muted-foreground">{t("agency.intro")}</p>
+        <div className="grid gap-4 md:grid-cols-3">
+          {(["ratio", "sum", "cases"] as const).map((part) => (
+            <div key={part} className="rounded-xl border bg-card p-5">
+              <h3 className="font-semibold">{t(`agency.${part}.title`)}</h3>
+              <p className="mt-1 text-sm text-muted-foreground">{t(`agency.${part}.text`)}</p>
+            </div>
+          ))}
+        </div>
+        <p className="max-w-3xl text-sm text-muted-foreground">{t("agency.compare")}</p>
+        <p className="max-w-3xl text-sm text-muted-foreground">{t("agency.units")}</p>
+      </section>
+
       <section className="flex flex-col gap-4">
         <h2 className="text-xl font-semibold">{t("colors.title")}</h2>
         <ul className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {AQ_LEVELS.map((lv) => (
+          {publicLevels.map((lv) => (
             <li key={lv} className="flex items-start gap-3 rounded-xl border bg-card p-4">
               <AqBadge level={lv} label={tl(`${lv}`)} size="md" className="shrink-0" />
               <p className="text-sm text-muted-foreground">
@@ -268,11 +327,15 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
                       <th scope="row" className="px-3 py-2 text-left font-medium">
                         {pollutantLabel(p.code, p.shortName)}
                         <span className="block text-xs font-normal text-muted-foreground">
-                          {p.unit}
+                          {p.shortName}, {p.display.unit}
                         </span>
                       </th>
-                      <td className="px-3 py-2 tabular-nums">{daily ? num(daily.value) : "—"}</td>
-                      <td className="px-3 py-2 tabular-nums">{single ? num(single.value) : "—"}</td>
+                      <td className="px-3 py-2 tabular-nums">
+                        {daily ? conc(daily.value, p.display) : "—"}
+                      </td>
+                      <td className="px-3 py-2 tabular-nums">
+                        {single ? conc(single.value, p.display) : "—"}
+                      </td>
                       <td className="px-3 py-2 tabular-nums">{p.hazardClass ?? "—"}</td>
                     </tr>
                   );

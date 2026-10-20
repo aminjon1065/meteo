@@ -46,9 +46,12 @@ export function isForbiddenHost(rawHost: string): boolean {
   return false;
 }
 
-/** Бросает ForbiddenTargetError для запрещённого host (sftp/ftp) или URL (http). */
-export function assertAllowedTarget(kind: "sftp" | "ftp" | "ftps" | "http", target: string): void {
-  if (kind === "http") {
+/** Бросает ForbiddenTargetError для запрещённого host (sftp/ftp) или URL (http, json). */
+export function assertAllowedTarget(
+  kind: "sftp" | "ftp" | "ftps" | "http" | "json",
+  target: string,
+): void {
+  if (kind === "http" || kind === "json") {
     let url: URL;
     try {
       url = new URL(target);

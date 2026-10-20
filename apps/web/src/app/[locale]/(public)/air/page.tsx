@@ -62,7 +62,7 @@ export default async function AirPage({ params }: { params: Promise<{ locale: st
         <h1 className="text-3xl font-semibold tracking-tight">{t("title")}</h1>
         <p className="max-w-3xl text-muted-foreground">{t("intro")}</p>
         <div className="flex flex-wrap items-center gap-3">
-          <LevelLegend />
+          <LevelLegend levels={aq.scale?.levels.map((l) => l.level)} />
           <Link href="/air/index" className="text-sm text-brand underline-offset-4 hover:underline">
             {t("aboutIndex")}
           </Link>

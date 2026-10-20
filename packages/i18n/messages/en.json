@@ -49,7 +49,8 @@
     "2": "Satisfactory",
     "3": "Fair",
     "4": "Poor",
-    "5": "Very poor"
+    "5": "Very poor",
+    "6": "Hazardous"
   },
   "pollutants": {
     "PM25": "PM2.5 particles",
@@ -57,7 +58,14 @@
     "NO2": "Nitrogen dioxide",
     "SO2": "Sulphur dioxide",
     "CO": "Carbon monoxide",
-    "O3": "Ozone"
+    "O3": "Ozone",
+    "NO": "Nitric oxide",
+    "CH2O": "Formaldehyde",
+    "C6H5OH": "Phenol",
+    "HF": "Hydrogen fluoride",
+    "TSP": "Suspended particulates (dust)",
+    "CO2": "Carbon dioxide (CO₂)",
+    "TVOC": "TVOC"
   },
   "home": {
     "title": "Air quality and weather in Tajikistan",
@@ -78,7 +86,9 @@
     "noWarnings": "No active warnings",
     "allWarnings": "All warnings",
     "noNews": "No news yet",
-    "allNews": "All news"
+    "allNews": "All news",
+    "ecoBulletin": "Ecological bulletin for {date}",
+    "ecoBulletinsAll": "Eco-bulletin archive"
   },
   "footer": {
     "rights": "© {year} Agency for Hydrometeorology of the Republic of Tajikistan",
@@ -86,7 +96,8 @@
     "api": "API for developers",
     "subscribe": "Email alerts",
     "sections": "Portal sections",
-    "aboutIndex": "About the index"
+    "aboutIndex": "About the index",
+    "ecoBulletins": "Eco-bulletins"
   },
   "auth": {
     "signIn": "Sign in",
@@ -175,7 +186,7 @@
       "ingestStaleCount": "No automatic intake for over {minutes} min: {count}",
       "source": {
         "api": "API",
-        "pull": "SFTP/FTP"
+        "pull": "SFTP/FTP/JSON API"
       },
       "sourcesFailed": "failed sources: {count}"
     },
@@ -205,7 +216,8 @@
       "title": "Recent actions",
       "all": "Full log",
       "empty": "No entries yet"
-    }
+    },
+    "ecoBulletins": "Eco-bulletin"
   },
   "notFound": {
     "title": "Page not found",
@@ -321,10 +333,10 @@
         "never": "not connected yet"
       },
       "lastAt": "Last intake {relative} ({time}) · {source}",
-      "never": "The station has not sent data automatically yet: connect a logger, the station agent or an SFTP/FTP/HTTP source below.",
+      "never": "The station has not sent data automatically yet: connect a logger, the station agent or an SFTP/FTP/HTTP/JSON API source below.",
       "source": {
         "api": "via API (logger or station agent)",
-        "pull": "file pull (SFTP/FTP/HTTP)"
+        "pull": "data pull (SFTP/FTP/HTTP/JSON API)"
       },
       "accepted": "Accepted",
       "rejected": "Rejected",
@@ -336,8 +348,8 @@
       "docs": "API reference"
     },
     "sources": {
-      "title": "File sources (SFTP / FTP / HTTP)",
-      "hint": "Every 10 minutes the worker fetches new export files of the vendor software, parses them by the column mapping and stores them as station measurements. Passwords are stored encrypted.",
+      "title": "Data sources (SFTP / FTP / HTTP / JSON API)",
+      "hint": "Every 10 minutes the worker fetches new export files of the vendor software (SFTP/FTP/HTTP) or polls a sensor-network JSON API, parses the response by the field mapping and stores it as station measurements. Passwords are stored encrypted.",
       "add": "Add source",
       "empty": "No sources. If the station computer can send data itself, use the station agent (apps/station-agent) or the API key.",
       "saved": "Source saved",
@@ -346,6 +358,7 @@
       "runNow": "Check now",
       "runQueued": "Job queued: the result appears here within a minute",
       "summary": "Last run: files {files}, accepted {accepted}, rejected {rejected}",
+      "summaryJson": "Last run: requests {files}, stations {stations}, accepted {accepted}, rejected {rejected}",
       "lastRun": "Run",
       "lastSuccess": "Success",
       "lastData": "Data",
@@ -359,7 +372,8 @@
         "sftp": "SFTP (SSH)",
         "ftp": "FTP",
         "ftps": "FTPS (FTP over TLS)",
-        "http": "HTTP(S) — file by URL"
+        "http": "HTTP(S) — file by URL",
+        "json": "JSON API — sensor network (several stations)"
       },
       "fields": {
         "kind": "Type",
@@ -373,7 +387,9 @@
         "hostFingerprint": "Server key fingerprint",
         "path": "Directory on the server",
         "url": "File address (URL)",
+        "urlJson": "JSON API address (URL)",
         "filePattern": "File mask",
+        "mappingJson": "Response field mapping (JSON)",
         "mapping": "Column mapping (JSON)",
         "template": "Template:",
         "staleAfterMin": "Notify when no data for longer than, min",
@@ -384,13 +400,15 @@
         "passwordKeep": "leave empty to keep; “-” to remove",
         "secret": "Stored encrypted (STATION_SOURCES_KEY). You can enter env:NAME — an environment variable of the worker.",
         "hostFingerprint": "SHA256:… from ssh-keyscan host | ssh-keygen -lf -. Empty — no host key check.",
+        "mappingJson": "Path to the record array, station code field (stationField; codes match portal station codes or are mapped in stations), time field with its time zone, pollutant fields and units, averagingMin and, if available, history — the URL of the series for the past hours to backfill gaps. The template above is the wwcs.tj API (airquality.meteo.tj).",
         "mapping": "Same format as the station agent config: delimiter, time column and format, pollutant columns or long layout. The templates above are starting points.",
         "staleAfterMin": "E-mail to administrators when the source delivers no values within this time."
       },
       "templates": {
         "wide": "column per pollutant",
         "long": "pollutant per row",
-        "split": "separate date and time"
+        "split": "separate date and time",
+        "json": "JSON API (wwcs.tj)"
       },
       "errors": {
         "validation": "Check the form fields",
@@ -455,7 +473,8 @@
     "backToList": "Back to stations",
     "mapTitle": "Location",
     "silamTomorrow": "SILAM forecast",
-    "silamHint": "FMI SILAM model forecast for the station coordinates: daily mean level by the worst pollutant."
+    "silamHint": "FMI SILAM model forecast for the station coordinates: daily mean level by the worst pollutant.",
+    "ecoBulletin": "Eco-bulletin for {date}"
   },
   "measurements": {
     "title": "Measurements",
@@ -606,7 +625,30 @@
     "chartTitle": "Measurement history",
     "bandsHint": "Coloured bands are the scale levels for the selected pollutant; only valid measurements are shown",
     "subscribeStation": "Get alerts about exceedances at this station",
-    "about": "about the index"
+    "about": "about the index",
+    "agency": {
+      "sum": "Σ NO₂ + SO₂",
+      "title": "Ratio to limit values (Agency method)",
+      "hint": "The daily mean concentration is compared with the daily MPC, the maximum single value of the day with the single MPC; for NO₂ and SO₂ the summation (sum of ratios) is reported. Based on valid measurements of the last 24 hours.",
+      "caption": "Ratio to limit values by pollutant",
+      "pollutant": "Pollutant",
+      "dailyMean": "Daily mean",
+      "dailyLimit": "Daily MPC",
+      "dailyRatio": "Ratio to daily MPC",
+      "maxSingle": "Maximum single",
+      "maxSingleLimit": "Single MPC",
+      "maxSingleRatio": "Ratio to single MPC",
+      "sumHint": "sum of the daily-MPC ratios of nitrogen dioxide and sulphur dioxide",
+      "sumNotMeasured": "NO₂+SO₂ summation is not calculated: one of the pollutants is not measured at this station.",
+      "highPollution": "HP",
+      "highPollutionLong": "high pollution (≥ 10 single MPCs)",
+      "extremeHighPollution": "EHP",
+      "extremeHighPollutionLong": "extremely high pollution (≥ 50 single MPCs)",
+      "noCases": "No high or extremely high pollution cases",
+      "noData": "Not enough valid measurements over the last day to calculate the ratios.",
+      "asOf": "as of {time}",
+      "exceeds": "above the limit"
+    }
   },
   "email": {
     "common": {
@@ -658,9 +700,18 @@
       "recoveredBody": "Station “{station}” ({code}) is sending data again ({at}). The gap lasted since {since}.",
       "channel": {
         "api": "API (logger or station agent)",
-        "pull": "file pull (SFTP/FTP/HTTP)"
+        "pull": "data pull (SFTP/FTP/HTTP/JSON API)"
       },
       "button": "Open the station card"
+    },
+    "ecoBulletinDraft": {
+      "subject": "Eco-bulletin drafts for {date} are ready: {count}",
+      "body": "Drafts of the daily ecological bulletin for {date} were prepared automatically for the stations below. Review the data, enter the gamma background if needed and publish the bulletin.",
+      "exceedances": "limit exceedances — {list}",
+      "none": "no limit exceedances",
+      "noData": "no valid measurements for the day",
+      "open": "open",
+      "button": "Open the Eco-bulletin section"
     }
   },
   "qc": {
@@ -766,17 +817,17 @@
     "errors": {
       "validation": "Check the fields",
       "notFound": "Scale not found",
-      "fiveLevels": "All five bounds must be filled for a pollutant",
+      "allLevels": "All {count} level bounds must be filled for a pollutant",
       "monotonic": "Bounds must strictly increase"
     },
     "limits": {
       "title": "Limit values and hazard classes",
-      "subtitle": "Daily, maximum single and annual limit values in the pollutant's unit; hazard class for IZA",
+      "subtitle": "Daily (MPCd), maximum single (MPCs) and annual limit values in the pollutant's unit; hazard class for IZA",
       "table": "Limit values",
-      "hint": "Empty field — no limit set. Default values follow SanPiN 1.2.3685-21 (to be confirmed by the Customer).",
-      "daily": "Daily limit",
-      "maxSingle": "Max single limit",
-      "annual": "Annual limit",
+      "hint": "Empty field — no limit set. Default values are the Agency for Hydrometeorology limit values (daily bulletin of 19 October 2026, mg/m³ converted to the pollutant's unit); values edited here are kept on portal updates.",
+      "daily": "Daily MPC",
+      "maxSingle": "Single MPC",
+      "annual": "Annual MPC",
       "hazardClass": "Hazard class"
     }
   },
@@ -1372,7 +1423,7 @@
   },
   "settingsAdmin": {
     "title": "Settings",
-    "subtitle": "Mail, integration endpoints and portal branding",
+    "subtitle": "Mail, integration addresses, display units and portal branding",
     "smtp": {
       "title": "Mail (SMTP)",
       "hint": "The background worker sends mail from the email_outbox queue every minute. A test message checks the whole path: queue → SMTP → mailbox.",
@@ -1427,6 +1478,16 @@
       "email": "Invalid address",
       "url": "The address must start with http:// or https://",
       "insert": "Could not queue the message"
+    },
+    "display": {
+      "title": "Display units",
+      "hint": "Unit of mass concentrations on station pages, in the API and CSV. Data is stored in the pollutant's unit and converted on output; ppm and ppb are not affected.",
+      "concentrationUnit": "Concentrations",
+      "options": {
+        "native": "µg/m³ — pollutant unit (CO — mg/m³), default",
+        "mg": "mg/m³ — as in the Agency's bulletins"
+      },
+      "saved": "Display units saved"
     }
   },
   "usersAdmin": {
@@ -1627,18 +1688,19 @@
       "level3": "Sensitive groups should reduce prolonged outdoor exertion.",
       "level4": "Pollution is noticeable for everyone: limit time outdoors, especially for children and the elderly.",
       "level5": "Very high pollution: stay indoors if possible and keep windows closed.",
+      "level6": "Hazardous (sixth level of scales such as the US AQI): extremely high pollution — everyone should stay indoors and avoid physical activity outside.",
       "level0": "No data, or the data is stale (measurement older than 6 hours).",
       "accessibility": "Colour is never the only carrier of meaning: a level label is always shown next to it and a number on the map. Colours are chosen for a text contrast of at least 4.5:1 in light and dark themes."
     },
     "national": {
       "title": "National index: ratio to limit values and the IZA",
-      "ratio": "The ratio to limit value compares a concentration with the maximum permissible concentration (daily or single maximum). Up to 1 means the standard is met; levels 2–5 correspond to ratios of 1–2, 2–3, 3–5 and above 5.",
+      "ratio": "The ratio to limit value compares a concentration with the maximum permissible concentration (MPC): the daily mean with the daily MPC, the maximum single value with the single MPC. Up to 1 means the standard is met; levels 2–5 correspond to ratios of 1–2, 2–3, 3–5 and above 5.",
       "iza": "The composite air pollution index (IZA, RD 52.04.186-89) sums normalised monthly mean concentrations of the five pollutants with the largest contribution, weighted by hazard class: IZA = Σ (q̄ᵢ / MPCᵢ)^Cᵢ. Grades: low < 5, elevated 5–6, high 7–13, very high ≥ 14.",
-      "note": "Limit values and hazard classes are tabular data maintained by the Agency (reference: SanPiN 1.2.3685-21) and are refined on approval."
+      "note": "Limit values and hazard classes are tabular data of the Agency for Hydrometeorology (daily air pollution bulletins, limits in mg/m³) and are edited in the admin panel."
     },
     "limits": {
-      "daily": "Daily mean limit",
-      "maxSingle": "Single maximum limit",
+      "daily": "Daily MPC (daily mean)",
+      "maxSingle": "Single MPC (maximum single)",
       "hazardClass": "Hazard class"
     },
     "limitsCaption": "Maximum permissible concentrations by pollutant",
@@ -1656,6 +1718,24 @@
       "health": "Health advice by level",
       "air": "Current air quality by station",
       "api": "Index data via the API"
+    },
+    "agency": {
+      "title": "Agency for Hydrometeorology method",
+      "intro": "The Agency's daily air pollution bulletins assess air quality by the ratio of concentrations to maximum permissible concentrations (MPC). The portal calculates the same indicators from the valid measurements of each station (the “Ratio to limit values” scale, scale=RATIO_TO_LIMIT in the API).",
+      "ratio": {
+        "title": "Ratio to MPC",
+        "text": "The daily mean concentration is divided by the daily MPC and the maximum single value of the day by the single MPC. A ratio up to 1 means the standard is met; the scale levels correspond to ratios up to 1, 1–2, 2–3, 3–5 and above 5."
+      },
+      "sum": {
+        "title": "NO₂ + SO₂ summation",
+        "text": "Nitrogen dioxide and sulphur dioxide have a summation effect: their daily-MPC ratios are added and the sum should not exceed 1. The indicator is calculated when the station measures both pollutants."
+      },
+      "cases": {
+        "title": "High and extremely high pollution",
+        "text": "High pollution (HP) means the maximum single concentration reached 10 single MPCs, extremely high pollution (EHP) — 50 single MPCs. The flags are shown on the station page and returned by the API."
+      },
+      "compare": "Bulletins assess the change against the previous day; on the portal the measurement chart shows the dynamics, and the ratios are recalculated every 10 minutes over a sliding 24-hour window.",
+      "units": "Bulletins publish concentrations in mg/m³; the display unit of the portal (µg/m³ or mg/m³) is chosen by the administrator, and the API and CSV state the unit in the unit field."
     }
   },
   "data": {
@@ -1787,17 +1867,17 @@
       },
       "stationMeasurements": {
         "summary": "Station measurement series",
-        "description": "Hourly (24h, 7d) or daily local-time (30d, 1y) means of valid measurements with min/max and count. CSV with format=csv.",
+        "description": "Hourly (24h, 7d) or daily local-time (30d, 1y) means of valid measurements with min/max and count. CSV with format=csv. Values and the unit field use the display unit chosen by the Agency (µg/m³ or mg/m³).",
         "params": {
           "slug": "Station address (the slug field from the station list)",
           "range": "Period: 24h, 7d, 30d or 1y",
-          "pollutant": "Pollutant code (PM25, PM10, NO2, SO2, CO, O3); all pollutants when omitted",
+          "pollutant": "Pollutant code (PM25, PM10, NO2, SO2, CO, O3, NO, CH2O, C6H5OH, HF, TSP, CO2, TVOC); all pollutants when omitted",
           "format": "json or csv"
         }
       },
       "indexCurrent": {
         "summary": "Current index by station",
-        "description": "The latest computed index of every public station: level, value, dominant pollutant, sub-indices and a stale flag (older than 6 hours).",
+        "description": "The latest computed index of every public station: level, value, dominant pollutant, sub-indices and a stale flag (older than 6 hours). For the RATIO_TO_LIMIT scale the response includes the Agency method indicators: NO₂+SO₂ summation, maximum single concentrations with the ratio to the single MPC, high/extremely high pollution flags; units — display units per pollutant.",
         "params": {
           "scale": "Scale code: NATIONAL_OPERATIONAL (default), WHO_24H or IZA"
         }
@@ -1881,6 +1961,139 @@
     "requestBody": "Request body",
     "security": {
       "stationApiKey": "Station API key from the station card in the admin panel; sent as Authorization: Bearer <key>. Only the key hash is stored in the database."
+    }
+  },
+  "ecoBulletin": {
+    "title": "Eco-bulletin",
+    "subtitle": "Daily ecological bulletin in the Agency's format: city table and text, cities summary (ЗАВ / ИҲА), form 4a",
+    "generate": "Generate",
+    "regenerate": "Recompute from data",
+    "recomputed": "Data recomputed",
+    "form": {
+      "title": "New bulletin",
+      "date": "Date (local day)",
+      "station": "Station for the city bulletin",
+      "hint": "Computed from valid measurements of the local day (Asia/Dushanbe); compared with the previous day. The cities summary covers all public stations."
+    },
+    "fields": {
+      "date": "Date",
+      "station": "Station",
+      "city": "City",
+      "status": "Status",
+      "generatedBy": "Source",
+      "createdAt": "Generated",
+      "publishedAt": "Published",
+      "author": "Author",
+      "gamma": "Gamma radiation background, mR/h",
+      "gammaHint": "Manual entry, e.g. 0,014; leave empty to omit the gamma paragraph"
+    },
+    "status": {
+      "draft": "Draft",
+      "published": "Published"
+    },
+    "generatedBy": {
+      "manual": "manually",
+      "scheduler": "scheduled"
+    },
+    "docs": {
+      "city": "City bulletin",
+      "summary": "Cities summary",
+      "form4a": "Form 4a",
+      "cityHint": "Ecological bulletin / Шарҳи ҳолати ифлосшавии ҳаво",
+      "summaryHint": "Air pollution in the cities / ИҲА",
+      "form4aHint": "Limit exceedances by city / Намунаи 4а"
+    },
+    "lang": {
+      "tg": "Tajik",
+      "ru": "Russian"
+    },
+    "download": {
+      "docx": "DOCX",
+      "pdf": "PDF",
+      "html": "HTML",
+      "print": "Print"
+    },
+    "downloadTitle": "Download documents",
+    "pdfHint": "PDF is rendered by Chromium on the server; if unavailable, a print version opens — save it as PDF from the print dialog",
+    "preview": "Preview",
+    "saveGamma": "Save",
+    "gammaSaved": "Gamma background saved",
+    "publish": "Publish",
+    "publishTitle": "Publish the bulletin?",
+    "publishConfirm": "Documents (DOCX, PDF when Chromium is available) are stored in the portal archive “Eco-bulletins” and a published news post with attachments is created. A published bulletin cannot be changed.",
+    "publishMail": "Also e-mail the newsletter subscribers ({count})",
+    "published": "Bulletin published",
+    "publishedWithMail": "Bulletin published, e-mails queued: {count}",
+    "openPost": "Open the news post",
+    "openPublic": "Open on the portal",
+    "delete": "Delete draft",
+    "deleteConfirm": "Delete the eco-bulletin draft for {date}?",
+    "empty": "No bulletins yet",
+    "journal": "Bulletin log",
+    "warnings": {
+      "noData": "No valid measurements for the station on the selected day — the table is empty",
+      "noYesterday": "No data for the previous day — the day-to-day comparison was skipped",
+      "missing": "No data for: {list}"
+    },
+    "summary": {
+      "title": "Computation summary",
+      "exceedances": "Limit exceedances",
+      "none": "no exceedances",
+      "high": "High pollution (≥ 10 × max single limit)",
+      "extreme": "Extremely high pollution (≥ 50 ×)",
+      "cities": "Cities in the summary: {count}",
+      "summation": "NO2+SO2 summation",
+      "computedAt": "Computed {time}"
+    },
+    "settings": {
+      "title": "Eco-bulletin settings",
+      "link": "Settings",
+      "hint": "Draft schedule, notifications, signature and the exceedance causes phrase. Other wording lives in the template file packages/core/src/bulletin-phrases.ts.",
+      "schedule": "Prepare a draft daily at 08:00 (Dushanbe) for the previous day",
+      "notify": "E-mail operators and administrators when a draft is ready",
+      "stations": "Stations for the automatic draft",
+      "stationsHint": "Empty — all public stations with continuous measurements",
+      "department": "Department signature",
+      "departmentHint": "Empty — from the template (ОИ УМОС / ШИ РММЗ)",
+      "causes": "Exceedance causes phrase",
+      "causesHint": "Inserted into the sentence about exceedance cases; empty — from the template",
+      "summation": "NO2+SO2 summation",
+      "summationMaxSingle": "relative to the max single limit — Agency method (0,66 in the sample)",
+      "summationDaily": "relative to the daily limit — summation rule of RD 52.04.186-89",
+      "saved": "Settings saved"
+    },
+    "public": {
+      "title": "Ecological bulletins",
+      "intro": "Daily ecological bulletins of the Agency for Hydrometeorology: air pollution in the cities of the republic for the previous day",
+      "empty": "No published bulletins yet",
+      "forDate": "Bulletin for {date}",
+      "documents": "Documents",
+      "back": "All bulletins",
+      "view": "Open",
+      "all": "All bulletins",
+      "latest": "Eco-bulletin for {date}",
+      "station": "Station",
+      "languageNote": "The documents are issued in Tajik and Russian."
+    },
+    "errors": {
+      "validation": "Check the form fields",
+      "notFound": "Bulletin not found",
+      "locked": "A published bulletin cannot be changed",
+      "noData": "No valid measurements for the station on the selected day",
+      "station": "Choose a station",
+      "date": "Invalid date",
+      "future": "The date cannot be later than today",
+      "insert": "Could not save",
+      "forbidden": "Insufficient permissions"
+    },
+    "news": {
+      "title": "Ecological bulletin of {city} for {date}",
+      "excerpt": "Air pollution in {city} and the cities of the republic for {date}",
+      "files": "Bulletin documents",
+      "cityDoc": "Ecological bulletin",
+      "summaryDoc": "Cities summary",
+      "form4aDoc": "Form 4a",
+      "readMore": "Eco-bulletin archive on the portal"
     }
   }
 }

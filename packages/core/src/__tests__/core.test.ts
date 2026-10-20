@@ -2,7 +2,15 @@ import { describe, expect, it } from "vitest";
 import { applyRangeRule, QC_FLAG } from "../qc";
 import { slugify, transliterate } from "../slug";
 import { dushanbeLocalToUtc, parseMeasurementTime, utcToDushanbeLocal } from "../time";
-import { convertConcentration, normalizeUnit, roundTo } from "../units";
+import {
+  convertConcentration,
+  displayScaleFor,
+  displayUnitFor,
+  isConcentrationDisplayMode,
+  normalizeUnit,
+  roundTo,
+  toDisplayValue,
+} from "../units";
 
 describe("units", () => {
   it("конвертирует ppb → µg/m³ для NO2", () => {
@@ -53,5 +61,38 @@ describe("qc", () => {
     expect(applyRangeRule(2500, { min: 0, max: 2000 }).flag).toBe(QC_FLAG.invalid);
     expect(applyRangeRule(15, { min: 0, max: 2000 }).flag).toBe(QC_FLAG.valid);
     expect(applyRangeRule(null, { min: 0, max: 2000 }).flag).toBe(QC_FLAG.missing);
+  });
+});
+
+describe("units: единицы отображения (настройка портала)", () => {
+  it("режим native не меняет единицу и точность", () => {
+    expect(displayUnitFor("µg/m³", "native")).toBe("µg/m³");
+    expect(displayUnitFor("mg/m³", "native")).toBe("mg/m³");
+    expect(displayScaleFor("µg/m³", 1, "native")).toEqual({
+      unit: "µg/m³",
+      decimals: 1,
+      factor: 1,
+    });
+    expect(toDisplayValue(42.55, displayScaleFor("µg/m³", 1, "native"))).toBe(42.6);
+  });
+  it("режим mg/m³ переводит µg/m³ в мг/м³ с тремя дополнительными знаками, как в бюллетенях", () => {
+    const scale = displayScaleFor("µg/m³", 1, "mg/m³");
+    expect(scale).toEqual({ unit: "mg/m³", decimals: 4, factor: 0.001 });
+    expect(toDisplayValue(55, scale)).toBe(0.055);
+    expect(toDisplayValue(35, scale)).toBe(0.035);
+    expect(toDisplayValue(1.6, displayScaleFor("µg/m³", 2, "mg/m³"))).toBe(0.0016);
+  });
+  it("CO (mg/m³), ppm и ppb режим не затрагивает", () => {
+    expect(displayScaleFor("mg/m³", 2, "mg/m³")).toEqual({ unit: "mg/m³", decimals: 2, factor: 1 });
+    expect(displayScaleFor("ppm", 0, "mg/m³")).toEqual({ unit: "ppm", decimals: 0, factor: 1 });
+    expect(displayScaleFor("ppb", 1, "mg/m³")).toEqual({ unit: "ppb", decimals: 1, factor: 1 });
+  });
+  it("null и NaN остаются пустыми; режим валидируется", () => {
+    const scale = displayScaleFor("µg/m³", 1, "mg/m³");
+    expect(toDisplayValue(null, scale)).toBeNull();
+    expect(toDisplayValue(Number.NaN, scale)).toBeNull();
+    expect(isConcentrationDisplayMode("mg/m³")).toBe(true);
+    expect(isConcentrationDisplayMode("native")).toBe(true);
+    expect(isConcentrationDisplayMode("ppm")).toBe(false);
   });
 });

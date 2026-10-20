@@ -1,3 +1,4 @@
+import { CONCENTRATION_DISPLAY_MODES } from "@meteo/core";
 import { z } from "zod";
 import { localizedText } from "./common";
 
@@ -25,6 +26,12 @@ export const brandingInput = z.object({
 });
 export type BrandingInput = z.input<typeof brandingInput>;
 export type BrandingValues = z.output<typeof brandingInput>;
+
+/** Единицы отображения концентраций: единица вещества (µg/m³; CO — mg/m³) или mg/m³ как в бюллетенях. */
+export const displayInput = z.object({
+  concentrationUnit: z.enum(CONCENTRATION_DISPLAY_MODES),
+});
+export type DisplayInput = z.input<typeof displayInput>;
 
 export const testEmailInput = z.object({
   to: z.string().trim().toLowerCase().pipe(z.email("email")),

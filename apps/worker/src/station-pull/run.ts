@@ -3,8 +3,12 @@
  * маппингом (@meteo/core parseStationFeed, тот же, что у агента) → запись через ingestMeasurements
  * → реестр файлов и статус источника. Повторная обработка файла безопасна (upsert по ключу).
  */
-import { filePatternToRegExp, parseStationFeed, summarizeError } from "@meteo/core";
-import { resolveStoredSecret, secretKeyFromEnv } from "@meteo/core/secret-box";
+import {
+  filePatternToRegExp,
+  isJsonFeedMapping,
+  parseStationFeed,
+  summarizeError,
+} from "@meteo/core";
 import {
   ingestMeasurements,
   loadIngestContext,
@@ -21,27 +25,19 @@ import { db } from "../db";
 import { env } from "../env";
 import { logger } from "../logger";
 import { decodeFeed, FileTooLargeError, openRemoteClient, type RemoteFile } from "./clients";
+import { pullJsonSource } from "./json";
+import {
+  MAX_SUMMARY_ERRORS,
+  type PullSourceOptions,
+  type PullSourceResult,
+  resolveSourceSecrets,
+} from "./shared";
+
+export type { PullSourceOptions, PullSourceResult } from "./shared";
 
 const MAX_FILES_PER_RUN = 25;
-const MAX_SUMMARY_ERRORS = 20;
 /** Файл, изменённый менее 30 с назад, может ещё дописываться вендорским ПО — берём в следующий раз. */
 const SETTLE_MS = 30_000;
-
-export interface PullSourceOptions {
-  now?: Date;
-  /** Ручной запуск: обработать источник, даже если он выключен, и перечитать самый свежий файл. */
-  force?: boolean;
-}
-
-export interface PullSourceResult {
-  sourceId: number;
-  stationCode: string;
-  status: "ok" | "failed" | "skipped";
-  files: number;
-  accepted: number;
-  rejected: number;
-  error?: string;
-}
 
 function registryKey(kind: string, path: string, file: RemoteFile): string {
   return kind === "http" ? path : file.name;
@@ -71,6 +67,14 @@ export async function pullStationSource(
   };
   if (!source.enabled && !opts.force) return base;
   if (source.station.status === "decommissioned") return base;
+  // JSON API (сеть датчиков): свой цикл — запросы вместо файлов, станции по коду из записей.
+  if (source.kind === "json") return pullJsonSource(source, opts);
+  if (isJsonFeedMapping(source.mapping)) {
+    const message = "Описание полей JSON API у файлового источника: смените тип на «JSON API»";
+    await markStationSourceRun(db, source.id, { at: now, status: "failed", error: message });
+    return { ...base, status: "failed", error: message };
+  }
+  const mapping = source.mapping;
 
   const summary: StationSourceRunSummary = {
     at: now.toISOString(),
@@ -88,12 +92,7 @@ export async function pullStationSource(
   const maxBytes = Math.round(env.STATION_PULL_MAX_FILE_MB * 1024 * 1024);
 
   try {
-    const key = secretKeyFromEnv({
-      STATION_SOURCES_KEY: env.STATION_SOURCES_KEY,
-      BETTER_AUTH_SECRET: env.BETTER_AUTH_SECRET,
-    });
-    const password = resolveStoredSecret(source.secret, key, process.env);
-    const privateKey = resolveStoredSecret(source.privateKey, key, process.env);
+    const { password, privateKey } = resolveSourceSecrets(source);
     const client = await openRemoteClient({
       kind: source.kind,
       host: source.host,
@@ -142,8 +141,8 @@ export async function pullStationSource(
               : undefined;
           const read = await client.read(source.path, file.name, maxBytes, conditional);
           if (read.body === null) continue; // 304 Not Modified
-          const text = decodeFeed(read.body, source.mapping.encoding);
-          const parsed = parseStationFeed(text, source.mapping, { now });
+          const text = decodeFeed(read.body, mapping.encoding);
+          const parsed = parseStationFeed(text, mapping, { now });
           for (const e of parsed.errors) pushError(file.name, e.message, e.row);
           const records = parsed.records.map(({ row: _row, ...rec }) => rec);
           let accepted = 0;

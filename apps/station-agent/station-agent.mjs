@@ -372,7 +372,45 @@ var BUILTIN_ALIASES = {
   \u0423\u0413\u0410\u0420\u041D\u042B\u0419\u0413\u0410\u0417: "CO",
   O3: "O3",
   OZONE: "O3",
-  \u041E\u0417\u041E\u041D: "O3"
+  \u041E\u0417\u041E\u041D: "O3",
+  // Вещества автоматической станции Душанбе и постов (бюллетени Агентства)
+  NO: "NO",
+  NITRICOXIDE: "NO",
+  NITROGENMONOXIDE: "NO",
+  NITROGENOXIDE: "NO",
+  \u041E\u041A\u0421\u0418\u0414\u0410\u0417\u041E\u0422\u0410: "NO",
+  \u041E\u041A\u0418\u0421\u042C\u0410\u0417\u041E\u0422\u0410: "NO",
+  \u041C\u041E\u041D\u041E\u041E\u041A\u0421\u0418\u0414\u0410\u0417\u041E\u0422\u0410: "NO",
+  CH2O: "CH2O",
+  HCHO: "CH2O",
+  FORMALDEHYDE: "CH2O",
+  \u0424\u041E\u0420\u041C\u0410\u041B\u042C\u0414\u0415\u0413\u0418\u0414: "CH2O",
+  \u0424\u041E\u0420\u041C\u0410\u041B\u0414\u0415\u0413\u0418\u0414: "CH2O",
+  C6H5OH: "C6H5OH",
+  C6H6O: "C6H5OH",
+  PHENOL: "C6H5OH",
+  \u0424\u0415\u041D\u041E\u041B: "C6H5OH",
+  HF: "HF",
+  HYDROGENFLUORIDE: "HF",
+  \u0424\u0422\u041E\u0420\u0418\u0421\u0422\u042B\u0419\u0412\u041E\u0414\u041E\u0420\u041E\u0414: "HF",
+  \u0424\u0422\u041E\u0420\u0418\u0414\u0412\u041E\u0414\u041E\u0420\u041E\u0414\u0410: "HF",
+  \u0424\u0422\u041E\u0420\u0412\u041E\u0414\u041E\u0420\u041E\u0414: "HF",
+  TSP: "TSP",
+  SPM: "TSP",
+  DUST: "TSP",
+  TOTALSUSPENDEDPARTICLES: "TSP",
+  \u041F\u042B\u041B\u042C: "TSP",
+  \u0412\u0417\u0412\u0415\u0428\u0415\u041D\u041D\u042B\u0415\u0427\u0410\u0421\u0422\u0418\u0426\u042B: "TSP",
+  \u0412\u0417\u0412\u0415\u0428\u0415\u041D\u041D\u042B\u0415\u0412\u0415\u0429\u0415\u0421\u0422\u0412\u0410: "TSP",
+  CO2: "CO2",
+  CARBONDIOXIDE: "CO2",
+  \u0414\u0418\u041E\u041A\u0421\u0418\u0414\u0423\u0413\u041B\u0415\u0420\u041E\u0414\u0410: "CO2",
+  \u0414\u0412\u0423\u041E\u041A\u0418\u0421\u042C\u0423\u0413\u041B\u0415\u0420\u041E\u0414\u0410: "CO2",
+  \u0423\u0413\u041B\u0415\u041A\u0418\u0421\u041B\u042B\u0419\u0413\u0410\u0417: "CO2",
+  TVOC: "TVOC",
+  VOC: "TVOC",
+  VOCS: "TVOC",
+  \u041B\u041E\u0421: "TVOC"
 };
 var UNIT_SUFFIX_RE = /(\(.*?\)|\[.*?\]|(?<![\p{L}\p{N}])((µg|ug|mcg|mg|мкг|мг)\s*\/?\s*(m|м)\s*(3|³)?|ppb|ppm)(?![\p{L}\p{N}]))/giu;
 function resolvePollutantCode(raw, aliases) {
@@ -895,7 +933,11 @@ async function sendBatch(records, opts) {
       error: json?.error ?? text.slice(0, 300),
       message: json?.message
     });
-    return { accepted: 0, rejected: records.length, errors: [{ row: void 0, message: `http:${res.status}` }] };
+    return {
+      accepted: 0,
+      rejected: records.length,
+      errors: [{ row: void 0, message: `http:${res.status}` }]
+    };
   }
 }
 function resolvePath(base, value) {

@@ -1,9 +1,14 @@
-import { validateFeedMapping } from "@meteo/core";
+import { validateFeedMapping, validateJsonFeedMapping } from "@meteo/core";
 import { z } from "zod";
 import { emptyToNull } from "./common";
 
-export const stationSourceKinds = ["sftp", "ftp", "ftps", "http"] as const;
+export const stationSourceKinds = ["sftp", "ftp", "ftps", "http", "json"] as const;
 export type StationSourceKindInput = (typeof stationSourceKinds)[number];
+
+/** Типы, у которых адрес — полный URL (без сервера/каталога/маски файлов). */
+export function isUrlSourceKind(kind: string): kind is "http" | "json" {
+  return kind === "http" || kind === "json";
+}
 
 /** Форма источника pull‑типа в карточке станции; маппинг приходит текстом JSON. */
 export const stationSourceInput = z
@@ -30,7 +35,7 @@ export const stationSourceInput = z
     staleAfterMin: z.coerce.number().int().min(5, "range").max(43200, "range").default(180),
   })
   .superRefine((v, ctx) => {
-    if (v.kind === "http") {
+    if (isUrlSourceKind(v.kind)) {
       if (!/^https?:\/\/\S+$/i.test(v.path))
         ctx.addIssue({ code: "custom", path: ["path"], message: "url" });
     } else {
@@ -46,7 +51,8 @@ export const stationSourceInput = z
       ctx.addIssue({ code: "custom", path: ["mappingJson"], message: "json" });
       return;
     }
-    const problems = validateFeedMapping(mapping);
+    const problems =
+      v.kind === "json" ? validateJsonFeedMapping(mapping) : validateFeedMapping(mapping);
     if (problems.length)
       ctx.addIssue({ code: "custom", path: ["mappingJson"], message: `mapping:${problems[0]}` });
   });
@@ -54,8 +60,31 @@ export const stationSourceInput = z
 export type StationSourceInput = z.input<typeof stationSourceInput>;
 export type StationSourceValues = z.output<typeof stationSourceInput>;
 
-/** Шаблоны маппинга для типичных форматов экспорта (подставляются в форму). */
-export const MAPPING_TEMPLATES: Record<"wide" | "long" | "split", string> = {
+/** Шаблоны маппинга для типичных форматов экспорта и JSON API (подставляются в форму). */
+export const MAPPING_TEMPLATES: Record<"wide" | "long" | "split" | "json", string> = {
+  // Открытый API сети PM‑датчиков Агентства (wwcs.tj, airquality.meteo.tj): коды станций = stationID,
+  // местное время без смещения, 10‑минутные значения, ряд за прошедшие часы для догрузки пропусков.
+  json: JSON.stringify(
+    {
+      format: "json",
+      recordsPath: "",
+      stationField: "stationID",
+      stations: {},
+      time: { field: "timestamp", timezone: "Asia/Dushanbe", roundMin: 10 },
+      pollutants: {
+        PM25: { field: "PM25", unit: "µg/m³" },
+        PM10: { field: "PM10", unit: "µg/m³" },
+      },
+      averagingMin: 10,
+      history: {
+        url: "https://wwcs.tj/services/airquality/history?hours={hours}",
+        hours: 24,
+        maxHours: 72,
+      },
+    },
+    null,
+    2,
+  ),
   wide: JSON.stringify(
     {
       delimiter: ";",

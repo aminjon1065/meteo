@@ -1,13 +1,14 @@
 /**
  * Seed справочников. Идемпотентен: существующие записи не перезаписываются,
- * чтобы не затирать правки администратора. Значения порогов и ПДК — черновик
- * к согласованию с Заказчиком (docs/02-architecture.md §6, зависимость D6).
+ * чтобы не затирать правки администратора. Исключение — строки ПДК с источником seed
+ * по умолчанию: они приводятся к таблице норм из ежедневных бюллетеней Агентства
+ * (docs/02-architecture.md §6.2). Пороги оперативной шкалы — по образцу FMI/HSY (D6).
  */
 import { randomUUID } from "node:crypto";
 import { AQ_LEVEL_STYLES } from "@meteo/core";
 import type { I18nText } from "@meteo/i18n";
 import { hashPassword } from "better-auth/crypto";
-import { count, eq, sql } from "drizzle-orm";
+import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { createDb } from "./client";
 import { loadRootEnv, requireEnv } from "./env";
 import * as s from "./schema";
@@ -18,7 +19,8 @@ const db = createDb(requireEnv("DATABASE_URL"), { max: 1 });
 const t = (tg: string, ru: string, en: string): I18nText => ({ tg, ru, en });
 
 // ---------------------------------------------------------------------------
-// 1. Загрязнители
+// 1. Загрязнители. Названия — по терминологии ежедневных бюллетеней Агентства
+//    (tg: зарачаҳои 10 мкр., дуоксиди нитроген, фториди гидроген, моддаҳои муаллақ …).
 // ---------------------------------------------------------------------------
 const pollutantSeed = [
   {
@@ -29,7 +31,7 @@ const pollutantSeed = [
     sortOrder: 1,
     hazardClass: 3,
     molarMass: null,
-    name: t("Зарраҳои муаллақи PM2.5", "Взвешенные частицы PM2.5", "Particulate matter PM2.5"),
+    name: t("Зарачаҳои 2,5 мкр. (PM2.5)", "Взвешенные частицы PM2.5", "Particulate matter PM2.5"),
   },
   {
     code: "PM10",
@@ -39,7 +41,7 @@ const pollutantSeed = [
     sortOrder: 2,
     hazardClass: 3,
     molarMass: null,
-    name: t("Зарраҳои муаллақи PM10", "Взвешенные частицы PM10", "Particulate matter PM10"),
+    name: t("Зарачаҳои 10 мкр. (PM10)", "Взвешенные частицы PM10", "Particulate matter PM10"),
   },
   {
     code: "NO2",
@@ -49,7 +51,7 @@ const pollutantSeed = [
     sortOrder: 3,
     hazardClass: 3,
     molarMass: 46.0055,
-    name: t("Диоксиди нитроген", "Диоксид азота", "Nitrogen dioxide"),
+    name: t("Дуоксиди нитроген", "Диоксид азота", "Nitrogen dioxide"),
   },
   {
     code: "SO2",
@@ -59,7 +61,7 @@ const pollutantSeed = [
     sortOrder: 4,
     hazardClass: 3,
     molarMass: 64.066,
-    name: t("Диоксиди сулфур", "Диоксид серы", "Sulphur dioxide"),
+    name: t("Дуоксиди сулфур", "Дуоксид серы", "Sulphur dioxide"),
   },
   {
     code: "CO",
@@ -81,9 +83,111 @@ const pollutantSeed = [
     molarMass: 47.998,
     name: t("Озон", "Озон", "Ozone"),
   },
+  // Вещества автоматической станции Душанбе и постов других городов (бюллетень от 19.10.2026).
+  {
+    code: "NO",
+    shortName: "NO",
+    unit: "µg/m³",
+    decimals: 1,
+    sortOrder: 7,
+    hazardClass: 3,
+    molarMass: 30.006,
+    name: t("Оксиди нитроген", "Оксид азота", "Nitric oxide"),
+  },
+  {
+    code: "CH2O",
+    shortName: "CH₂O",
+    unit: "µg/m³",
+    decimals: 2,
+    sortOrder: 8,
+    hazardClass: 2,
+    molarMass: 30.026,
+    name: t("Формалдегид", "Формальдегид", "Formaldehyde"),
+  },
+  {
+    code: "C6H5OH",
+    shortName: "C₆H₅OH",
+    unit: "µg/m³",
+    decimals: 2,
+    sortOrder: 9,
+    hazardClass: 2,
+    molarMass: 94.113,
+    name: t("Фенол", "Фенол", "Phenol"),
+  },
+  {
+    code: "HF",
+    shortName: "HF",
+    unit: "µg/m³",
+    decimals: 2,
+    sortOrder: 10,
+    hazardClass: 2,
+    molarMass: 20.006,
+    name: t("Фториди гидроген", "Фтористый водород", "Hydrogen fluoride"),
+  },
+  {
+    code: "TSP",
+    shortName: "TSP",
+    unit: "µg/m³",
+    decimals: 1,
+    sortOrder: 11,
+    hazardClass: 3,
+    molarMass: null,
+    name: t(
+      "Моддаҳои муаллақ (чанг)",
+      "Взвешенные частицы (пыль)",
+      "Suspended particulates (dust, TSP)",
+    ),
+  },
+  {
+    code: "CO2",
+    shortName: "CO₂",
+    unit: "ppm",
+    decimals: 0,
+    sortOrder: 12,
+    hazardClass: null,
+    molarMass: 44.009,
+    name: t("Гази карбонат (CO₂)", "Диоксид углерода", "Carbon dioxide"),
+  },
+  {
+    code: "TVOC",
+    shortName: "TVOC",
+    unit: "ppb",
+    decimals: 1,
+    sortOrder: 13,
+    hazardClass: null,
+    molarMass: null,
+    name: t(
+      "Пайвастагиҳои органикии зудбухоршаванда (ПОЗ)",
+      "Летучие органические соединения (ЛОС)",
+      "Total volatile organic compounds (TVOC)",
+    ),
+  },
 ];
 
 await db.insert(s.pollutants).values(pollutantSeed).onConflictDoNothing();
+
+// Названия из прежнего seed приводим к терминологии Агентства (редактора названий в админке нет,
+// поэтому меняем только строки, совпадающие с прежним текстом).
+const renamedPollutants: Array<{ code: string; from: I18nText }> = [
+  {
+    code: "PM25",
+    from: t("Зарраҳои муаллақи PM2.5", "Взвешенные частицы PM2.5", "Particulate matter PM2.5"),
+  },
+  {
+    code: "PM10",
+    from: t("Зарраҳои муаллақи PM10", "Взвешенные частицы PM10", "Particulate matter PM10"),
+  },
+  { code: "NO2", from: t("Диоксиди нитроген", "Диоксид азота", "Nitrogen dioxide") },
+  { code: "SO2", from: t("Диоксиди сулфур", "Диоксид серы", "Sulphur dioxide") },
+];
+for (const r of renamedPollutants) {
+  const to = pollutantSeed.find((p) => p.code === r.code)?.name;
+  if (!to) continue;
+  await db
+    .update(s.pollutants)
+    .set({ name: to })
+    .where(and(eq(s.pollutants.code, r.code), eq(s.pollutants.name, r.from)));
+}
 const pollutantRows = await db
   .select({ id: s.pollutants.id, code: s.pollutants.code })
   .from(s.pollutants);
@@ -98,31 +202,51 @@ const pid = (code: string): number => {
 };
 
 // ---------------------------------------------------------------------------
-// 2. ПДК (черновик по СанПиН 1.2.3685‑21; единицы — как у загрязнителя)
+// 2. ПДК — таблица норм ежедневного бюллетеня Агентства (ПДКс.с. / ПДКм.р., в единице вещества;
+//    мг/м³ бюллетеня → µg/m³). CO₂ норматива не имеет; ЛОС (TVOC) — в ppb.
 // ---------------------------------------------------------------------------
-const limitSource = "СанПиН 1.2.3685-21 (черновик, к подтверждению Заказчиком)";
+const limitSource = "ПДК Агентства по гидрометеорологии (бюллетень от 19.10.2026)";
+/** Прежний источник seed: такие строки приводятся к таблице Агентства, правки администратора не трогаем. */
+const legacyLimitSources = ["СанПиН 1.2.3685-21 (черновик, к подтверждению Заказчиком)"];
 const limits: Array<{ code: string; daily: number; maxSingle: number }> = [
   { code: "PM25", daily: 35, maxSingle: 160 },
   { code: "PM10", daily: 60, maxSingle: 300 },
-  { code: "NO2", daily: 40, maxSingle: 200 },
+  { code: "NO2", daily: 40, maxSingle: 85 },
   { code: "SO2", daily: 50, maxSingle: 500 },
   { code: "CO", daily: 3, maxSingle: 5 },
   { code: "O3", daily: 30, maxSingle: 160 },
+  // В таджикской версии бюллетеня ПДКс.с. NO — 0,07 мг/м³; принято значение русской версии 0,06 (уточнить у Агентства).
+  { code: "NO", daily: 60, maxSingle: 400 },
+  { code: "CH2O", daily: 3, maxSingle: 35 },
+  { code: "C6H5OH", daily: 3, maxSingle: 10 },
+  { code: "HF", daily: 5, maxSingle: 20 },
+  { code: "TSP", daily: 150, maxSingle: 500 },
+  { code: "TVOC", daily: 300, maxSingle: 900 },
 ];
-await db
-  .insert(s.limitValues)
-  .values(
-    limits.flatMap((l) => [
-      { pollutantId: pid(l.code), kind: "daily" as const, value: l.daily, source: limitSource },
-      {
-        pollutantId: pid(l.code),
-        kind: "max_single" as const,
-        value: l.maxSingle,
-        source: limitSource,
-      },
-    ]),
-  )
-  .onConflictDoNothing();
+const limitRows = limits.flatMap((l) => [
+  { pollutantId: pid(l.code), kind: "daily" as const, value: l.daily, source: limitSource },
+  {
+    pollutantId: pid(l.code),
+    kind: "max_single" as const,
+    value: l.maxSingle,
+    source: limitSource,
+  },
+]);
+await db.insert(s.limitValues).values(limitRows).onConflictDoNothing();
+// Существующие базы: строки с источником seed по умолчанию приводим к таблице Агентства
+// (та же логика в миграции 0007; ПДК, изменённые администратором, имеют source admin:<email>).
+for (const row of limitRows) {
+  await db
+    .update(s.limitValues)
+    .set({ value: row.value, source: limitSource })
+    .where(
+      and(
+        eq(s.limitValues.pollutantId, row.pollutantId),
+        eq(s.limitValues.kind, row.kind),
+        inArray(s.limitValues.source, legacyLimitSources),
+      ),
+    );
+}
 
 // ---------------------------------------------------------------------------
 // 3. Шкалы индекса
@@ -139,6 +263,7 @@ const fiveLevels = [1, 2, 3, 4, 5].map((level) => ({
   color: AQ_LEVEL_STYLES[level as 1 | 2 | 3 | 4 | 5].color,
   label: levelLabels[level] ?? t("", "", ""),
 }));
+const ratioBounds: Array<number | null> = [0, 1, 2, 3, 5, null];
 
 await db
   .insert(s.indexScales)
@@ -174,6 +299,78 @@ await db
       sortOrder: 2,
     },
     {
+      code: "RATIO_TO_LIMIT",
+      kind: "ratio_to_limit",
+      name: t(
+        "Каррати ҲМҒ (методикаи Агентӣ)",
+        "Кратность ПДК (методика Агентства)",
+        "Ratio to limit values (Agency method)",
+      ),
+      description: t(
+        "Консентратсияи миёнаи шабонарӯзӣ нисбат ба ҲМҒ(м.ш.р) ва якмаротибагии баландтарин нисбат ба ҲМҒ(як); ҷамъи дуоксидҳои нитрогену сулфур (NO₂+SO₂); ҳолатҳои ИБ (≥ 10 ҲМҒ(як)) ва НИБ (≥ 50).",
+        "Среднесуточная концентрация к ПДКс.с. и максимальная разовая к ПДКм.р., как в ежедневных бюллетенях Агентства; суммация NO₂+SO₂ (сумма кратностей); случаи ВЗ (≥ 10 ПДКм.р.) и ЭВЗ (≥ 50 ПДКм.р.).",
+        "Daily mean concentration against the daily limit and the maximum single value against the single limit, as in the Agency's daily bulletins; NO₂+SO₂ summation (sum of ratios); high (≥ 10 single limits) and extremely high (≥ 50) pollution cases.",
+      ),
+      // Интервалы кратности: ≤1, 1–2, 2–3, 3–5, >5 (docs/02-architecture.md §6.2).
+      levels: fiveLevels.map((l) => ({
+        ...l,
+        lo: ratioBounds[l.level - 1] as number,
+        hi: ratioBounds[l.level] as number | null,
+      })),
+      isDefaultPublic: false,
+      sortOrder: 4,
+    },
+    {
+      // Шкала US AQI (EPA, Technical Assistance Document 2024): шесть категорий 0–50 … 301–500 с цветами
+      // EPA — для преемственности с airquality.meteo.tj; не публичная по умолчанию (переключается в админке).
+      code: "US_AQI",
+      kind: "breakpoints",
+      name: t("Индекси US AQI (EPA)", "Индекс US AQI (EPA)", "US AQI (EPA)"),
+      description: t(
+        "Шаш категорияи AQI‑и Агентии ҳифзи муҳити зисти ИМА: PM2.5 ва PM10 — миёнаи 24 соат, O3 ва CO — 8 соат, NO2 ва SO2 — 1 соат. Ҳудудҳо — EPA 2024 дар воҳидҳои портал.",
+        "Шесть категорий AQI Агентства по охране окружающей среды США: PM2.5 и PM10 — среднее за 24 ч, O3 и CO — 8 ч, NO2 и SO2 — 1 ч. Пороги — EPA 2024 в единицах портала (ppb/ppm переведены при 25 °C); на airquality.meteo.tj применяется таблица PM2.5 2012 г. к 10‑минутным значениям, поэтому числа могут немного отличаться.",
+        "Six US EPA AQI categories: PM2.5 and PM10 — 24‑hour mean, O3 and CO — 8‑hour, NO2 and SO2 — 1‑hour. Thresholds — EPA 2024 in portal units (ppb/ppm converted at 25 °C); airquality.meteo.tj applies the 2012 PM2.5 table to 10‑minute values, so numbers may differ slightly.",
+      ),
+      levels: [
+        { level: 1, lo: 0, hi: 50, color: "#00E400", label: t("Хуб", "Хороший", "Good") },
+        { level: 2, lo: 51, hi: 100, color: "#FFFF00", label: t("Миёна", "Умеренный", "Moderate") },
+        {
+          level: 3,
+          lo: 101,
+          hi: 150,
+          color: "#FF7E00",
+          label: t(
+            "Барои гурӯҳҳои ҳассос зарарнок",
+            "Вредно для чувствительных групп",
+            "Unhealthy for sensitive groups",
+          ),
+        },
+        {
+          level: 4,
+          lo: 151,
+          hi: 200,
+          color: "#FF0000",
+          label: t("Зарарнок", "Вредно для здоровья", "Unhealthy"),
+        },
+        {
+          level: 5,
+          lo: 201,
+          hi: 300,
+          color: "#8F3F97",
+          label: t("Хеле зарарнок", "Очень вредно для здоровья", "Very unhealthy"),
+        },
+        {
+          level: 6,
+          lo: 301,
+          hi: 500,
+          color: "#7E0023",
+          label: t("Хатарнок", "Опасно", "Hazardous"),
+        },
+      ],
+      isDefaultPublic: false,
+      sortOrder: 5,
+    },
+    {
       code: "IZA",
       kind: "iza",
       name: t(
@@ -182,7 +379,7 @@ await db
         "Atmospheric pollution index (IZA)",
       ),
       description: t(
-        "ИЗА аз рӯи РД 52.04.186‑89: маҷмӯи консентратсияҳои миёнаи моҳона нисбат ба ҲИМ.",
+        "ИЗА аз рӯи РД 52.04.186‑89: маҷмӯи консентратсияҳои миёнаи моҳона нисбат ба ҲМҒ(м.ш.р).",
         "Комплексный ИЗА по РД 52.04.186‑89: сумма среднемесячных концентраций, нормированных на ПДКсс, с учётом класса опасности.",
         "Composite IZA per RD 52.04.186‑89: sum of monthly means normalised by daily limit values, weighted by hazard class.",
       ),
@@ -268,9 +465,31 @@ const who = [
   ...breakpoints(sid("WHO_24H"), "O3", [100, 120, 160, 240], 480),
   ...breakpoints(sid("WHO_24H"), "CO", [4, 7, 10, 20], 1440),
 ];
+/** Пороги по нижним границам уровней 1..N (первая — 0); последний уровень открытый. */
+function breakpointsFromLows(scaleId: number, code: string, lows: number[], averagingMin: number) {
+  return lows.map((lo, i) => ({
+    scaleId,
+    pollutantId: pid(code),
+    level: i + 1,
+    lo,
+    hi: i < lows.length - 1 ? (lows[i + 1] as number) : null,
+    averagingMin,
+  }));
+}
+// US AQI (EPA 2024): PM — µg/m³ за 24 ч; газы переведены из ppb/ppm при 25 °C (24,45 л/моль) и округлены:
+// NO2 1 ч 54/101/361/650/1250 ppb, SO2 1 ч 36/76/186/305/605 ppb, O3 8 ч 55/71/86/106/201 ppb,
+// CO 8 ч 4,5/9,5/12,5/15,5/30,5 ppm (mg/m³).
+const usAqi = [
+  ...breakpointsFromLows(sid("US_AQI"), "PM25", [0, 9.1, 35.5, 55.5, 125.5, 225.5], 1440),
+  ...breakpointsFromLows(sid("US_AQI"), "PM10", [0, 55, 155, 255, 355, 425], 1440),
+  ...breakpointsFromLows(sid("US_AQI"), "O3", [0, 108, 139, 169, 208, 393], 480),
+  ...breakpointsFromLows(sid("US_AQI"), "NO2", [0, 102, 190, 679, 1223, 2352], 60),
+  ...breakpointsFromLows(sid("US_AQI"), "SO2", [0, 94, 199, 487, 799, 1585], 60),
+  ...breakpointsFromLows(sid("US_AQI"), "CO", [0, 5.2, 10.9, 14.3, 17.8, 34.9], 480),
+];
 await db
   .insert(s.indexBreakpoints)
-  .values([...operational, ...who])
+  .values([...operational, ...who, ...usAqi])
   .onConflictDoNothing();
 
 // ---------------------------------------------------------------------------
@@ -327,17 +546,85 @@ const advice: Array<{ level: number; title: I18nText; text: I18nText }> = [
     ),
   },
 ];
+/** Рекомендации EPA для категорий US AQI (общее население), сокращённый перевод. */
+const usAqiAdvice: Array<{ level: number; title: I18nText; text: I18nText }> = [
+  {
+    level: 1,
+    title: t("Хуб", "Хороший", "Good"),
+    text: t(
+      "Сифати ҳаво қаноатбахш аст, ифлосшавӣ хатар надорад.",
+      "Качество воздуха удовлетворительное, загрязнение не представляет риска.",
+      "Air quality is satisfactory, and air pollution poses little or no risk.",
+    ),
+  },
+  {
+    level: 2,
+    title: t("Миёна", "Умеренный", "Moderate"),
+    text: t(
+      "Сифати ҳаво қобили қабул аст. Одамони ба ифлосшавӣ хеле ҳассос метавонанд аломатҳои сабук ҳис кунанд.",
+      "Качество воздуха приемлемое. Особо чувствительные к загрязнению люди могут ощущать лёгкие симптомы.",
+      "Air quality is acceptable. Unusually sensitive people may experience mild symptoms.",
+    ),
+  },
+  {
+    level: 3,
+    title: t(
+      "Барои гурӯҳҳои ҳассос зарарнок",
+      "Вредно для чувствительных групп",
+      "Unhealthy for sensitive groups",
+    ),
+    text: t(
+      "Гурӯҳҳои ҳассос (бемориҳои дил ва шуш, солхӯрдагон, кӯдакон) метавонанд оқибатҳоро ҳис кунанд; дигарон одатан хатар надоранд. Ба гурӯҳҳои ҳассос лозим аст машқи тӯлонӣ ё шадидро дар беруни бино кам кунанд.",
+      "Чувствительные группы (заболевания сердца и лёгких, пожилые, дети) могут ощущать последствия; остальным, как правило, ничего не грозит. Чувствительным группам стоит сократить длительные или интенсивные нагрузки на улице.",
+      "Members of sensitive groups (heart or lung disease, older adults, children) may experience health effects; the general public is less likely to be affected. Sensitive groups should reduce prolonged or heavy exertion outdoors.",
+    ),
+  },
+  {
+    level: 4,
+    title: t("Зарарнок", "Вредно для здоровья", "Unhealthy"),
+    text: t(
+      "Баъзе одамон метавонанд оқибатҳои саломатиро ҳис кунанд; гурӯҳҳои ҳассос — ҷиддитар. Ба ҳама лозим аст машқи тӯлонӣ ва шадидро дар беруни бино кам кунанд, гурӯҳҳои ҳассос — аз онҳо худдорӣ кунанд.",
+      "Некоторые люди могут ощущать последствия для здоровья; чувствительные группы — более серьёзные. Всем стоит сократить длительные и интенсивные нагрузки на улице, чувствительным группам — избегать их.",
+      "Some members of the general public may experience health effects; sensitive groups may experience more serious effects. Everyone should reduce prolonged or heavy exertion outdoors; sensitive groups should avoid it.",
+    ),
+  },
+  {
+    level: 5,
+    title: t("Хеле зарарнок", "Очень вредно для здоровья", "Very unhealthy"),
+    text: t(
+      "Огоҳӣ дар бораи хатар ба саломатӣ: оқибатҳо дар ҳама имконпазиранд. Аз машқи тӯлонӣ ва шадид дар беруни бино худдорӣ кунед; гурӯҳҳои ҳассос — дар дохили бино бимонанд.",
+      "Предупреждение о рисках для здоровья: последствия возможны у всех. Избегайте длительных и интенсивных нагрузок на улице; чувствительным группам — оставаться в помещении.",
+      "Health alert: the risk of health effects is increased for everyone. Avoid prolonged or heavy exertion outdoors; sensitive groups should stay indoors.",
+    ),
+  },
+  {
+    level: 6,
+    title: t("Хатарнок", "Опасно", "Hazardous"),
+    text: t(
+      "Ҳолати изтирорӣ: оқибатҳои саломатӣ дар ҳама эҳтимол доранд. Аз ҳар гуна фаъолияти ҷисмонӣ дар беруни бино худдорӣ кунед ва дар дохили бино бо тирезаҳои пӯшида бимонед.",
+      "Чрезвычайная ситуация: последствия для здоровья вероятны у всех. Избегайте любой физической активности на улице и оставайтесь в помещении с закрытыми окнами.",
+      "Health emergency: everyone is likely to be affected. Avoid all physical activity outdoors and stay indoors with windows closed.",
+    ),
+  },
+];
 await db
   .insert(s.healthAdvice)
-  .values(
-    advice.map((a) => ({
+  .values([
+    ...advice.map((a) => ({
       scaleId: sid("NATIONAL_OPERATIONAL"),
       level: a.level,
       audience: "general" as const,
       title: a.title,
       text: a.text,
     })),
-  )
+    ...usAqiAdvice.map((a) => ({
+      scaleId: sid("US_AQI"),
+      level: a.level,
+      audience: "general" as const,
+      title: a.title,
+      text: a.text,
+    })),
+  ])
   .onConflictDoNothing();
 
 // ---------------------------------------------------------------------------
@@ -455,19 +742,37 @@ const ranges: Record<string, [number, number]> = {
   SO2: [0, 3000],
   CO: [0, 100],
   O3: [0, 1000],
+  NO: [0, 2000],
+  CH2O: [0, 500],
+  C6H5OH: [0, 200],
+  HF: [0, 200],
+  TSP: [0, 5000],
+  CO2: [0, 10000],
+  TVOC: [0, 50000],
 };
 const existingRules = await db.select({ n: count() }).from(s.qcRules);
 if ((existingRules[0]?.n ?? 0) === 0) {
   await db.insert(s.qcRules).values([
-    ...Object.entries(ranges).map(([code, [min, max]]) => ({
-      pollutantId: pid(code),
-      kind: "range" as const,
-      params: { min, max },
-    })),
     { pollutantId: null, kind: "spike" as const, params: { madMultiplier: 6, windowHours: 24 } },
     { pollutantId: null, kind: "stuck" as const, params: { hours: 12, continuousOnly: true } },
     { pollutantId: null, kind: "mad_outlier" as const, params: { z: 5, windowDays: 30 } },
   ]);
+}
+// Правило диапазона — для каждого вещества, у которого его ещё нет (новые вещества в существующей базе).
+const rangeRules = await db
+  .select({ pollutantId: s.qcRules.pollutantId })
+  .from(s.qcRules)
+  .where(eq(s.qcRules.kind, "range"));
+const withRange = new Set(rangeRules.map((r) => r.pollutantId));
+const missingRanges = Object.entries(ranges).filter(([code]) => !withRange.has(pid(code)));
+if (missingRanges.length > 0) {
+  await db.insert(s.qcRules).values(
+    missingRanges.map(([code, [min, max]]) => ({
+      pollutantId: pid(code),
+      kind: "range" as const,
+      params: { min, max },
+    })),
+  );
 }
 
 // ---------------------------------------------------------------------------

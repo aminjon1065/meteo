@@ -24,6 +24,7 @@ export async function loadActiveExceedances(stationId?: number) {
       pollutant: pollutants.shortName,
       pollutantCode: pollutants.code,
       unit: pollutants.unit,
+      decimals: pollutants.decimals,
     })
     .from(alertEvents)
     .innerJoin(alertRules, eq(alertRules.id, alertEvents.ruleId))

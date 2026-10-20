@@ -101,3 +101,26 @@ export function trimFileRegistry(
   entries.sort((a, b) => (a[1].at < b[1].at ? 1 : a[1].at > b[1].at ? -1 : 0));
   return Object.fromEntries(entries.slice(0, keep));
 }
+
+/** Станции по кодам (без учёта регистра) — для источников JSON API, обслуживающих несколько станций. */
+export async function findStationsByCodes(
+  db: Database,
+  codes: string[],
+): Promise<Map<string, StationSourceWithStation["station"]>> {
+  const wanted = [...new Set(codes.map((c) => c.trim().toUpperCase()).filter(Boolean))];
+  const out = new Map<string, StationSourceWithStation["station"]>();
+  if (wanted.length === 0) return out;
+  const rows = await db
+    .select({
+      id: s.stations.id,
+      code: s.stations.code,
+      slug: s.stations.slug,
+      name: s.stations.name,
+      status: s.stations.status,
+      sampling: s.stations.sampling,
+    })
+    .from(s.stations)
+    .where(inArray(sql`upper(${s.stations.code})`, wanted));
+  for (const r of rows) out.set(r.code.toUpperCase(), r);
+  return out;
+}

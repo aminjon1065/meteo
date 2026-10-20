@@ -3,9 +3,12 @@
  * общие помощники для web (админка) и worker (фоновые задачи).
  */
 import {
+  type ConcentrationDisplayMode,
+  DEFAULT_CONCENTRATION_DISPLAY_MODE,
   INTEGRATION_NAMES,
   type IntegrationName,
   type IntegrationState,
+  isConcentrationDisplayMode,
   normalizeIntegrationState,
 } from "@meteo/core";
 import type { I18nText } from "@meteo/i18n";
@@ -146,4 +149,27 @@ export async function listAdminRecipients(db: Database): Promise<AdminRecipient[
     .select({ email: s.users.email, name: s.users.name, locale: s.users.locale })
     .from(s.users)
     .where(and(eq(s.users.role, "admin"), sql`coalesce(${s.users.banned}, false) = false`));
+}
+
+// ---------------------------------------------------------------------------
+// Единицы отображения концентраций (портал, API, CSV)
+// ---------------------------------------------------------------------------
+
+export interface DisplaySettings {
+  /** `native` — единица хранения вещества (µg/m³; CO — mg/m³); `mg/m³` — как в бюллетенях Агентства. */
+  concentrationUnit: ConcentrationDisplayMode;
+}
+
+export const DISPLAY_KEY = "display";
+
+export const DEFAULT_DISPLAY: DisplaySettings = {
+  concentrationUnit: DEFAULT_CONCENTRATION_DISPLAY_MODE,
+};
+
+export async function getDisplaySettings(db: Database): Promise<DisplaySettings> {
+  const raw = await getSetting<Partial<DisplaySettings>>(db, DISPLAY_KEY);
+  const unit = raw?.concentrationUnit;
+  return {
+    concentrationUnit: isConcentrationDisplayMode(unit) ? unit : DEFAULT_DISPLAY.concentrationUnit,
+  };
 }

@@ -1,10 +1,15 @@
 "use server";
 
 import { createHash, randomBytes } from "node:crypto";
-import { type FeedMapping, slugify } from "@meteo/core";
+import { slugify } from "@meteo/core";
 import { isEnvSecret, sealSecret, secretKeyFromEnv } from "@meteo/core/secret-box";
 import { eq } from "@meteo/db";
-import { stationPollutants, stationSources, stations } from "@meteo/db/schema";
+import {
+  type StationSourceMapping,
+  stationPollutants,
+  stationSources,
+  stations,
+} from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { recordAudit } from "@/lib/audit";
 import { getDb } from "@/lib/db";
@@ -13,7 +18,7 @@ import { enqueueJob } from "@/lib/jobs";
 import { requireAdminSession } from "@/lib/session";
 import { fieldErrorsOf } from "@/lib/validation/common";
 import { type StationValues, stationInput } from "@/lib/validation/station";
-import { stationSourceInput } from "@/lib/validation/station-source";
+import { isUrlSourceKind, stationSourceInput } from "@/lib/validation/station-source";
 
 export type StationActionResult =
   | { ok: true; id: number; slug: string }
@@ -222,13 +227,13 @@ export async function saveStationSource(
   const privateKey = storedSecret(v.privateKey, previous?.privateKey ?? null);
   if ("error" in privateKey) return { ok: false, message: privateKey.error };
 
-  const mapping = JSON.parse(v.mappingJson) as FeedMapping;
+  const mapping = JSON.parse(v.mappingJson) as StationSourceMapping;
   const row = {
     stationId,
     kind: v.kind,
     enabled: v.enabled,
     label: v.label || null,
-    host: v.kind === "http" ? "" : v.host,
+    host: isUrlSourceKind(v.kind) ? "" : v.host,
     port: v.port,
     username: v.username || null,
     secret: secret.value,

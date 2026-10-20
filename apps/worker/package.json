@@ -10,7 +10,8 @@
     "start": "node dist/index.js",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --passWithNoTests",
-    "enqueue": "tsx scripts/enqueue.ts"
+    "enqueue": "tsx scripts/enqueue.ts",
+    "pull-source": "tsx scripts/pull-source.ts"
   },
   "dependencies": {
     "@meteo/core": "workspace:*",

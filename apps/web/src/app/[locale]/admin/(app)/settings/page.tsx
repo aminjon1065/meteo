@@ -2,6 +2,7 @@ import {
   BRANDING_KEY,
   eq,
   getBranding,
+  getDisplaySettings,
   getIntegrationStates,
   getSetting,
   getSettingRow,
@@ -19,11 +20,12 @@ import {
 } from "@meteo/ui/components/card";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { BrandingForm } from "@/components/admin/settings/branding-form";
+import { DisplayForm } from "@/components/admin/settings/display-form";
 import { SmtpTestForm } from "@/components/admin/settings/smtp-test-form";
 import { getDb } from "@/lib/db";
 import { requireAdminSession } from "@/lib/session";
 import { readIntegrationEnv } from "@/lib/settings";
-import { saveBranding, sendTestEmail } from "./actions";
+import { saveBranding, saveDisplaySettings, sendTestEmail } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +34,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
   setRequestLocale(locale);
   const session = await requireAdminSession(locale, "settings.write");
   const db = getDb();
-  const [t, format, branding, brandingRow, smtpTest, states] = await Promise.all([
+  const [t, format, branding, brandingRow, smtpTest, states, display] = await Promise.all([
     getTranslations("settingsAdmin"),
     getFormatter(),
     getBranding(db),
     getSettingRow<unknown>(db, BRANDING_KEY),
     getSetting<SmtpTestState>(db, SMTP_TEST_KEY),
     getIntegrationStates(db),
+    getDisplaySettings(db),
   ]);
   const [updatedBy, testRow] = await Promise.all([
     brandingRow?.updatedBy
@@ -208,6 +211,16 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">{t("display.title")}</CardTitle>
+          <CardDescription>{t("display.hint")}</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DisplayForm initial={display} action={saveDisplaySettings.bind(null, locale)} />
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

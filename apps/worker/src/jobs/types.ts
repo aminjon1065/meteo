@@ -13,11 +13,12 @@ export type JobName =
   | "qc-batch"
   | "threshold-eval"
   | "mailer"
-  | "station-pull";
+  | "station-pull"
+  | "eco-bulletin-draft";
 
 export interface JobDefinition<TData = Record<string, never>> {
   name: JobName;
-  /** Расписание BullMQ Job Scheduler (cron или интервал); undefined — только по требованию. */
-  schedule?: { pattern: string } | { every: number };
+  /** Расписание BullMQ Job Scheduler (cron с часовым поясом или интервал); undefined — только по требованию. */
+  schedule?: { pattern: string; tz?: string } | { every: number };
   run: (job: Job<TData>) => Promise<unknown>;
 }

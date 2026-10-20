@@ -10,6 +10,7 @@ const STATIC_PATHS = [
   "/",
   "/air",
   "/air/index",
+  "/air/bulletins",
   "/map",
   "/weather",
   "/warnings",

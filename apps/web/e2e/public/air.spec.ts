@@ -44,3 +44,46 @@ test("страница станции: текущий индекс, график
   await expect(page.getByText(E2E.station.code)).toBeVisible();
   expect(violations()).toEqual([]);
 });
+
+test("страница станции: кратность ПДК по методике Агентства, суммация NO₂+SO₂, без ВЗ/ЭВЗ", async ({
+  page,
+  request,
+}) => {
+  await page.goto(`/ru/air/stations/${E2E.station.slug}`);
+  const card = page.getByTestId("agency-ratio");
+  await expect(card.getByText(t("ru", "index.agency.title"), { exact: true })).toBeVisible();
+  // Таблица: по строке на вещество станции (PM2.5, PM10, NO₂, SO₂) с ПДКс.с. из бюллетеня Агентства.
+  await expect(card.getByRole("row")).toHaveCount(5);
+  await expect(card.getByRole("row", { name: /NO₂/ })).toContainText("40");
+  await expect(card.getByRole("row", { name: /NO₂/ })).toContainText("85");
+  // Суммация: кратности NO₂ (≈24/40) и SO₂ (≈6/50) — сумма меньше 1, случаев ВЗ/ЭВЗ нет.
+  const sum = card.getByTestId("agency-sum");
+  await expect(sum).toContainText(t("ru", "index.agency.sum"));
+  await expect(sum).toContainText(/0,[4-9]\d?/);
+  await expect(card.getByText(t("ru", "index.agency.noCases"))).toBeVisible();
+
+  // Те же показатели в API по шкале кратности ПДК.
+  const res = await request.get("/api/v1/index/current?scale=RATIO_TO_LIMIT");
+  expect(res.status()).toBe(200);
+  const body = (await res.json()) as {
+    units: Record<string, string>;
+    stations: Array<{
+      slug: string;
+      indicators: {
+        no2so2Sum: number | null;
+        highPollution: boolean;
+        extremeHighPollution: boolean;
+        maxSingle: Record<string, { value: number; ratio: number | null }>;
+      } | null;
+      subIndices: Record<string, { index: number }>;
+    }>;
+  };
+  expect(body.units.NO2).toBe("µg/m³");
+  const station = body.stations.find((s) => s.slug === E2E.station.slug);
+  expect(station?.indicators?.no2so2Sum).toBeGreaterThan(0.4);
+  expect(station?.indicators?.no2so2Sum).toBeLessThan(1);
+  expect(station?.indicators?.highPollution).toBe(false);
+  expect(station?.indicators?.extremeHighPollution).toBe(false);
+  expect(station?.indicators?.maxSingle.NO2?.ratio).toBeGreaterThan(0);
+  expect(station?.subIndices.NO2?.index).toBeGreaterThan(0.4);
+});

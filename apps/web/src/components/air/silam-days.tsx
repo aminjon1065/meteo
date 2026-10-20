@@ -1,7 +1,8 @@
+import { clampAqLevel } from "@meteo/core";
 import type { SilamDaySummary } from "@meteo/db";
 import { AqBadge } from "@meteo/ui/components/aq-badge";
 import { getFormatter, getTranslations } from "next-intl/server";
-import type { PollutantInfo } from "@/lib/aq";
+import { displayValue, type PollutantInfo } from "@/lib/aq";
 
 /** Суточная сводка SILAM: день, уровень, определяющее вещество и его среднесуточная концентрация. */
 export async function SilamDays({
@@ -38,16 +39,16 @@ export async function SilamDays({
   return (
     <ul className={compact ? "flex flex-col gap-1.5" : "flex flex-col gap-2"}>
       {days.map((d) => {
-        const level = Math.min(5, Math.max(0, d.level)) as 0 | 1 | 2 | 3 | 4 | 5;
+        const level = clampAqLevel(d.level);
         const dominant = d.dominantPollutantId
           ? pollutantsById.get(d.dominantPollutantId)
           : undefined;
-        const mean = dominant ? d.means[String(dominant.id)] : undefined;
+        const mean = dominant ? displayValue(dominant, d.means[String(dominant.id)]) : null;
         return (
           <li key={d.date} className="flex flex-wrap items-center justify-between gap-2 text-sm">
             <span className="font-medium capitalize">{dayLabel(d.date)}</span>
             <span className="flex items-center gap-2">
-              {dominant && mean !== undefined ? (
+              {dominant && mean !== null ? (
                 <span className="text-xs text-muted-foreground tabular-nums">
                   {t("dominant", {
                     pollutant: tp.has(dominant.code as "PM25")

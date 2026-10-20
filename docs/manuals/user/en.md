@@ -30,9 +30,9 @@ The portal shows an **operational five‑level index**: for each pollutant the l
 
 Only measurements that passed the Agency's quality control are used. If the latest measurement is older than 6 hours, the portal honestly shows "no data" instead of an outdated number.
 
-Pollutants: PM2.5 and PM10 particles, nitrogen dioxide NO₂, sulphur dioxide SO₂, carbon monoxide CO, ozone O₃. Units — µg/m³ (CO — mg/m³).
+Pollutants: PM2.5 and PM10 particles, nitrogen dioxide NO₂, sulphur dioxide SO₂, carbon monoxide CO, ozone O₃; the Dushanbe automatic station and the posts also report nitric oxide NO, formaldehyde CH₂O, phenol, hydrogen fluoride HF, suspended particulates (dust), carbon dioxide CO₂ (ppm) and total volatile organic compounds (TVOC, ppb). The display unit is chosen by the Agency: µg/m³ (CO — mg/m³) or mg/m³ as in the daily bulletins; the unit is always shown next to the value, and the API and CSV carry it in the `unit` field.
 
-The "About the index" page (`/air/index`) lists the current thresholds per pollutant, describes the national index (ratio to the limit value and the composite IZA) and the WHO guideline scale, and explains the quality‑control rules.
+The "About the index" page (`/air/index`) lists the current thresholds per pollutant, describes the Agency for Hydrometeorology method (ratio to the daily and single MPC, NO₂+SO₂ summation, high and extremely high pollution cases), the national index (ratio to the limit value and the composite IZA) and the WHO guideline scale, shows the MPC table and explains the quality‑control rules.
 
 ![Figure 2. "About the index" page: calculation steps and threshold table](../img/user-about-index.png)
 
@@ -63,6 +63,7 @@ Station page (`/air/stations/<station slug>`):
 - **Current values** — the index with its level, the dominant pollutant, cards for each pollutant (value, unit, level) and the scale used.
 - **Location** — map with the station position.
 - **SILAM forecast** — model air‑quality forecast for the station coordinates for today, tomorrow and the day after (daily mean level by the worst pollutant).
+- **Ratio to limit values (Agency method)** — a table like the daily bulletins: the daily mean concentration and its ratio to the daily MPC, the maximum single value of the day and its ratio to the single MPC for every pollutant; below it the NO₂+SO₂ summation (sum of the daily-MPC ratios when the station measures both) and a note on high (≥ 10 single MPCs) and extremely high (≥ 50) pollution cases. Ratios ≥ 1 are highlighted. Calculated from valid measurements of the last 24 hours.
 - **Advice** — what to do at the current level (general population); the full version by group is in the "Health" section.
 - **Get exceedance alerts for this station** — link to the subscription.
 - **Measurement history** — chart with period and pollutant selection (section 4.1).

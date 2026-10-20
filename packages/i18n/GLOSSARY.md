@@ -29,13 +29,21 @@
 | Станция (мониторинга) | Истгоҳ (мониторинг) | (monitoring) station | `stations.*`, `admin.stations` |
 | Измерение | Ченак | Measurement | `admin.measurements`, `measurements.*` |
 | Вещество / загрязнитель | Модда | Pollutant | `index.pollutant`, `pollutants.*` |
-| Концентрация | Консентратсия | Concentration | единицы µg/m³, mg/m³ без перевода |
+| Концентрация | Консентратсия | Concentration | единицы µg/m³, mg/m³, ppm, ppb без перевода; единица отображения — настройка администратора |
+| Среднесуточная концентрация | Консентратсияи миёнаи шабонарӯзӣ (м.ш.б) | Daily mean concentration | терминология бюллетеней Агентства; `index.agency.dailyMean` |
+| Максимальная разовая концентрация | Консентратсияи якмаротибагии баландтарин (я.м.б) | Maximum single concentration | `index.agency.maxSingle` |
 | Индекс качества воздуха | Индекси сифати ҳаво | Air quality index | `index.*` |
 | Под‑индекс | Зериндекс | Sub-index | `aboutIndex.operational.subindex` |
 | Определяющее вещество | Моддаи муайянкунанда | Dominant pollutant | `index.dominant` |
 | Шкала | Шкала | Scale | `index.scale`, `scales.*` |
 | Порог | Ҳад | Threshold | `scales.*`, `aboutIndex.thresholds` |
-| ПДК (предельно допустимая концентрация) | КИИ (консентратсияи иҷозатдодашудаи ниҳоӣ) | Limit value (MPC) | `aboutIndex.limits.*` |
+| ПДК (предельно допустимая концентрация) | ҲМҒ (ҳадди муайяни ғилзат) | Limit value (MPC) | `aboutIndex.limits.*`, `scales.limits.*`; как в бюллетенях Агентства |
+| ПДКс.с. (среднесуточная) | ҲМҒ(м.ш.р) — ҳадди муайяни ғилзати миёнаи шабонарӯзӣ | Daily MPC | `scales.limits.daily`, `index.agency.dailyLimit` |
+| ПДКм.р. (максимальная разовая) | ҲМҒ(як) — ҳадди муайяни ғилзати якмаротибагӣ | Single MPC | `scales.limits.maxSingle`, `index.agency.maxSingleLimit` |
+| Кратность ПДК | Каррати ҲМҒ / нисбат ба ҲМҒ | Ratio to MPC | `scales.kind.ratio_to_limit`, `index.agency.*` |
+| Суммация NO₂+SO₂ | Ҷамъи дуоксидҳои нитрогену сулфур (NO₂+SO₂) | NO₂+SO₂ summation | `index.agency.sum*`, `aboutIndex.agency.sum.*` |
+| ВЗ (высокое загрязнение, ≥ 10 ПДКм.р.) | ИБ (ифлосшавии баланд) | HP (high pollution) | `index.agency.highPollution*` |
+| ЭВЗ (экстремально высокое загрязнение, ≥ 50 ПДКм.р.) | НИБ (ифлосшавии ниҳоят баланд) | EHP (extremely high pollution) | `index.agency.extremeHighPollution*` |
 | ИЗА (индекс загрязнения атмосферы) | ИИА (индекси ифлосшавии атмосфера) | IZA (air pollution index) | `aboutIndex.national.iza` |
 | Осреднение | Миёнагирӣ | Averaging | `aboutIndex.averaging` |
 | Контроль качества (QC) | Назорати сифат | Quality control | `qc.*`, `admin.stats.qcQueue` |
@@ -58,12 +66,21 @@
 
 | Код | tg | ru | en |
 |---|---|---|---|
-| PM25 | Зарраҳои PM2.5 | Частицы PM2.5 | PM2.5 particles |
-| PM10 | Зарраҳои PM10 | Частицы PM10 | PM10 particles |
-| NO2 | Диоксиди нитроген | Диоксид азота | Nitrogen dioxide |
-| SO2 | Диоксиди сулфур | Диоксид серы | Sulphur dioxide |
+| PM25 | Зарачаҳои 2,5 мкр. (PM2.5) | Взвешенные частицы PM2.5 | PM2.5 particles |
+| PM10 | Зарачаҳои 10 мкр. (PM10) | Взвешенные частицы PM10 | PM10 particles |
+| NO2 | Дуоксиди нитроген | Диоксид азота | Nitrogen dioxide |
+| SO2 | Дуоксиди сулфур | Диоксид серы | Sulphur dioxide |
 | CO | Оксиди карбон | Оксид углерода | Carbon monoxide |
 | O3 | Озон | Озон | Ozone |
+| NO | Оксиди нитроген | Оксид азота | Nitric oxide |
+| CH2O | Формалдегид | Формальдегид | Formaldehyde |
+| C6H5OH | Фенол | Фенол | Phenol |
+| HF | Фториди гидроген | Фтористый водород | Hydrogen fluoride |
+| TSP | Моддаҳои муаллақ (чанг) | Взвешенные частицы (пыль) | Suspended particulates (dust) |
+| CO2 | Гази карбонат (CO₂) | Диоксид углерода (CO₂) | Carbon dioxide (CO₂) |
+| TVOC | ПОЗ (TVOC) — пайвастагиҳои органикии зудбухоршаванда | ЛОС (TVOC) | TVOC |
+
+Названия веществ и термины ПДК — по ежедневным бюллетеням Агентства (Экобюллетень г. Душанбе, ЗАВ/ИҲА, форма 4а от 19.10.2026).
 
 ## Предупреждения CAP (`warnings.*`)
 

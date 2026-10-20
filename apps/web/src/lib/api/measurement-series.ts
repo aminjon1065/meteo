@@ -1,8 +1,9 @@
 import "server-only";
-import { csvCell, DUSHANBE_TZ, utcToDushanbeLocal } from "@meteo/core";
+import { csvCell, DUSHANBE_TZ, toDisplayValue, utcToDushanbeLocal } from "@meteo/core";
 import { and, asc, eq, gte, inArray, lte, sql } from "@meteo/db";
 import { measurements, pollutants, stationPollutants } from "@meteo/db/schema";
 import { getDb } from "@/lib/db";
+import { displayScaleOf, getConcentrationDisplayMode } from "@/lib/settings";
 
 export const RANGES = ["24h", "7d", "30d", "1y"] as const;
 export type Range = (typeof RANGES)[number];
@@ -31,11 +32,15 @@ export interface SeriesPoint {
 }
 
 export interface PollutantSeries {
+  /** `unit`/`decimals` — единица отображения портала (настройка администратора), значения приведены к ней. */
   pollutant: { id: number; code: string; shortName: string; unit: string; decimals: number };
   points: SeriesPoint[];
 }
 
-/** Ряды измерений станции за период: часовые (24h/7d) или суточные (30d/1y) средние по местному времени. */
+/**
+ * Ряды измерений станции за период: часовые (24h/7d) или суточные (30d/1y) средние по местному времени.
+ * Значения переводятся из единицы хранения в единицу отображения (µg/m³ или mg/m³ как в бюллетенях).
+ */
 export async function loadSeries(
   stationId: number,
   range: Range,
@@ -46,6 +51,7 @@ export async function loadSeries(
   const to = now;
   const from = new Date(to.getTime() - RANGE_MS[range]);
   const aggregation = aggregationFor(range);
+  const mode = await getConcentrationDisplayMode();
   const measured = await db
     .select({
       id: pollutants.id,
@@ -93,24 +99,22 @@ export async function loadSeries(
     .groupBy(sql`1`, measurements.pollutantId)
     .orderBy(sql`1`);
 
-  const series = wanted.map((p) => ({
-    pollutant: p,
-    points: rows
-      .filter((r) => r.pollutantId === p.id)
-      .map((r) => ({
-        t: r.bucket.toISOString(),
-        v: round(r.avg, p.decimals),
-        min: round(r.min, p.decimals),
-        max: round(r.max, p.decimals),
-        n: r.n,
-      })),
-  }));
+  const series = wanted.map((p) => {
+    const scale = displayScaleOf(p, mode);
+    return {
+      pollutant: { ...p, unit: scale.unit, decimals: scale.decimals },
+      points: rows
+        .filter((r) => r.pollutantId === p.id)
+        .map((r) => ({
+          t: r.bucket.toISOString(),
+          v: toDisplayValue(r.avg, scale),
+          min: toDisplayValue(r.min, scale),
+          max: toDisplayValue(r.max, scale),
+          n: r.n,
+        })),
+    };
+  });
   return { from, to, aggregation, series };
-}
-
-function round(v: number, decimals: number): number {
-  const f = 10 ** decimals;
-  return Math.round((v + Number.EPSILON) * f) / f;
 }
 
 /** CSV с BOM для Excel: время в UTC и по Душанбе. */

@@ -148,6 +148,7 @@ The portal receives station data in three ways; none depends on the equipment ve
 | Station agent | the station software writes CSV/TSV files to a folder on the station computer | the API key in the card; the IT service installs the agent on the station (runbook, section 9.4) |
 | Direct API upload | the logger or station software can send `POST /api/v1/ingest/{code}` requests | the API key in the card; format reference — the portal page "API for developers" (`/data/api`) |
 | File pull (SFTP / FTP / FTPS / HTTP) | the data is already published on a vendor's or the Agency's server | a source in the "File sources" block of the station card |
+| Sensor-network JSON API | several sensors publish data through one address as JSON — for example the Agency's PM sensor network at airquality.meteo.tj (wwcs.tj API) | a "JSON API" source in the "Data sources" block of one station's card; the other stations receive data by code |
 
 **Before connecting**, tick the measured pollutants and input units in the station card: values for pollutants not ticked for the station are rejected with the reason `pollutantNotConfigured`. In "Data source" choose "API" or "Automatic sensor" — then the dashboard and administrator e-mails watch for gaps in the intake.
 
@@ -159,15 +160,18 @@ The portal receives station data in three ways; none depends on the equipment ve
 
 | Field | How to fill |
 |---|---|
-| Type | SFTP (SSH), FTP, FTPS or HTTP(S) — file by URL |
+| Type | SFTP (SSH), FTP, FTPS, HTTP(S) — file by URL, or "JSON API — sensor network (several stations)" |
 | Server, port, user, password | access to the vendor server; the password is stored encrypted and never shown again (an empty field when editing keeps it, "-" removes it). Instead of a password you can enter `env:NAME` — an environment variable of the portal server (IT service) |
 | SSH private key, server key fingerprint | for key-based SFTP; the `SHA256:…` fingerprint protects against server spoofing (empty — no check) |
 | Directory on the server, file mask | the export folder and a mask such as `*.csv` or `DU-01_*.txt`; for HTTP — the full file address |
 | Column mapping (JSON) | the file format: delimiter, encoding, time column and date format, pollutant columns (wide layout) or "pollutant / value / unit" columns (long layout). The template buttons insert typical mappings — replace the column names with those in the file. The format is the same as in the station agent config (`apps/station-agent/README.md`) |
+| JSON API address, response field mapping (JSON) | for the "JSON API" type: the address where the API returns the latest records of all stations and the field mapping — path to the record array, station code field (`stationField`; the code in the response must match the portal station code or is mapped in `stations`), time field with its time zone, pollutant fields and units, averaging period (`averagingMin`) and, if available, the address of the series for the past hours (`history`) to backfill gaps. The "JSON API (wwcs.tj)" template already fits the Agency's sensor network |
 | Notify when no data for longer than, min | after how many minutes without accepted values the administrators get an e-mail (180 by default) |
 | Enabled | a disabled source is not polled; its settings are kept |
 
 After saving click "Check now": within a minute the source row shows the status ("working" / "failed" with the error text), the times of the last run, success and data, and the last run summary (files, accepted, rejected, first errors with line numbers). From then on the portal fetches new and changed files every 10 minutes; re-processing a file is safe — values are updated by the "time + pollutant" key and operator decisions in the QC queue are not overwritten.
+
+**The Agency's PM sensor network (airquality.meteo.tj).** Nine PM2.5/PM10 sensors (six in Dushanbe, Kulob, Vahdat, Hisor) are created by the IT service with a script (runbook, section 9.4): the stations appear in the registry with names in three languages, coordinates and pollutants, and the card of station "Shukufon St. 59 (Medgorodok)" (DYU01_ECO) gets a "JSON API" source "WWCS airquality API" — the primary data channel of this network, already enabled: the portal backfills a day of history and then polls the API every 10 minutes; "Check now" triggers an extra poll, the "Enabled" switch stops polling without deleting the settings. Data arrives at all nine stations by sensor code; stations without a source of their own show it in the "Automatic data intake" block (channel "data pull"). The station "Agency for Hydrometeorology" (DYU006_ECO) is created **suspended**: its sensor reports hundreds of µg/m³ against a normal background at neighbours and the automatic quality rules do not reject such values — lift the suspension in the card after the sensor is repaired. Repeated API responses create no duplicates: the time of the last accepted record is kept per station, so a "frozen" sensor produces a "no data" e-mail after an hour and its index becomes "no data" after 6 hours.
 
 **How to verify that data flows**: the "Automatic data intake" block in the card (time and channel of the last intake, accepted/rejected), the "Automatic intake" column on the dashboard (section 3), `measurements.ingest` and `measurements.pull` entries by `station:<code>` in the audit log (section 6). Rejected records are not lost silently: the reason for each (`unknownPollutant`, `unit`, `time`, `futureTime` …) is returned to the sender and appears in the source summary.
 
@@ -299,7 +303,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 ![Figure 23. Limit values and hazard classes table](../img/admin-limits.png)
 
-"Limit values and hazard classes" (`/admin/scales/limits`): daily, maximum single and annual limit values (MPC) in the pollutant unit, plus the hazard class (1–4) used by the IZA. An empty field means no limit is set. Default values come from SanPiN 1.2.3685‑21 and must be confirmed by the Agency.
+"Limit values and hazard classes" (`/admin/scales/limits`): daily (MPCd), maximum single (MPCs) and annual limit values in the pollutant unit, plus the hazard class (1–4) used by the IZA. An empty field means no limit is set. Default values are the limit table of the Agency's daily air pollution bulletin (19 October 2026; mg/m³ converted to the pollutant unit): PM2.5 35/160, PM10 60/300, NO₂ 40/85, SO₂ 50/500, CO 3/5 mg/m³, O₃ 30/160, NO 60/400, formaldehyde 3/35, phenol 3/10, HF 5/20, dust 150/500 µg/m³, TVOC 300/900 ppb; CO₂ has no limit. Values edited here are kept on portal updates. From the daily and single MPC the portal calculates the ratios of the Agency method (the "Ratio to limit values" scale): NO₂+SO₂ summation and high/extremely high pollution cases — see the station page and `/air/index`.
 
 ## 8. Health advice
 
@@ -420,6 +424,53 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 If the mail queue on the dashboard shows growing errors, the mailing is not delivered — check SMTP in "Settings" and contact the IT service.
 
+### 11.4. Eco-bulletin
+
+The “Eco-bulletin” section (`/admin/eco-bulletins`) prepares the Agency’s daily ecological bulletin — three documents
+in Tajik and Russian: the city bulletin (“Экологический бюллетень г. Душанбе” / “Шарҳи ҳолати ифлосшавии ҳаво”), the
+summary for the cities of the republic (“Загрязнение атмосферного воздуха” / “ИҲА”) and form 4a (“Намунаи 4а”, limit
+exceedances by city). Available to administrators, operators and editors.
+
+**How it is computed.** For the local day (00:00–24:00 Dushanbe time) and valid measurements (QC flags “valid” and
+“corrected”), each pollutant of the station gets its daily mean and maximum single concentration (mg/m³ in the
+documents), ratios to the daily and max‑single limits from “Scales and thresholds → Limits”, the number of exceedance
+cases (> limit and ≥ 5 × limit), the NO2+SO2 summation (Agency method: sum of daily means divided by the max‑single
+limits), the comparison with the previous day (“increase / decrease / unchanged”) and the high (single value ≥ 10 ×
+max‑single limit) and extremely high (≥ 50 ×) pollution flags. The cities summary groups public stations by city
+(Dushanbe; cities by the station’s district; otherwise the region); the selected station’s own city uses its data.
+Pollutants in ppm/ppb (CO2, TVOC) are printed without ratios.
+
+**Workflow.**
+
+1. In the “New bulletin” form choose the date (yesterday by default) and the city station (the automatic Dushanbe
+   station) → “Generate”. The bulletin page opens with a preview; generating again for the same date and station
+   recomputes the existing draft.
+2. Check the warnings above the document: “no data for the day”, “no data for the previous day” (comparison skipped),
+   “no data for: …”. “Recompute from data” refreshes the draft after measurements were entered or corrected.
+3. Switch the document (city bulletin / cities summary / form 4a) and the language (Tajik / Russian); the right column
+   shows the computation summary: exceedances, summation, number of cities, high/extremely high pollution.
+4. Enter the gamma radiation background (e.g. `0,014`) and press “Save” — the gamma paragraph appears in the
+   document; without a value the paragraph is omitted.
+5. Download the documents: **DOCX** (Word, Times New Roman, A4 — same structure as the Agency samples), **PDF** (when
+   Chromium is installed on the server; otherwise a print version opens — save it as PDF from the print dialog) or
+   **HTML**.
+6. “Publish”: the files are stored in the portal archive (“Eco-bulletins”, `/air/bulletins`), a published news post in
+   the “Bulletins” category is created with a short text and file links; the “Also e-mail the subscribers” checkbox
+   queues e-mails to newsletter subscribers. A published bulletin cannot be changed; a draft can be deleted.
+
+**Automatic draft.** The background service prepares a draft for the previous day every day at 08:00 Dushanbe time
+for the stations from the settings (by default all public automatic stations) and e-mails operators and
+administrators one digest “Eco-bulletin drafts for … are ready” with the stations, exceedances and links. The operator only reviews the data, enters the gamma
+background and publishes.
+
+**Settings** (the “Settings” button in the section): enable the schedule and notifications, stations for the
+automatic draft, department signature (defaults “ОИ УМОС” / “ШИ РММЗ”), the exceedance causes phrase (“due to
+meteorological conditions and anthropogenic factors …”) and the NO2+SO2 summation method. The remaining wording
+(headings, table headers, notes with abbreviations, pollutant names) lives in the template file
+`packages/core/src/bulletin-phrases.ts`, maintained by the IT service.
+
+All actions (generate, recompute, gamma, publish, delete, settings) are written to the audit log.
+
 ## 12. Settings
 
 "Settings" (`/admin/settings`) — administrators only.
@@ -428,6 +479,7 @@ If the mail queue on the dashboard shows growing errors, the mailing is not deli
 
 - **Mail (SMTP)**: shows whether SMTP is configured (`SMTP_URL` is set on the server). "Send test e‑mail" queues a message and shows its status (queued → sent / error with text). The test checks the whole path: queue → SMTP → mailbox. Without `SMTP_URL`, messages are only written to the background‑service log — development mode.
 - **Integration addresses**: SmartMet, SILAM, SmartMet Alert, portal address — read‑only; credentials are hidden. Only the IT service can change them through environment variables (see the runbook).
+- **Display units**: the unit of mass concentrations on station pages, the home page, widgets, API and CSV — "µg/m³ (CO — mg/m³)" by default or "mg/m³ as in the Agency's bulletins". Data is stored in the pollutant unit and converted on output (three more decimals when shown in mg/m³); ppm (CO₂) and ppb (TVOC) are not affected. Applied within a minute.
 - **Branding**: portal name, organisation name, e‑mail, phone, address, website, extra footer line — in three languages. Shown in the header, footer and on the "About" page within a minute after saving.
 
 ## 13. Users

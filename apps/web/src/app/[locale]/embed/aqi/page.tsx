@@ -4,7 +4,7 @@ import { isLocale, type Locale } from "@meteo/i18n";
 import { AqBadge } from "@meteo/ui/components/aq-badge";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { redirect } from "@/i18n/navigation";
-import { effectiveLevel, loadCurrentAq } from "@/lib/aq";
+import { displayValue, effectiveLevel, loadCurrentAq } from "@/lib/aq";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 
@@ -69,6 +69,7 @@ export default async function EmbedAqiPage({
     );
   }
   const sub = data.idx && data.dominant ? data.idx.subIndices[String(data.dominant.id)] : undefined;
+  const subValue = data.dominant && sub ? displayValue(data.dominant, sub.value) : null;
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
       <div className="flex items-baseline justify-between gap-2">
@@ -77,10 +78,10 @@ export default async function EmbedAqiPage({
       </div>
       <div className="flex flex-wrap items-center gap-3">
         <AqBadge level={data.level} label={tl(`${data.level}` as "0")} size="lg" />
-        {data.dominant && sub && !data.idx?.stale ? (
+        {data.dominant && subValue !== null && !data.idx?.stale ? (
           <span className="flex flex-col text-xs text-muted-foreground">
             <span className="text-2xl font-semibold text-foreground tabular-nums">
-              {format.number(sub.value, { maximumFractionDigits: data.dominant.decimals })}
+              {format.number(subValue, { maximumFractionDigits: data.dominant.decimals })}
               <span className="ml-1 text-sm font-normal text-muted-foreground">
                 {data.dominant.unit}
               </span>

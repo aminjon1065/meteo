@@ -1,8 +1,8 @@
 /**
  * Модель доступа на основе ролей (ТЗ, модуль 7):
  *  - admin    — полный доступ;
- *  - operator — ввод и контроль качества данных мониторинга;
- *  - editor   — только контент (новости, бюллетени).
+ *  - operator — ввод и контроль качества данных мониторинга, ежедневный экобюллетень;
+ *  - editor   — только контент (новости, бюллетени, публикация экобюллетеня).
  *
  * Матрица прав — единственный источник правды. Проверка выполняется на сервере
  * (server actions / route handlers) через can(); клиент использует её только для UI.
@@ -23,6 +23,9 @@ export const permissions = [
   "content.read",
   "content.write",
   "content.publish",
+  "ecoBulletin.read",
+  "ecoBulletin.write",
+  "ecoBulletin.publish",
   "subscribers.manage",
   "users.manage",
   "audit.read",
@@ -39,6 +42,9 @@ const matrix: Record<Role, ReadonlySet<Permission>> = {
     "measurements.write",
     "measurements.qc",
     "content.read",
+    "ecoBulletin.read",
+    "ecoBulletin.write",
+    "ecoBulletin.publish",
   ]),
   editor: new Set<Permission>([
     "admin.access",
@@ -46,6 +52,9 @@ const matrix: Record<Role, ReadonlySet<Permission>> = {
     "content.read",
     "content.write",
     "content.publish",
+    "ecoBulletin.read",
+    "ecoBulletin.write",
+    "ecoBulletin.publish",
   ]),
 };
 

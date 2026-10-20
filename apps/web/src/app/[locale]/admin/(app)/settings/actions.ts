@@ -3,7 +3,9 @@
 import { randomBytes } from "node:crypto";
 import {
   BRANDING_KEY,
+  DISPLAY_KEY,
   getBranding,
+  getDisplaySettings,
   SMTP_TEST_KEY,
   type SmtpTestState,
   setSetting,
@@ -13,9 +15,9 @@ import type { Locale } from "@meteo/i18n";
 import { recordAudit } from "@/lib/audit";
 import { getDb } from "@/lib/db";
 import { requireAdminSession } from "@/lib/session";
-import { invalidateBranding } from "@/lib/settings";
+import { invalidateBranding, invalidateDisplaySettings } from "@/lib/settings";
 import { fieldErrorsOf } from "@/lib/validation/common";
-import { brandingInput, testEmailInput } from "@/lib/validation/settings";
+import { brandingInput, displayInput, testEmailInput } from "@/lib/validation/settings";
 
 export type SettingsResult =
   | { ok: true }
@@ -34,6 +36,29 @@ export async function saveBranding(locale: Locale, raw: unknown): Promise<Settin
     action: "settings.branding.update",
     entity: "settings",
     entityId: BRANDING_KEY,
+    before,
+    after: parsed.data,
+  });
+  return { ok: true };
+}
+
+/**
+ * Единицы отображения концентраций (страницы станций, API, CSV). Хранение не меняется —
+ * значения пересчитываются при выводе; кэш настроек web обновляется в течение минуты.
+ */
+export async function saveDisplaySettings(locale: Locale, raw: unknown): Promise<SettingsResult> {
+  const session = await requireAdminSession(locale, "settings.write");
+  const parsed = displayInput.safeParse(raw);
+  if (!parsed.success)
+    return { ok: false, message: "validation", fieldErrors: fieldErrorsOf(parsed.error) };
+  const db = getDb();
+  const before = await getDisplaySettings(db);
+  await setSetting(db, DISPLAY_KEY, parsed.data, session.user.id);
+  invalidateDisplaySettings();
+  await recordAudit(session, {
+    action: "settings.display.update",
+    entity: "settings",
+    entityId: DISPLAY_KEY,
     before,
     after: parsed.data,
   });

@@ -1,5 +1,6 @@
 "use client";
 
+import { clampAqLevel } from "@meteo/core";
 import type { I18nText, Locale } from "@meteo/i18n";
 import { locales } from "@meteo/i18n";
 import { AqBadge } from "@meteo/ui/components/aq-badge";
@@ -113,10 +114,7 @@ export function HealthAdviceEditor({
         {levels.map((lv) => (
           <TabsContent key={lv.level} value={String(lv.level)} className="grid gap-4 pt-2">
             <div className="flex items-center gap-3">
-              <AqBadge
-                level={Math.min(5, Math.max(0, lv.level)) as 0 | 1 | 2 | 3 | 4 | 5}
-                label={lv.label || String(lv.level)}
-              />
+              <AqBadge level={clampAqLevel(lv.level)} label={lv.label || String(lv.level)} />
               <Button
                 onClick={() => save(lv.level)}
                 disabled={pending}

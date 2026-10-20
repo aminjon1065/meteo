@@ -3,7 +3,7 @@
  * приёмом (ingest API, агент) не приносит значений дольше порога, и письмо о восстановлении.
  * Один раз на эпизод (dedup_key в email_outbox; отметки alerted_at / stale_alerted_at).
  */
-import { and, emailOutbox, eq, inArray, isNotNull, sql } from "@meteo/db";
+import { and, emailOutbox, eq, inArray, isNotNull } from "@meteo/db";
 import { stationSources, stations } from "@meteo/db/schema";
 import { db } from "../db";
 import { env } from "../env";
@@ -123,7 +123,8 @@ export async function checkStationDataStaleness(now = new Date()): Promise<Stale
     }
   }
 
-  // 2. Станции с приёмом по API (логгер/агент): общий порог STATION_INGEST_STALE_MIN.
+  // 2. Станции с приёмом по API (логгер/агент) и станции, которые наполняет JSON‑источник,
+  //    заведённый в карточке другой станции (у них нет своего источника): общий порог STATION_INGEST_STALE_MIN.
   const threshold = env.STATION_INGEST_STALE_MIN;
   const pushRows = await db
     .select({
@@ -132,6 +133,7 @@ export async function checkStationDataStaleness(now = new Date()): Promise<Stale
       slug: stations.slug,
       name: stations.name,
       lastIngestAt: stations.lastIngestAt,
+      lastIngestSource: stations.lastIngestSource,
       staleAlertedAt: stations.staleAlertedAt,
     })
     .from(stations)
@@ -140,17 +142,18 @@ export async function checkStationDataStaleness(now = new Date()): Promise<Stale
         eq(stations.status, "active"),
         inArray(stations.dataSource, ["api", "sensor"]),
         isNotNull(stations.lastIngestAt),
-        sql`${stations.lastIngestSource} = 'api'`,
+        inArray(stations.lastIngestSource, ["api", "pull"]),
       ),
     );
   for (const st of pushRows) {
     if (stationsWithSources.has(st.id) || !st.lastIngestAt) continue;
     const station = { id: st.id, code: st.code, slug: st.slug, name: st.name };
+    const channel = st.lastIngestSource === "pull" ? "pull" : "api";
     if (st.staleAlertedAt && st.lastIngestAt > st.staleAlertedAt) {
       await queueStationDataMail({
         kind: "recovered",
         station,
-        channel: "api",
+        channel,
         since: st.staleAlertedAt,
         at: st.lastIngestAt,
         minutes: threshold,
@@ -164,7 +167,7 @@ export async function checkStationDataStaleness(now = new Date()): Promise<Stale
       await queueStationDataMail({
         kind: "stale",
         station,
-        channel: "api",
+        channel,
         since: st.lastIngestAt,
         at: now,
         minutes: threshold,

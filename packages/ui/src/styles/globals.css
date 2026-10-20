@@ -64,6 +64,8 @@
   --color-aq-4-foreground: var(--aq-4-foreground);
   --color-aq-5: var(--aq-5);
   --color-aq-5-foreground: var(--aq-5-foreground);
+  --color-aq-6: var(--aq-6);
+  --color-aq-6-foreground: var(--aq-6-foreground);
 
   --color-warn-minor: var(--warn-minor);
   --color-warn-moderate: var(--warn-moderate);

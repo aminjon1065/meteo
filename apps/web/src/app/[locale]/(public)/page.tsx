@@ -1,7 +1,9 @@
+import { clampAqLevel } from "@meteo/core";
 import {
   count,
   eq,
   getSilamTomorrow,
+  latestPublishedEcoBulletin,
   listPublishedNews,
   type NewsPostRow,
   ne,
@@ -22,11 +24,12 @@ import { CloudSun, MapPin, Newspaper, TriangleAlert, Wind } from "lucide-react";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { ExceedanceBanner } from "@/components/air/exceedance-banner";
 import { StationMapSection } from "@/components/air/station-map-section";
+import { ecoDateValue } from "@/components/eco-bulletins/date";
 import { SeverityDot } from "@/components/warnings/severity-badge";
 import { WarningsBanner } from "@/components/warnings/warnings-banner";
 import { WeatherSymbol } from "@/components/weather/weather-symbol";
 import { Link } from "@/i18n/navigation";
-import { effectiveLevel, loadCurrentAq, loadHealthAdvice } from "@/lib/aq";
+import { displayValue, effectiveLevel, loadCurrentAq, loadHealthAdvice } from "@/lib/aq";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
@@ -74,8 +77,10 @@ async function loadHomeData(locale: Locale) {
     const hero = candidates[0] ?? null;
     const level = effectiveLevel(hero?.idx);
     const advice = hero && aq.scale ? await loadHealthAdvice(aq.scale.id, level) : [];
+    const ecoBulletin = await latestPublishedEcoBulletin(db).catch(() => null);
     return {
       stationsCount: stationsRow[0]?.n ?? 0,
+      ecoBulletin,
       featured,
       hero,
       level,
@@ -93,6 +98,7 @@ async function loadHomeData(locale: Locale) {
   } catch {
     return {
       stationsCount: 0,
+      ecoBulletin: null,
       featured: [],
       hero: null,
       level: 0 as const,
@@ -126,7 +132,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
     v === null || v === undefined ? "—" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
   const hero = data.hero;
   const dominantValue =
-    hero?.idx && data.dominant ? hero.idx.subIndices[String(data.dominant.id)]?.value : undefined;
+    hero?.idx && data.dominant
+      ? displayValue(data.dominant, hero.idx.subIndices[String(data.dominant.id)]?.value)
+      : null;
 
   return (
     <div className="container-page flex flex-col gap-10 py-10">
@@ -167,7 +175,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             </CardDescription>
             <CardTitle className="flex flex-wrap items-center gap-3">
               <span className="text-5xl font-semibold tabular-nums">
-                {dominantValue !== undefined && data.dominant
+                {dominantValue !== null && data.dominant
                   ? format.number(dominantValue, { maximumFractionDigits: data.dominant.decimals })
                   : "—"}
               </span>
@@ -192,6 +200,20 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <p className="text-foreground">{name(data.advice.text, locale)}</p>
             ) : null}
             <p>{t("stationsCount", { count: data.stationsCount })}</p>
+            {data.ecoBulletin ? (
+              <p>
+                <Link
+                  href={`/air/bulletins/${data.ecoBulletin.id}`}
+                  className="underline-offset-4 hover:underline"
+                >
+                  {t("ecoBulletin", {
+                    date: format.dateTime(ecoDateValue(data.ecoBulletin.date), {
+                      dateStyle: "long",
+                    }),
+                  })}
+                </Link>
+              </p>
+            ) : null}
             <div className="flex flex-wrap gap-2 pt-1">
               {hero ? (
                 <Button
@@ -286,7 +308,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
               <ul className="flex flex-col gap-1.5">
                 {data.weather.map((o) => {
                   const day = data.silam.byLocation.get(o.location.id) ?? null;
-                  const level = Math.min(5, Math.max(0, day?.level ?? 0)) as 0 | 1 | 2 | 3 | 4 | 5;
+                  const level = clampAqLevel(day?.level ?? 0);
                   const dominant = day?.dominantPollutantId
                     ? data.pollutantsById.get(day.dominantPollutantId)
                     : undefined;

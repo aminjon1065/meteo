@@ -44,6 +44,19 @@ describe("resolvePollutantCode", () => {
     expect(resolvePollutantCode("Диоксид серы")).toBe("SO2");
     expect(resolvePollutantCode("CO ppm")).toBe("CO");
     expect(resolvePollutantCode("Temperature")).toBe("TEMPERATURE");
+    // Вещества бюллетеней Агентства: оксид азота, формальдегид, фенол, HF, пыль, CO₂, ЛОС
+    expect(resolvePollutantCode("Оксид азота")).toBe("NO");
+    expect(resolvePollutantCode("NO (ppb)")).toBe("NO");
+    expect(resolvePollutantCode("HCHO")).toBe("CH2O");
+    expect(resolvePollutantCode("Формальдегид, мг/м3")).toBe("CH2O");
+    expect(resolvePollutantCode("Phenol")).toBe("C6H5OH");
+    expect(resolvePollutantCode("C6H6O")).toBe("C6H5OH");
+    expect(resolvePollutantCode("Фтористый водород")).toBe("HF");
+    expect(resolvePollutantCode("Взвешенные частицы")).toBe("TSP");
+    expect(resolvePollutantCode("пыль")).toBe("TSP");
+    expect(resolvePollutantCode("CO2 ppm")).toBe("CO2");
+    expect(resolvePollutantCode("ЛОС")).toBe("TVOC");
+    expect(resolvePollutantCode("VOC")).toBe("TVOC");
   });
   it("явные синонимы маппинга имеют приоритет", () => {
     expect(resolvePollutantCode("Ch1", { ch1: "PM2.5", ch2: "no2" })).toBe("PM25");

@@ -1,3 +1,4 @@
+import { type AqLevel, clampAqLevel } from "@meteo/core";
 import { asc, eq } from "@meteo/db";
 import { healthAdvice, indexScales } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
@@ -22,6 +23,7 @@ const LEVEL_BORDER: Record<number, string> = {
   3: "border-aq-3/50",
   4: "border-aq-4/50",
   5: "border-aq-5/50",
+  6: "border-aq-6/50",
 };
 
 export async function generateMetadata({
@@ -64,7 +66,7 @@ export default async function HealthPage({ params }: { params: Promise<{ locale:
       <div className="flex flex-col gap-6">
         {levels.map((lv) => {
           const forLevel = entries.filter((e) => e.level === lv.level);
-          const level = Math.min(5, Math.max(1, lv.level)) as 1 | 2 | 3 | 4 | 5;
+          const level = (clampAqLevel(lv.level) || 1) as AqLevel;
           return (
             <Card key={lv.level} className={LEVEL_BORDER[level]}>
               <CardHeader>

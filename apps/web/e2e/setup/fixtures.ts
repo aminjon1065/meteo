@@ -4,6 +4,7 @@
  */
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
 import { parseCapAlert } from "@meteo/core";
 import { computeStationIndexes, createDb, eq, ingestCapAlert, sql } from "@meteo/db";
 import * as s from "@meteo/db/schema";
@@ -11,6 +12,12 @@ import * as s from "@meteo/db/schema";
 export const E2E = {
   station: { code: "E2E-DU-01", slug: "e2e-dushanbe-center" },
   station2: { code: "E2E-KT-01", slug: "e2e-bokhtar-south" },
+  /** Станции сети датчиков, которые наполняет один JSON‑источник (file://, без интернета). */
+  jsonStations: {
+    a: { code: "E2E-JSON-A", slug: "e2e-json-a", sourceId: "A_ECO" },
+    b: { code: "E2E-JSON-B", slug: "e2e-json-b", sourceId: "B_ECO" },
+  },
+  jsonSourceLabel: "E2E JSON API",
   /** Район Душанбе с геометрией — для /api/v1/districts и контуров районов на карте. */
   district: { code: "E2E-DU-D1" },
   /** Названия областей из seed — для попапа слоя границ. */
@@ -26,6 +33,8 @@ export const E2E = {
     title: { tg: "Хабари озмоишии E2E", ru: "Тестовая новость E2E", en: "E2E test news" },
   },
   suspectPollutant: "PM25",
+  /** Станция Душанбе измеряет NO₂ и SO₂ — для суммации по методике Агентства на странице станции. */
+  summationPollutants: ["NO2", "SO2"],
 } as const;
 
 const HOUR = 3_600_000;
@@ -50,6 +59,8 @@ const runStamp = (d: Date) => d.toISOString().slice(0, 13).replace(/[-T]/g, "");
 export interface FixtureOptions {
   databaseUrl: string;
   silamDir: string;
+  /** Каталог данных E2E: сюда пишутся файлы‑ответы JSON‑источника. */
+  dataDir: string;
   adminEmail: string;
   appUrl: string;
 }
@@ -156,8 +167,101 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
       { stationId: station.id, pollutantId: need(pid, "PM25"), inputUnit: "µg/m³" },
       { stationId: station.id, pollutantId: need(pid, "PM10"), inputUnit: "µg/m³" },
       { stationId: station.id, pollutantId: need(pid, "NO2"), inputUnit: "µg/m³" },
+      { stationId: station.id, pollutantId: need(pid, "SO2"), inputUnit: "µg/m³" },
       { stationId: station2.id, pollutantId: need(pid, "PM10"), inputUnit: "µg/m³" },
     ]);
+
+    // --- сеть датчиков: две станции и JSON‑источник в карточке первой (ответы — файлы в e2e/.data) --------
+    // Формат как у wwcs.tj: массив записей {stationID, timestamp местное UTC+5 без смещения, PM25, PM10};
+    // прогон — e2e/admin/station-json-source.spec.ts через скрипт worker'а pull-source (file:// разрешён
+    // переменной STATION_PULL_ALLOW_FILE_URLS). Значения дают уровень 3 оперативной шкалы.
+    const jsonDir = resolve(opts.dataDir, "json-source");
+    mkdirSync(jsonDir, { recursive: true });
+    const jsonRows = await db
+      .insert(s.stations)
+      .values(
+        (["a", "b"] as const).map((k, i) => ({
+          code: E2E.jsonStations[k].code,
+          slug: E2E.jsonStations[k].slug,
+          name: {
+            tg: `Датчики ${k.toUpperCase()} (E2E)`,
+            ru: `Датчик ${k.toUpperCase()} (E2E)`,
+            en: `Sensor ${k.toUpperCase()} (E2E)`,
+          },
+          kind: "air" as const,
+          // Согд, вне полигонов Душанбе и тестового района: счётчики станций в map.spec остаются прежними.
+          geom: { x: 69.63 + i * 0.3, y: 40.28 - i * 0.4 },
+          regionId: need(rid, "SU"),
+          status: "active" as const,
+          dataSource: "sensor" as const,
+          sampling: "continuous" as const,
+          isPublic: true,
+        })),
+      )
+      .returning({ id: s.stations.id, code: s.stations.code });
+    await db.insert(s.stationPollutants).values(
+      jsonRows.flatMap((r) => [
+        { stationId: r.id, pollutantId: need(pid, "PM25"), inputUnit: "µg/m³" },
+        { stationId: r.id, pollutantId: need(pid, "PM10"), inputUnit: "µg/m³" },
+      ]),
+    );
+    const localStamp = (d: Date) => new Date(d.getTime() + 5 * HOUR).toISOString().slice(0, 19);
+    const step = 10 * 60_000;
+    const latest = new Date(Math.floor(now.getTime() / step) * step - step);
+    const sensorIds = [E2E.jsonStations.a.sourceId, E2E.jsonStations.b.sourceId];
+    const history = sensorIds.flatMap((stationID, si) =>
+      Array.from({ length: 6 }, (_, i) => ({
+        stationID,
+        timestamp: localStamp(new Date(latest.getTime() - (6 - i) * step)),
+        PM25: 38 + si * 3 + i * 0.5,
+        PM10: 68 + si * 4 + i,
+      })),
+    );
+    const current = sensorIds.map((stationID, si) => ({
+      stationID,
+      siteName: `Sensor ${stationID}`,
+      latitude: 40.28 - si * 0.4,
+      longitude: 69.63 + si * 0.3,
+      altitude: 800,
+      timestamp: localStamp(latest),
+      PM25: 41 + si * 3,
+      PM10: 74 + si * 4,
+      temperature: 21.5,
+      humidity: 30,
+      aqi: 100,
+    }));
+    const stationsFile = resolve(jsonDir, "stations.json");
+    const historyFile = resolve(jsonDir, "history.json");
+    writeFileSync(stationsFile, JSON.stringify(current, null, 1));
+    writeFileSync(historyFile, JSON.stringify(history, null, 1));
+    const anchor = jsonRows.find((r) => r.code === E2E.jsonStations.a.code);
+    if (!anchor) throw new Error("[e2e] станция JSON‑источника не создана");
+    await db.insert(s.stationSources).values({
+      stationId: anchor.id,
+      kind: "json",
+      enabled: true,
+      label: E2E.jsonSourceLabel,
+      host: "",
+      path: pathToFileURL(stationsFile).toString(),
+      filePattern: "*",
+      mapping: {
+        format: "json",
+        stationField: "stationID",
+        stations: {
+          [E2E.jsonStations.a.sourceId]: E2E.jsonStations.a.code,
+          [E2E.jsonStations.b.sourceId]: E2E.jsonStations.b.code,
+        },
+        time: { field: "timestamp", timezone: "Asia/Dushanbe", roundMin: 10 },
+        pollutants: {
+          PM25: { field: "PM25", unit: "µg/m³" },
+          PM10: { field: "PM10", unit: "µg/m³" },
+        },
+        averagingMin: 10,
+        history: { url: `${pathToFileURL(historyFile).toString()}?hours={hours}`, hours: 24 },
+      },
+      staleAfterMin: 60,
+      createdBy: "e2e",
+    });
 
     // --- измерения: 48 часов, валидные, плюс одно «подозрительное» для очереди QC ------------------
     const from = floorHour(new Date(now.getTime() - 48 * HOUR));
@@ -186,6 +290,11 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
         ...base,
         pollutantId: need(pid, "NO2"),
         value: Math.round((24 + 8 * wave) * 10) / 10,
+      });
+      rows.push({
+        ...base,
+        pollutantId: need(pid, "SO2"),
+        value: Math.round((6 + 2 * wave) * 10) / 10,
       });
     }
     // Подозрительное значение ≈ 3 часа назад, но не в 07:00 по Душанбе: этот час перезаписывает сценарий
@@ -409,7 +518,7 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
              (select count(*) from station_index)::int as index
     `);
     console.info(
-      `[e2e] фикстуры: станции 2, измерений ${counts[0]?.measurements}, строк индекса ${counts[0]?.index}, прогноз ${points.length} точек, SILAM ${fields.length} слоёв, CAP 1, новость 1`,
+      `[e2e] фикстуры: станции 2 + 2 (JSON‑источник), измерений ${counts[0]?.measurements}, строк индекса ${counts[0]?.index}, прогноз ${points.length} точек, SILAM ${fields.length} слоёв, CAP 1, новость 1`,
     );
   } finally {
     await db.$client.end();

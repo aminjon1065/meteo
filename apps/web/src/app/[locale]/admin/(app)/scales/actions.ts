@@ -1,5 +1,6 @@
 "use server";
 
+import { AQ_LEVEL_MAX } from "@meteo/core";
 import { and, computeStationIndexes, eq } from "@meteo/db";
 import {
   healthAdvice,
@@ -20,7 +21,7 @@ export type SimpleResult =
   | { ok: false; message: string; fieldErrors?: Record<string, string[]> };
 
 const levelDef = z.object({
-  level: z.coerce.number().int().min(1).max(5),
+  level: z.coerce.number().int().min(1).max(AQ_LEVEL_MAX),
   color: z
     .string()
     .trim()
@@ -37,13 +38,13 @@ const scaleInput = z.object({
   enabled: z.boolean(),
   sortOrder: z.coerce.number().int().min(0).max(100),
   levels: z.array(levelDef).min(1),
-  /** Для интервальных шкал: по веществу — нижние границы уровней 1..5 и период осреднения. */
+  /** Для интервальных шкал: по веществу — нижние границы уровней 1..N (N — число уровней шкалы) и осреднение. */
   breakpoints: z.array(
     z.object({
       pollutantId: z.coerce.number().int().positive(),
       averagingMin: z.coerce.number().int().positive(),
-      /** 5 нижних границ (уровень 1 обычно 0); пустой массив — вещество не участвует. */
-      lows: z.array(z.coerce.number()).max(5),
+      /** N нижних границ (уровень 1 обычно 0); пустой массив — вещество не участвует. */
+      lows: z.array(z.coerce.number()).max(AQ_LEVEL_MAX),
     }),
   ),
 });
@@ -57,10 +58,11 @@ export async function saveScale(locale: Locale, id: number, raw: unknown): Promi
   const before = await db.query.indexScales.findFirst({ where: eq(indexScales.id, id) });
   if (!before) return { ok: false, message: "notFound" };
 
-  // Валидация порогов: строго возрастающие границы.
+  // Валидация порогов: граница на каждый уровень шкалы (5 или 6), строго возрастающие.
+  const levelCount = input.levels.length;
   for (const bp of input.breakpoints) {
     if (bp.lows.length === 0) continue;
-    if (bp.lows.length !== 5) return { ok: false, message: "fiveLevels" };
+    if (bp.lows.length !== levelCount) return { ok: false, message: "allLevels" };
     for (let i = 1; i < bp.lows.length; i++) {
       if (!((bp.lows[i] as number) > (bp.lows[i - 1] as number)))
         return { ok: false, message: "monotonic" };
@@ -94,13 +96,13 @@ export async function saveScale(locale: Locale, id: number, raw: unknown): Promi
     if (before.kind === "breakpoints") {
       await tx.delete(indexBreakpoints).where(eq(indexBreakpoints.scaleId, id));
       const rows = input.breakpoints.flatMap((bp) =>
-        bp.lows.length === 5
+        bp.lows.length === levelCount
           ? bp.lows.map((lo, i) => ({
               scaleId: id,
               pollutantId: bp.pollutantId,
               level: i + 1,
               lo,
-              hi: i < 4 ? (bp.lows[i + 1] as number) : null,
+              hi: i < levelCount - 1 ? (bp.lows[i + 1] as number) : null,
               averagingMin: bp.averagingMin,
             }))
           : [],
@@ -188,7 +190,7 @@ export async function saveLimits(locale: Locale, raw: unknown): Promise<SimpleRe
 
 const adviceInput = z.object({
   scaleId: z.coerce.number().int().positive(),
-  level: z.coerce.number().int().min(1).max(5),
+  level: z.coerce.number().int().min(1).max(AQ_LEVEL_MAX),
   entries: z.array(
     z.object({
       audience: z.enum(["general", "children", "pregnant", "elderly", "respiratory", "cardio"]),

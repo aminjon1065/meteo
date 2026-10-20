@@ -146,6 +146,44 @@ export function renderEmail(
         text,
       };
     }
+    case "ecoBulletinDraft": {
+      const lang = locale === "tg" ? "tg" : "ru";
+      const date = String(payload.date ?? "");
+      const items = Array.isArray(payload.items)
+        ? (payload.items as Array<Record<string, unknown>>)
+        : [];
+      const vars = { date, count: items.length };
+      const subject = t(locale, "ecoBulletinDraft.subject", vars);
+      const intro = t(locale, "ecoBulletinDraft.body", vars);
+      const lines = items.map((item) => {
+        const station = pick(item.station as I18nText, locale) || String(item.code ?? "");
+        const exceedances = String(
+          (item.exceedances as Record<string, string> | undefined)?.[lang] ?? "",
+        ).trim();
+        const status =
+          item.hasData === false
+            ? t(locale, "ecoBulletinDraft.noData")
+            : exceedances
+              ? t(locale, "ecoBulletinDraft.exceedances", { list: exceedances })
+              : t(locale, "ecoBulletinDraft.none");
+        const url = String((item.url as Record<string, string> | undefined)?.[locale] ?? "");
+        return { text: `${station} (${String(item.code ?? "")}): ${status}`, url };
+      });
+      const journalUrl = String(payload.journalUrl ?? "");
+      const list = lines
+        .map(
+          (l) =>
+            `<li>${escapeHtml(l.text)}${l.url ? ` — <a href="${escapeHtml(l.url)}">${escapeHtml(t(locale, "ecoBulletinDraft.open"))}</a>` : ""}</li>`,
+        )
+        .join("");
+      const body = `<p>${escapeHtml(intro)}</p><ul>${list}</ul>${journalUrl ? button(journalUrl, t(locale, "ecoBulletinDraft.button")) : ""}`;
+      const text = `${intro}\n\n${lines.map((l) => `- ${l.text}${l.url ? `\n  ${l.url}` : ""}`).join("\n")}${journalUrl ? `\n\n${journalUrl}` : ""}`;
+      return {
+        subject,
+        html: layout(locale, subject, body, escapeHtml(t(locale, "common.sentBy"))),
+        text,
+      };
+    }
     case "stationData": {
       const kind = payload.kind === "recovered" ? "recovered" : "stale";
       const station = pick(payload.stationName as I18nText, locale) || String(payload.code ?? "");

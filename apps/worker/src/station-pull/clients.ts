@@ -2,11 +2,14 @@
  * Клиенты источников станций: единый интерфейс «список файлов → чтение файла» поверх
  * SFTP (ssh2), FTP/FTPS (basic-ftp) и HTTP(S) (fetch). Сетевая часть задачи station-pull.
  */
+import { readFile, stat } from "node:fs/promises";
 import { Writable } from "node:stream";
+import { fileURLToPath } from "node:url";
 import { Client as FtpClient } from "basic-ftp";
 import { type SFTPWrapper, Client as SshClient } from "ssh2";
 import { fetchWithRetry } from "../resilience";
-import { assertAllowedTarget } from "./target";
+import { httpHeaders } from "./shared";
+import { assertAllowedTarget, ForbiddenTargetError } from "./target";
 
 export interface RemoteFile {
   name: string;
@@ -191,8 +194,6 @@ async function openFtp(cfg: ClientConfig): Promise<RemoteClient> {
 // HTTP(S): один файл по адресу; условные запросы по ETag / Last-Modified
 // ---------------------------------------------------------------------------------------------
 
-const USER_AGENT = "meteoportal-worker/0.1 (+meteo.tj; station-pull)";
-
 export function httpFileName(url: string): string {
   try {
     const u = new URL(url);
@@ -204,15 +205,7 @@ export function httpFileName(url: string): string {
 }
 
 function openHttp(cfg: ClientConfig): RemoteClient {
-  const headers: Record<string, string> = {
-    "user-agent": USER_AGENT,
-    accept: "text/csv, text/plain, */*",
-  };
-  if (cfg.username && cfg.password) {
-    headers.authorization = `Basic ${Buffer.from(`${cfg.username}:${cfg.password}`).toString("base64")}`;
-  } else if (cfg.password) {
-    headers.authorization = `Bearer ${cfg.password}`;
-  }
+  const headers = httpHeaders(cfg.username, cfg.password, "text/csv, text/plain, */*");
   return {
     async list(url) {
       return [{ name: httpFileName(url), size: null, mtime: null }];
@@ -273,4 +266,58 @@ export function decodeFeed(body: Buffer, encoding: string | undefined): string {
   } catch {
     throw new Error(`Кодировка «${encoding}» не поддерживается`);
   }
+}
+
+// ---------------------------------------------------------------------------------------------
+// JSON API: один документ по адресу (источники типа json); file:// — только для фикстур и E2E
+// ---------------------------------------------------------------------------------------------
+
+export interface FetchJsonOptions {
+  headers: Record<string, string>;
+  timeoutMs: number;
+  maxBytes: number;
+  /** Разрешить file:// (STATION_PULL_ALLOW_FILE_URLS — тесты и прогон на сохранённом ответе). */
+  allowFile?: boolean;
+}
+
+function parseJsonText(text: string, label: string): unknown {
+  try {
+    return JSON.parse(text) as unknown;
+  } catch (error) {
+    throw new Error(`Ответ ${label} не является JSON: ${(error as Error).message}`);
+  }
+}
+
+/** Загружает и разбирает JSON по http(s) (повторы, таймаут, предел размера) или из file:// при allowFile. */
+export async function fetchJsonDocument(
+  url: string,
+  opts: FetchJsonOptions,
+): Promise<{ body: unknown; bytes: number }> {
+  if (/^file:/i.test(url)) {
+    if (!opts.allowFile) throw new ForbiddenTargetError(url);
+    const path = fileURLToPath(url);
+    const info = await stat(path);
+    if (info.size > opts.maxBytes) throw new FileTooLargeError(path, info.size, opts.maxBytes);
+    const text = await readFile(path, "utf8");
+    return { body: parseJsonText(text, path), bytes: Buffer.byteLength(text) };
+  }
+  assertAllowedTarget("json", url);
+  const res = await fetchWithRetry(
+    url,
+    { headers: opts.headers },
+    { retries: 2, timeoutMs: opts.timeoutMs, label: "station-pull" },
+  );
+  if (!res.ok) {
+    await res.body?.cancel().catch(() => {});
+    throw new Error(`HTTP ${res.status} для ${url}`);
+  }
+  const declared = Number(res.headers.get("content-length") ?? 0);
+  if (declared > opts.maxBytes) {
+    await res.body?.cancel().catch(() => {});
+    throw new FileTooLargeError(httpFileName(url), declared, opts.maxBytes);
+  }
+  const text = await res.text();
+  const bytes = Buffer.byteLength(text);
+  if (bytes > opts.maxBytes) throw new FileTooLargeError(httpFileName(url), bytes, opts.maxBytes);
+  return { body: parseJsonText(text, url), bytes };
 }

@@ -17,6 +17,7 @@ import {
 } from "@meteo/ui/components/sidebar";
 import {
   BellRing,
+  ClipboardList,
   Database,
   FileText,
   Gauge,
@@ -50,6 +51,7 @@ interface Item {
     | "news"
     | "media"
     | "bulletins"
+    | "ecoBulletins"
     | "users"
     | "subscribers"
     | "auditLog"
@@ -123,6 +125,13 @@ const groups: Array<{ key: "content" | "measurements" | "settings" | null; items
         key: "bulletins",
         icon: Send,
         permission: "content.publish",
+        ready: true,
+      },
+      {
+        href: "/admin/eco-bulletins",
+        key: "ecoBulletins",
+        icon: ClipboardList,
+        permission: "ecoBulletin.read",
         ready: true,
       },
     ],

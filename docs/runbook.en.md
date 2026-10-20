@@ -202,6 +202,7 @@ git pull                                   # compose, Caddyfile, scripts
 dc exec backup sh -c 'BACKUP_ONCE=1 sh /backup/run.sh'   # backup before upgrading
 dc pull                                    # or dc build when building on the server
 dc up -d migrate                           # migrations (idempotent); wait for Exited (0)
+dc run --rm worker node dist/seed.js       # reference data: new pollutants, scales, seed limit values (administrator edits are kept)
 dc up -d                                   # restart web/worker/backup on the new images
 dc ps                                      # healthy
 curl -fsS https://<domain>/api/healthz
@@ -491,6 +492,7 @@ Three vendor-independent ways to connect an air-quality station (`docs/02-archit
 | **Station agent** `apps/station-agent` | the vendor software writes CSV/TSV files to a folder on the station computer | Node.js 22, one file `station-agent.mjs` + `config.json`, outbound HTTPS |
 | **Direct upload** to `POST /api/v1/ingest/{code}` | the logger/controller can send HTTP requests with JSON itself | outbound HTTPS, the station key |
 | **Pull source** (SFTP/FTP/FTPS/HTTP) | the data is already published on a vendor's or the Agency's server | the worker can reach that server (outbound TCP 22/21/443 from the portal) |
+| **JSON API source** (several stations behind one address) | a sensor network publishes JSON over HTTP(S) — the primary data channel of the Agency's PM sensor network (airquality.meteo.tj, wwcs.tj API) | outbound HTTPS from the portal to the API |
 
 **Network requirements.** Agent and loggers: outbound HTTPS only (TCP 443) from the station computer to the portal
 address (from the Agency DMZ or through a proxy; no inbound ports). Pull sources: outbound access from the portal server
@@ -539,6 +541,55 @@ when a source delivers no value for longer than its threshold or a station with 
 `RATE_LIMIT_INGEST_PER_MINUTE` (60 requests per minute per station + IP, up to 1000 records per request). To revoke a
 station's access, "Rotate key" in the card (the old key stops working immediately) or set the status "suspended"
 (response 403).
+
+**The Agency's PM sensor network (airquality.meteo.tj, contractor API wwcs.tj) — a "JSON API" source, the primary
+data channel of this network on the portal (a regular connection, no separate consent needed).**
+The `json` source type polls a sensor-network JSON API: one request for the latest records of all stations
+(`GET https://wwcs.tj/services/airquality/stations` — an array of `{stationID, siteName, latitude, longitude, altitude,
+timestamp, PM25, PM10, temperature, humidity, wind_speed, wind_dir, aqi}`, local time UTC+5 without offset, data every
+10 minutes) and, on the first run, on a manual check or when a station has a gap — the series for the past hours
+(`…/airquality/history?hours=N`, up to 72 h, ≈ 0.35 MB). Records are distributed to portal stations by the `stationID`
+field (code in the source = portal station code; otherwise a mapping is given in `stations` of the field description);
+a per-station cursor of the last accepted timestamp means repeated responses create no duplicates and do not extend
+`last_data_at`, so a "frozen" station triggers the "no data" e-mail after its threshold. Suspended stations and unknown
+codes are skipped with a note in the summary (`stationInactive:suspended`, `unknownStation`). Temperature and humidity
+are not taken (the portal stores pollutants only); the site's `aqi` is not used — the portal computes the index itself.
+
+1. **Stations and the source** are created by an idempotent script: first `pnpm --filter @meteo/db import-wwcs -- --dry-run`,
+   then `pnpm --filter @meteo/db import-wwcs`. It creates 9 stations (code = `stationID`, tg/ru/en names from
+   airquality.meteo.tj, coordinates and altitude from the API, region and district by PostGIS, automatic sensor,
+   continuous series, PM2.5 and PM10 in µg/m³) and one `json` source "WWCS airquality API" in the card of station
+   DYU01_ECO (**enabled**, "no data" threshold 60 min, 24 h history): the worker polls the API on the next `station-pull`
+   cycle (every 10 minutes and at start-up) and backfills a day of history. The Agency building station DYU006_ECO is
+   created **suspended** (its sensor reports 450–575 µg/m³ against 2–30 at neighbours — see the station description);
+   after the sensor is repaired, lift the suspension in the card — data is accepted from the next cycle. Options:
+   `--disabled` (create the source disabled), `--anchor CODE`, `--stale-min N`, `--history-hours N`, `--suspend A,B`,
+   `--update` (refresh coordinates and names of existing stations), `--file stations.json` (a saved response, no
+   network), `--no-source`.
+2. **Managing the source** — station card DYU01_ECO → "Data sources" → "WWCS airquality API": "Check now" queues an
+   extra run (with 24 h of history, ignoring cursors), the "Enabled" switch stops polling without deleting the settings;
+   changing the address resets the cursors (the next run fetches the history again).
+3. **Verification.** Run without the queue: `pnpm --filter @meteo/worker pull-source <source id> [--force]` (JSON result
+   on stdout: `files` — requests, `accepted`, `rejected`; `--force` re-reads the history ignoring cursors). Worker log:
+   `station-pull: json history fetched`, `json station processed` (per station: accepted/updated), `json source done`;
+   the card shows "working" and the summary "requests N, stations 8, accepted …, rejected …"; the other stations show
+   the "Automatic intake" block with the "data pull" channel; publicly — `/api/v1/stations` (a level for 8 stations)
+   and `/air`. First run on 20.10.2026: 2 requests, 2134 values over 24 h for 8 stations in 2 s; the repeated run — 0 new
+   (cursor), no history request; the worker ran the job at start-up and on schedule.
+4. **No environment variables are needed**: addresses are in the source, the API has no authentication. Shared limits —
+   `STATION_PULL_TIMEOUT_MS`, `STATION_PULL_MAX_FILE_MB`. `STATION_PULL_ALLOW_FILE_URLS=1` allows `file://` addresses to
+   run a mapping against a saved response and for E2E — do not set it in production.
+5. **Quality control and staleness.** The DYU006_ECO sensor values are within the `range` rule (0–2000 µg/m³) and change
+   from record to record, so the `range`/`stuck`/`spike` rules do not reject them (to the portal they look like a dust
+   storm) — hence the station is suspended until the sensor is repaired; afterwards lift the suspension in the card and
+   press "Check now". Stuck values (one value for ≥ 12 h, i.e. 73 points of a 10-minute series) and single spikes of a
+   10-minute series are caught (unit tests `qc.test.ts`). Staleness: a station index older than 6 h → "no data" on the
+   map and in `/air` (this is how Kulob looks when its sensor goes silent).
+6. **US AQI (EPA) scale** — the third table scale `US_AQI` (six categories, EPA colours, advice), not public by default.
+   To show it to visitors: "Scales and thresholds" → "US AQI (EPA)" → "Default public scale" → "Save" (the index is
+   recomputed; the legend and the "About the index" page switch to six levels). Thresholds — EPA 2024 in portal units;
+   airquality.meteo.tj uses the 2012 PM2.5 table and 10-minute values, so the numbers may differ slightly
+   (docs/02-architecture.md §6.5).
 
 ## 10. Restoring administrator access and resetting 2FA
 

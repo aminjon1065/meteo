@@ -3,6 +3,7 @@ export * from "./alerts";
 export * from "./auth";
 export * from "./cap";
 export * from "./content";
+export * from "./eco-bulletins";
 export * from "./forecasts";
 export * from "./geo";
 export * from "./measurements";

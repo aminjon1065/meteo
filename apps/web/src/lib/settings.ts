@@ -1,10 +1,67 @@
 import "server-only";
-import { maskUrl } from "@meteo/core";
-import { type BrandingSettings, EMPTY_BRANDING, getBranding } from "@meteo/db";
+import {
+  type ConcentrationDisplayMode,
+  type DisplayScale,
+  displayScaleFor,
+  maskUrl,
+  toDisplayValue,
+} from "@meteo/core";
+import {
+  type BrandingSettings,
+  DEFAULT_DISPLAY,
+  type DisplaySettings,
+  EMPTY_BRANDING,
+  getBranding,
+  getDisplaySettings,
+} from "@meteo/db";
 import { getDb } from "@/lib/db";
 
 const TTL_MS = 60_000;
 let cached: { at: number; value: BrandingSettings } | null = null;
+let cachedDisplay: { at: number; value: DisplaySettings } | null = null;
+
+/** Единицы отображения концентраций из settings с кэшем на минуту (страницы станций, API, CSV). */
+export async function getDisplaySettingsCached(): Promise<DisplaySettings> {
+  if (cachedDisplay && Date.now() - cachedDisplay.at < TTL_MS) return cachedDisplay.value;
+  try {
+    const value = await getDisplaySettings(getDb());
+    cachedDisplay = { at: Date.now(), value };
+    return value;
+  } catch {
+    return cachedDisplay?.value ?? DEFAULT_DISPLAY;
+  }
+}
+
+export async function getConcentrationDisplayMode(): Promise<ConcentrationDisplayMode> {
+  return (await getDisplaySettingsCached()).concentrationUnit;
+}
+
+export function invalidateDisplaySettings(): void {
+  cachedDisplay = null;
+}
+
+/** Вещество с единицей хранения — на выводе показываем в единице отображения. */
+export interface StoredConcentration {
+  unit: string;
+  decimals: number;
+}
+
+/** Единица, точность и множитель отображения для вещества в выбранном режиме. */
+export function displayScaleOf(
+  pollutant: StoredConcentration,
+  mode: ConcentrationDisplayMode,
+): DisplayScale {
+  return displayScaleFor(pollutant.unit, pollutant.decimals, mode);
+}
+
+/** Значение из единицы хранения в единицу отображения (округлено до точности отображения). */
+export function displayConcentration(
+  value: number | null | undefined,
+  pollutant: StoredConcentration,
+  mode: ConcentrationDisplayMode,
+): number | null {
+  return toDisplayValue(value, displayScaleOf(pollutant, mode));
+}
 
 /** Брендинг из settings с кэшем на минуту (шапка и подвал читают его на каждом запросе). */
 export async function getBrandingCached(): Promise<BrandingSettings> {

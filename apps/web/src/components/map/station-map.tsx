@@ -106,6 +106,8 @@ function levelColorExpression(property: string): maplibregl.ExpressionSpecificat
     AQ_LEVEL_STYLES[4].color,
     5,
     AQ_LEVEL_STYLES[5].color,
+    6,
+    AQ_LEVEL_STYLES[6].color,
     AQ_LEVEL_STYLES[0].color,
   ];
 }

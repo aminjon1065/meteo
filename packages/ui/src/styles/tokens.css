@@ -68,6 +68,8 @@
   --aq-4-foreground: #ffffff;
   --aq-5: #7b2cbf;
   --aq-5-foreground: #ffffff;
+  --aq-6: #7e0023;
+  --aq-6-foreground: #ffffff;
 
   /* Серьёзность предупреждений CAP */
   --warn-minor: #f2c94c;
@@ -127,6 +129,7 @@
   --aq-3: #f39a45;
   --aq-4: #d93548;
   --aq-5: #8a45d6;
+  --aq-6: #a3334f;
 
   /* Статусы данных и предупреждения — чуть светлее на тёмном фоне */
   --status-fresh: #3fb06b;

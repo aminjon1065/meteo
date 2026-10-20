@@ -1,11 +1,14 @@
 import { describe, expect, it } from "vitest";
 import {
   type BreakpointRow,
+  computeAgencyIndicators,
   computeBreakpointIndex,
   computeIza,
   computeRatioIndex,
   levelForBands,
+  ratioToLimit,
   subIndexForValue,
+  windowMax,
   windowMean,
 } from "../aqi";
 
@@ -145,5 +148,152 @@ describe("windowMean", () => {
   it("возвращает null при недостаточной полноте", () => {
     expect(windowMean(hourly.slice(0, 2), end, 24 * 60, 0.25)).toBeNull();
     expect(windowMean([], end, 60)).toBeNull();
+  });
+});
+
+describe("windowMax", () => {
+  const hour = 3_600_000;
+  const end = new Date("2026-10-19T19:00:00Z");
+  const points = [0, 1, 2, 23, 24, 25].map((h) => ({
+    time: new Date(end.getTime() - h * hour),
+    value: h === 2 ? 178 : 40 + h,
+  }));
+  it("берёт максимум за сутки (окно (t − 24 ч, t]) и игнорирует более старые точки", () => {
+    expect(windowMax(points, end, 1440)).toBe(178);
+    expect(
+      windowMax(
+        points.filter((p) => p.value !== 178),
+        end,
+        1440,
+      ),
+    ).toBe(63);
+  });
+  it("без точек в окне — null", () => {
+    expect(windowMax([], end, 1440)).toBeNull();
+    expect(windowMax(points, new Date(end.getTime() + 48 * hour), 1440)).toBeNull();
+  });
+});
+
+describe("ratioToLimit", () => {
+  it("делит на норматив и округляет до сотых; без норматива — null", () => {
+    expect(ratioToLimit(55, 40)).toBe(1.38);
+    expect(ratioToLimit(0.65, 3)).toBe(0.22);
+    expect(ratioToLimit(10, undefined)).toBeNull();
+    expect(ratioToLimit(10, 0)).toBeNull();
+    expect(ratioToLimit(null, 40)).toBeNull();
+  });
+});
+
+describe("computeAgencyIndicators (бюллетень Душанбе 19.10.2026, µg/m³)", () => {
+  // id: NO2 = 3, SO2 = 4, O3 = 6, PM10 = 2
+  const dailyLimits = [
+    { pollutantId: 3, limit: 40 },
+    { pollutantId: 4, limit: 50 },
+    { pollutantId: 6, limit: 30 },
+    { pollutantId: 2, limit: 60 },
+  ];
+  const maxSingleLimits = [
+    { pollutantId: 3, limit: 85 },
+    { pollutantId: 4, limit: 500 },
+    { pollutantId: 6, limit: 160 },
+    { pollutantId: 2, limit: 300 },
+  ];
+  it("суммация NO₂+SO₂ — сумма кратностей ПДКс.с. (1,37 + 0,12 = 1,49 ≈ бюллетень без округления 0,66 для своих данных)", () => {
+    const r = computeAgencyIndicators({
+      dailyMeans: [
+        { pollutantId: 3, value: 55 },
+        { pollutantId: 4, value: 6 },
+        { pollutantId: 6, value: 38 },
+      ],
+      maxSingle: [
+        { pollutantId: 3, value: 101 },
+        { pollutantId: 4, value: 19 },
+        { pollutantId: 6, value: 93 },
+      ],
+      dailyLimits,
+      maxSingleLimits,
+      no2Id: 3,
+      so2Id: 4,
+    });
+    expect(r.no2so2Sum).toBe(1.5); // 1.38 + 0.12
+    expect(r.maxSingle["3"]).toEqual({ value: 101, ratio: 1.19 });
+    expect(r.maxSingle["4"]).toEqual({ value: 19, ratio: 0.04 });
+    expect(r.maxSingle["6"]?.ratio).toBe(0.58);
+    expect(r.highPollution).toBe(false);
+    expect(r.extremeHighPollution).toBe(false);
+    expect(r.flagged).toEqual({});
+  });
+  it("без одного из веществ суммация не считается", () => {
+    const r = computeAgencyIndicators({
+      dailyMeans: [{ pollutantId: 3, value: 55 }],
+      maxSingle: [],
+      dailyLimits,
+      maxSingleLimits,
+      no2Id: 3,
+      so2Id: 4,
+    });
+    expect(r.no2so2Sum).toBeNull();
+    expect(
+      computeAgencyIndicators({
+        dailyMeans: [
+          { pollutantId: 3, value: 55 },
+          { pollutantId: 4, value: 6 },
+        ],
+        maxSingle: [],
+        dailyLimits,
+        maxSingleLimits,
+      }).no2so2Sum,
+    ).toBeNull();
+  });
+  it("ВЗ при ≥ 10 ПДКм.р., ЭВЗ при ≥ 50; вещество без ПДКм.р. не флагуется", () => {
+    const vz = computeAgencyIndicators({
+      dailyMeans: [],
+      maxSingle: [
+        { pollutantId: 2, value: 3000 },
+        { pollutantId: 3, value: 849 },
+        { pollutantId: 99, value: 1e6 },
+      ],
+      dailyLimits,
+      maxSingleLimits,
+    });
+    expect(vz.highPollution).toBe(true);
+    expect(vz.extremeHighPollution).toBe(false);
+    expect(vz.flagged).toEqual({ "2": 10 });
+    expect(vz.maxSingle["99"]).toEqual({ value: 1e6, ratio: null });
+    const evz = computeAgencyIndicators({
+      dailyMeans: [],
+      maxSingle: [{ pollutantId: 4, value: 25_000 }],
+      dailyLimits,
+      maxSingleLimits,
+    });
+    expect(evz.highPollution).toBe(true);
+    expect(evz.extremeHighPollution).toBe(true);
+    expect(evz.flagged).toEqual({ "4": 50 });
+  });
+});
+
+describe("шестиуровневая шкала (US AQI)", () => {
+  it("уровень 6 не обрезается до 5, под‑индекс и индекс станции считаются по шести интервалам", () => {
+    const rows: BreakpointRow[] = [
+      [1, 0, 9.1],
+      [2, 9.1, 35.5],
+      [3, 35.5, 55.5],
+      [4, 55.5, 125.5],
+      [5, 125.5, 225.5],
+      [6, 225.5, null],
+    ].map(([level, lo, hi]) => ({
+      pollutantId: 1,
+      level: level as number,
+      lo: lo as number,
+      hi: hi as number | null,
+      averagingMin: 1440,
+    }));
+    expect(subIndexForValue(5, rows)?.level).toBe(1);
+    expect(subIndexForValue(35.5, rows)?.level).toBe(3);
+    expect(subIndexForValue(561.6, rows)?.level).toBe(6);
+    expect(subIndexForValue(561.6, rows)?.index).toBeCloseTo(6.99, 2);
+    const result = computeBreakpointIndex([{ pollutantId: 1, value: 300 }], rows);
+    expect(result.level).toBe(6);
+    expect(result.dominantPollutantId).toBe(1);
   });
 });

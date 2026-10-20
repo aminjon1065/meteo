@@ -42,7 +42,8 @@ test("POST /api/v1/ingest: приём с конверсией единиц, пр
       { time: t1, pollutant: "PM10", value: 61, unit: "µg/m³" },
       { time: t1, pollutant: "NO2", value: 10, unit: "ppb" },
       { time: local, pollutant: "PM25", value: "<5" },
-      { time: t0, pollutant: "SO2", value: 3 },
+      // O₃ у станции E2E-DU-01 не отмечен (SO₂ отмечен — нужен для суммации NO₂+SO₂ в air.spec.ts).
+      { time: t0, pollutant: "O3", value: 3 },
       { time: t0, pollutant: "XX", value: 1 },
       // Значение вне диапазона QC здесь не шлём: оно попало бы в очередь QC, которую проверяет qc.spec.ts
       // (покрыто unit-тестами normalizeIngestRecords); флаг missing в очередь не попадает.

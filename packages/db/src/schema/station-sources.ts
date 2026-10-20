@@ -1,4 +1,4 @@
-import type { FeedMapping } from "@meteo/core";
+import type { FeedMapping, JsonFeedMapping } from "@meteo/core";
 import {
   boolean,
   index,
@@ -14,14 +14,29 @@ import {
 import { timestamps } from "./_shared";
 import { stations } from "./stations";
 
-/** Тип источника pull‑адаптера (задача worker'а station-pull). */
-export const stationSourceKind = pgEnum("station_source_kind", ["sftp", "ftp", "ftps", "http"]);
+/**
+ * Тип источника pull‑адаптера (задача worker'а station-pull): файлы экспорта по SFTP/FTP(S)/HTTP(S)
+ * или ответ JSON API (`json` — сеть датчиков, один источник может обслуживать несколько станций).
+ */
+export const stationSourceKind = pgEnum("station_source_kind", [
+  "sftp",
+  "ftp",
+  "ftps",
+  "http",
+  "json",
+]);
 export type StationSourceKind = (typeof stationSourceKind.enumValues)[number];
+
+/** Описание формата: колонки файла (FeedMapping) или поля ответа JSON API (JsonFeedMapping). */
+export type StationSourceMapping = FeedMapping | JsonFeedMapping;
 
 export const STATION_SOURCE_STATUSES = ["never", "ok", "failed", "disabled"] as const;
 export type StationSourceStatus = (typeof STATION_SOURCE_STATUSES)[number];
 
-/** Реестр обработанных файлов источника: имя → отметка (mtime/size/ETag) и итог разбора. */
+/**
+ * Реестр обработанных файлов источника: имя → отметка (mtime/size/ETag) и итог разбора.
+ * У источников JSON API ключ — код станции, `mtime` — время последней принятой записи (курсор).
+ */
 export interface StationSourceFileState {
   mtime: string | null;
   size: number | null;
@@ -39,14 +54,18 @@ export interface StationSourceRunSummary {
   received: number;
   accepted: number;
   rejected: number;
-  /** Первые ошибки разбора/приёма: файл, строка, причина. */
+  /** Первые ошибки разбора/приёма: файл (или запрос), строка, причина. */
   errors: Array<{ file: string; row?: number; message: string }>;
+  /** JSON API: станций с принятыми данными и записей, пропущенных по курсору/неизвестной станции. */
+  stations?: number;
+  skipped?: number;
 }
 
 /**
  * Источники данных станций pull‑типа: worker каждые 10 минут забирает новые файлы экспорта
  * по SFTP/FTP(S) или HTTP(S), разбирает их маппингом (`FeedMapping`, тот же, что у агента)
- * и записывает через `ingestMeasurements`. Пароль/ключ хранятся зашифрованными
+ * либо опрашивает JSON API сети датчиков (`JsonFeedMapping`, записи раскладываются по станциям
+ * по коду) и записывает через `ingestMeasurements`. Пароль/ключ хранятся зашифрованными
  * (`@meteo/core/secret-box`) или ссылкой `env:ИМЯ` на переменную окружения worker'а.
  */
 export const stationSources = pgTable(
@@ -68,11 +87,11 @@ export const stationSources = pgTable(
     privateKey: text("private_key"),
     /** Отпечаток ключа хоста SFTP (SHA256:… из ssh-keygen -lf); пусто — без проверки. */
     hostFingerprint: varchar("host_fingerprint", { length: 128 }),
-    /** Каталог на сервере (sftp/ftp) или полный URL файла (http). */
+    /** Каталог на сервере (sftp/ftp) или полный URL файла/ответа (http, json). */
     path: text("path").notNull().default(""),
-    /** Маска файлов экспорта (*.csv, DU-01_*.txt); для http не используется. */
+    /** Маска файлов экспорта (*.csv, DU-01_*.txt); для http/json не используется. */
     filePattern: varchar("file_pattern", { length: 255 }).notNull().default("*.csv"),
-    mapping: jsonb("mapping").$type<FeedMapping>().notNull(),
+    mapping: jsonb("mapping").$type<StationSourceMapping>().notNull(),
     /** Через сколько минут без принятых данных уведомить администраторов. */
     staleAfterMin: integer("stale_after_min").notNull().default(180),
     status: varchar("status", { length: 16 })

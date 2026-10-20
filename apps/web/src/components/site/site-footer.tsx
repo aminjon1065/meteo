@@ -33,6 +33,9 @@ export async function SiteFooter() {
           <Link href="/air/index" className="hover:text-foreground">
             {t("aboutIndex")}
           </Link>
+          <Link href="/air/bulletins" className="hover:text-foreground">
+            {t("ecoBulletins")}
+          </Link>
           <Link href="/data" className="hover:text-foreground">
             {tn("data")}
           </Link>

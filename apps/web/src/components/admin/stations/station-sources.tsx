@@ -36,6 +36,7 @@ import type { StationSourceResult } from "@/app/[locale]/admin/(app)/stations/ac
 import { useRouter } from "@/i18n/navigation";
 import { translateOr } from "@/lib/i18n-utils";
 import {
+  isUrlSourceKind,
   MAPPING_TEMPLATES,
   type StationSourceInput,
   stationSourceKinds,
@@ -78,6 +79,7 @@ const DEFAULT_PORT: Record<FormState["kind"], string> = {
   ftp: "21",
   ftps: "21",
   http: "",
+  json: "",
 };
 
 function emptyForm(): FormState {
@@ -303,7 +305,7 @@ export function StationSources({
                     ) : null}
                   </div>
                   <p className="font-mono text-xs text-muted-foreground break-all">
-                    {s.kind === "http"
+                    {isUrlSourceKind(s.kind)
                       ? s.path
                       : `${s.username ? `${s.username}@` : ""}${s.host}${s.port ? `:${s.port}` : ""}${s.path} · ${s.filePattern}`}
                   </p>
@@ -329,11 +331,18 @@ export function StationSources({
                   </dl>
                   {s.lastSummary ? (
                     <p className="text-xs text-muted-foreground">
-                      {t("summary", {
-                        files: s.lastSummary.files,
-                        accepted: s.lastSummary.accepted,
-                        rejected: s.lastSummary.rejected,
-                      })}
+                      {s.kind === "json"
+                        ? t("summaryJson", {
+                            files: s.lastSummary.files,
+                            stations: s.lastSummary.stations ?? 0,
+                            accepted: s.lastSummary.accepted,
+                            rejected: s.lastSummary.rejected,
+                          })
+                        : t("summary", {
+                            files: s.lastSummary.files,
+                            accepted: s.lastSummary.accepted,
+                            rejected: s.lastSummary.rejected,
+                          })}
                       {s.lastSummary.errors.length > 0
                         ? ` · ${s.lastSummary.errors
                             .slice(0, 3)
@@ -370,7 +379,15 @@ export function StationSources({
                 value={form.kind}
                 onChange={(e) => {
                   const kind = e.target.value as FormState["kind"];
-                  set({ kind, port: DEFAULT_PORT[kind] });
+                  // Шаблон описания — свой для JSON API и для файлов; при смене семейства подставляем заново.
+                  const switchedFamily = (kind === "json") !== (form.kind === "json");
+                  set({
+                    kind,
+                    port: DEFAULT_PORT[kind],
+                    ...(switchedFamily
+                      ? { mappingJson: MAPPING_TEMPLATES[kind === "json" ? "json" : "wide"] }
+                      : {}),
+                  });
                 }}
               >
                 {stationSourceKinds.map((k) => (
@@ -389,14 +406,20 @@ export function StationSources({
                 placeholder={stationCode}
               />
             </Field>
-            {form.kind === "http" ? (
+            {isUrlSourceKind(form.kind) ? (
               <Field className="sm:col-span-2">
-                <FieldLabel htmlFor="src-path">{t("fields.url")}</FieldLabel>
+                <FieldLabel htmlFor="src-path">
+                  {form.kind === "json" ? t("fields.urlJson") : t("fields.url")}
+                </FieldLabel>
                 <Input
                   id="src-path"
                   value={form.path}
                   onChange={(e) => set({ path: e.target.value })}
-                  placeholder="https://vendor.example/export/DU-01/latest.csv"
+                  placeholder={
+                    form.kind === "json"
+                      ? "https://wwcs.tj/services/airquality/stations"
+                      : "https://vendor.example/export/DU-01/latest.csv"
+                  }
                   aria-invalid={Boolean(errorText("path"))}
                 />
                 {errorText("path") ? <FieldError>{errorText("path")}</FieldError> : null}
@@ -464,7 +487,7 @@ export function StationSources({
             </Field>
             <Field>
               <FieldLabel htmlFor="src-password">
-                {form.kind === "http" ? t("fields.httpSecret") : t("fields.password")}
+                {isUrlSourceKind(form.kind) ? t("fields.httpSecret") : t("fields.password")}
               </FieldLabel>
               <Input
                 id="src-password"
@@ -506,10 +529,15 @@ export function StationSources({
             ) : null}
             <Field className="sm:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <FieldLabel htmlFor="src-mapping">{t("fields.mapping")}</FieldLabel>
+                <FieldLabel htmlFor="src-mapping">
+                  {form.kind === "json" ? t("fields.mappingJson") : t("fields.mapping")}
+                </FieldLabel>
                 <div className="flex items-center gap-2 text-xs">
                   <span className="text-muted-foreground">{t("fields.template")}</span>
-                  {(["wide", "long", "split"] as const).map((k) => (
+                  {(form.kind === "json"
+                    ? (["json"] as const)
+                    : (["wide", "long", "split"] as const)
+                  ).map((k) => (
                     <Button
                       key={k}
                       type="button"
@@ -531,7 +559,9 @@ export function StationSources({
                 aria-invalid={Boolean(errorText("mappingJson"))}
                 spellCheck={false}
               />
-              <FieldDescription>{t("hints.mapping")}</FieldDescription>
+              <FieldDescription>
+                {form.kind === "json" ? t("hints.mappingJson") : t("hints.mapping")}
+              </FieldDescription>
               {errorText("mappingJson") ? (
                 <FieldError>{errorText("mappingJson")}</FieldError>
               ) : null}

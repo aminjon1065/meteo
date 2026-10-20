@@ -1,5 +1,6 @@
 "use client";
 
+import { clampAqLevel } from "@meteo/core";
 import type { I18nText, Locale } from "@meteo/i18n";
 import { locales } from "@meteo/i18n";
 import { Button } from "@meteo/ui/components/button";
@@ -85,6 +86,10 @@ export function ScaleEditor({ scale, breakpoints, pollutants, action }: ScaleEdi
       hi: l.hi !== undefined && l.hi !== null ? String(l.hi) : "",
     })),
   );
+  // Число уровней задаёт шкала (5 — оперативная/ВОЗ, 6 — US AQI): столько же границ по веществу.
+  const levelNumbers = [...scale.levels].map((l) => l.level).sort((a, b) => a - b);
+  const levelCount = levelNumbers.length;
+  const emptyLows = () => Array.from({ length: levelCount }, () => "");
   const [grid, setGrid] = useState<Record<number, { averagingMin: string; lows: string[] }>>(() => {
     const g: Record<number, { averagingMin: string; lows: string[] }> = {};
     for (const p of pollutants) {
@@ -93,7 +98,7 @@ export function ScaleEditor({ scale, breakpoints, pollutants, action }: ScaleEdi
         .sort((a, b) => a.level - b.level);
       g[p.id] = {
         averagingMin: String(rows[0]?.averagingMin ?? 60),
-        lows: rows.length === 5 ? rows.map((r) => String(r.lo)) : ["", "", "", "", ""],
+        lows: rows.length === levelCount ? rows.map((r) => String(r.lo)) : emptyLows(),
       };
     }
     return g;
@@ -120,7 +125,7 @@ export function ScaleEditor({ scale, breakpoints, pollutants, action }: ScaleEdi
           return {
             pollutantId: p.id,
             averagingMin: row?.averagingMin ?? "60",
-            lows: lows.length === 5 ? lows : [],
+            lows: lows.length === levelCount ? lows : [],
           };
         }),
       });
@@ -239,7 +244,7 @@ export function ScaleEditor({ scale, breakpoints, pollutants, action }: ScaleEdi
                     <TableCell key={l}>
                       <Input
                         value={lv.label[l]}
-                        placeholder={tl(`${Math.min(5, Math.max(1, lv.level))}` as "1")}
+                        placeholder={tl(`${clampAqLevel(lv.level) || 1}` as "1")}
                         onChange={(e) =>
                           setLevels(
                             levels.map((x, j) =>
@@ -296,7 +301,7 @@ export function ScaleEditor({ scale, breakpoints, pollutants, action }: ScaleEdi
                 <TableRow>
                   <TableHead>{t("fields.pollutant")}</TableHead>
                   <TableHead className="w-32">{t("fields.averaging")}</TableHead>
-                  {[1, 2, 3, 4, 5].map((lvl) => (
+                  {levelNumbers.map((lvl) => (
                     <TableHead key={lvl} className="min-w-24">
                       {t("fields.levelFrom", { level: lvl })}
                     </TableHead>
@@ -305,7 +310,7 @@ export function ScaleEditor({ scale, breakpoints, pollutants, action }: ScaleEdi
               </TableHeader>
               <TableBody>
                 {pollutants.map((p) => {
-                  const row = grid[p.id] ?? { averagingMin: "60", lows: ["", "", "", "", ""] };
+                  const row = grid[p.id] ?? { averagingMin: "60", lows: emptyLows() };
                   return (
                     <TableRow key={p.id}>
                       <TableCell className="font-medium">

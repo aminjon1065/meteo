@@ -1,3 +1,4 @@
+import type { AgencyIndicators } from "@meteo/core";
 import {
   boolean,
   doublePrecision,
@@ -91,6 +92,11 @@ export const stationIndex = pgTable(
     dominantPollutantId: integer("dominant_pollutant_id").references(() => pollutants.id),
     subIndices:
       jsonb("sub_indices").$type<Record<string, { value: number | null; level: number }>>(),
+    /**
+     * Показатели методики Агентства (только шкала кратности ПДК): сумма кратностей NO₂+SO₂,
+     * максимальные разовые концентрации и их кратность ПДКм.р., признаки ВЗ/ЭВЗ.
+     */
+    indicators: jsonb("indicators").$type<AgencyIndicators | null>(),
     computedAt: timestamp("computed_at", { withTimezone: true }).defaultNow().notNull(),
   },
   (t) => [

@@ -35,6 +35,7 @@ runDbScript("seed");
 await seedE2eFixtures({
   databaseUrl: e2e.databaseUrl,
   silamDir: e2e.silamDir,
+  dataDir: e2e.dataDir,
   adminEmail: e2e.adminEmail,
   appUrl: e2e.baseUrl,
 });

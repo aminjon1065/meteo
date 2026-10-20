@@ -56,6 +56,8 @@ const schema = z.object({
   STATION_PULL_LOOKBACK_DAYS: z.coerce.number().int().positive().default(7),
   /** Через сколько минут без автоматического приёма (ingest API) уведомлять администраторов. */
   STATION_INGEST_STALE_MIN: z.coerce.number().int().positive().default(180),
+  /** Разрешить источникам JSON API адреса file:// (фикстуры, E2E, прогон на сохранённом ответе) — не для продакшена. */
+  STATION_PULL_ALLOW_FILE_URLS: z.string().optional(),
 });
 
 /**
@@ -79,6 +81,9 @@ export function parseWorkerEnv(raw: Record<string, string | undefined>, cwd = pr
       parsed.data.SMARTMET_PRODUCER ??
       (parsed.data.SMARTMET_URL.includes("opendata.fmi.fi") ? "ecmwf" : undefined),
     SILAM_DIR: parsed.data.SILAM_DIR ?? resolve(cwd, "../../data/silam"),
+    STATION_PULL_ALLOW_FILE_URLS: /^(1|true|yes)$/i.test(
+      parsed.data.STATION_PULL_ALLOW_FILE_URLS ?? "",
+    ),
   };
 }
 

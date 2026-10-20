@@ -15,6 +15,7 @@
     "boundaries": "tsx ../../infra/data/load-boundaries.ts",
     "seed": "tsx src/seed.ts",
     "import-history": "tsx src/scripts/import-history.ts",
+    "import-wwcs": "tsx src/scripts/import-wwcs-stations.ts",
     "studio": "drizzle-kit studio",
     "typecheck": "tsc --noEmit"
   },

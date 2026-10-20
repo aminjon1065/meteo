@@ -7,7 +7,7 @@
  *  - ratio_to_limit  — кратность ПДК: max(q_i / ПДК_i), уровень по интервалам кратности;
  *  - iza             — комплексный ИЗА по РД 52.04.186‑89: Σ (q̄_i / ПДКсс_i)^C_i по среднемесячным.
  */
-import type { AqLevel, AqLevelOrNone } from "./levels";
+import { AQ_LEVEL_MAX, type AqLevel, type AqLevelOrNone } from "./levels";
 
 export type ScaleKind = "breakpoints" | "ratio_to_limit" | "iza";
 
@@ -57,7 +57,7 @@ const EMPTY: StationIndexResult = {
 
 function clampLevel(level: number): AqLevelOrNone {
   if (level <= 0) return 0;
-  return Math.min(5, Math.max(1, Math.round(level))) as AqLevel;
+  return Math.min(AQ_LEVEL_MAX, Math.max(1, Math.round(level))) as AqLevel;
 }
 
 /**
@@ -236,4 +236,95 @@ export function windowMean(
 
 function round2(v: number): number {
   return Math.round((v + Number.EPSILON) * 100) / 100;
+}
+
+/** Максимум часовых значений в окне (end − windowMin, end]; null — данных нет. */
+export function windowMax(
+  hourly: Array<{ time: Date; value: number }>,
+  end: Date,
+  windowMin: number,
+): number | null {
+  const start = end.getTime() - windowMin * 60_000;
+  let max: number | null = null;
+  for (const h of hourly) {
+    const t = h.time.getTime();
+    if (t <= start || t > end.getTime() || !Number.isFinite(h.value)) continue;
+    if (max === null || h.value > max) max = h.value;
+  }
+  return max;
+}
+
+// ---------------------------------------------------------------------------
+// Методика Агентства по гидрометеорологии (ежедневные бюллетени о загрязнении воздуха):
+// кратность ПДКс.с. по среднесуточной и ПДКм.р. по максимальной разовой концентрации,
+// суммация NO₂ + SO₂ (сумма кратностей ПДКс.с.), случаи ВЗ (≥ 10 ПДКм.р.) и ЭВЗ (≥ 50 ПДКм.р.).
+// ---------------------------------------------------------------------------
+
+/** Высокое загрязнение (ВЗ): концентрация ≥ 10 ПДКм.р. */
+export const HIGH_POLLUTION_RATIO = 10;
+/** Экстремально высокое загрязнение (ЭВЗ): концентрация ≥ 50 ПДКм.р. */
+export const EXTREME_HIGH_POLLUTION_RATIO = 50;
+
+export interface AgencyIndicatorsInput {
+  /** Среднесуточные концентрации (в единице вещества). */
+  dailyMeans: PollutantValue[];
+  /** Максимальные разовые концентрации за сутки (в единице вещества). */
+  maxSingle: PollutantValue[];
+  /** ПДКс.с. по веществам. */
+  dailyLimits: LimitRow[];
+  /** ПДКм.р. по веществам. */
+  maxSingleLimits: LimitRow[];
+  /** id NO₂ и SO₂ для суммации; без них сумма не считается. */
+  no2Id?: number | null;
+  so2Id?: number | null;
+}
+
+export interface AgencyIndicators {
+  /** Сумма кратностей ПДКс.с. NO₂ и SO₂ (эффект суммации); null — одно из веществ не измеряется. */
+  no2so2Sum: number | null;
+  /** Максимальная разовая концентрация за сутки и её кратность ПДКм.р. (null — норматива нет), по id вещества. */
+  maxSingle: Record<string, { value: number; ratio: number | null }>;
+  /** Высокое загрязнение (ВЗ): хотя бы одно вещество ≥ 10 ПДКм.р. */
+  highPollution: boolean;
+  /** Экстремально высокое загрязнение (ЭВЗ): хотя бы одно вещество ≥ 50 ПДКм.р. */
+  extremeHighPollution: boolean;
+  /** Вещества со случаями ВЗ/ЭВЗ: id → кратность ПДКм.р. */
+  flagged: Record<string, number>;
+}
+
+/** Кратность норматива: q / ПДК, округлённая до сотых; null без норматива. */
+export function ratioToLimit(value: number | null, limit: number | undefined): number | null {
+  if (value === null || !Number.isFinite(value) || !limit || limit <= 0) return null;
+  return round2(value / limit);
+}
+
+/** Показатели методики Агентства по суточным данным станции. Чистая функция, табличные входы. */
+export function computeAgencyIndicators(input: AgencyIndicatorsInput): AgencyIndicators {
+  const dailyLimitBy = new Map(input.dailyLimits.map((l) => [l.pollutantId, l.limit]));
+  const singleLimitBy = new Map(input.maxSingleLimits.map((l) => [l.pollutantId, l.limit]));
+  const dailyMeanBy = new Map(input.dailyMeans.map((v) => [v.pollutantId, v.value]));
+
+  const maxSingle: AgencyIndicators["maxSingle"] = {};
+  const flagged: Record<string, number> = {};
+  let highPollution = false;
+  let extremeHighPollution = false;
+  for (const { pollutantId, value } of input.maxSingle) {
+    if (value === null || !Number.isFinite(value)) continue;
+    const ratio = ratioToLimit(value, singleLimitBy.get(pollutantId));
+    maxSingle[String(pollutantId)] = { value, ratio };
+    if (ratio === null) continue;
+    if (ratio >= HIGH_POLLUTION_RATIO) {
+      flagged[String(pollutantId)] = ratio;
+      highPollution = true;
+    }
+    if (ratio >= EXTREME_HIGH_POLLUTION_RATIO) extremeHighPollution = true;
+  }
+
+  let no2so2Sum: number | null = null;
+  if (input.no2Id && input.so2Id) {
+    const no2 = ratioToLimit(dailyMeanBy.get(input.no2Id) ?? null, dailyLimitBy.get(input.no2Id));
+    const so2 = ratioToLimit(dailyMeanBy.get(input.so2Id) ?? null, dailyLimitBy.get(input.so2Id));
+    if (no2 !== null && so2 !== null) no2so2Sum = round2(no2 + so2);
+  }
+  return { no2so2Sum, maxSingle, highPollution, extremeHighPollution, flagged };
 }

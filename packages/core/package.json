@@ -21,7 +21,9 @@
     "./import-mapping": "./src/import-mapping.ts",
     "./ingest": "./src/ingest.ts",
     "./station-feed": "./src/station-feed.ts",
-    "./secret-box": "./src/secret-box.ts"
+    "./station-json": "./src/station-json.ts",
+    "./secret-box": "./src/secret-box.ts",
+    "./docx": "./src/docx.ts"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

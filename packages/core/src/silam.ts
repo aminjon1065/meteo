@@ -2,7 +2,7 @@
  * SILAM (FMI THREDDS, NetCDF Subset Service): чистые функции разбора сетки, пересчёта единиц,
  * билинейной интерполяции и растеризации уровней. Сетевые вызовы, netcdfjs и sharp — в worker.
  */
-import { AQ_LEVEL_STYLES, type AqLevelOrNone } from "./levels";
+import { AQ_LEVEL_MAX, AQ_LEVEL_STYLES, type AqLevelOrNone } from "./levels";
 
 /** Домен запроса по умолчанию — Таджикистан с запасом (модель 0,2°). */
 export const SILAM_BBOX = { west: 66.5, east: 75.5, south: 36.5, north: 41.5 } as const;
@@ -153,7 +153,7 @@ export function levelForThresholds(value: number, thresholds: LevelThreshold[]):
     const last = sorted[sorted.length - 1] as LevelThreshold;
     matched = value < first.lo ? first.level : last.level;
   }
-  return Math.min(5, Math.max(0, Math.round(matched))) as AqLevelOrNone;
+  return Math.min(AQ_LEVEL_MAX, Math.max(0, Math.round(matched))) as AqLevelOrNone;
 }
 
 function hexToRgb(hex: string): [number, number, number] {

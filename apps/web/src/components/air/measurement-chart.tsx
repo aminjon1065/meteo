@@ -76,7 +76,7 @@ interface SeriesResponse {
   }>;
 }
 
-type LevelKey = 1 | 2 | 3 | 4 | 5;
+type LevelKey = 1 | 2 | 3 | 4 | 5 | 6;
 
 /** График измерений станции: периоды 24ч/7д/30д/1г, полосы уровней шкалы, выгрузка CSV. */
 export function MeasurementChart({
@@ -213,7 +213,7 @@ export function MeasurementChart({
                 {
                   yAxis: b.lo,
                   itemStyle: {
-                    color: AQ_LEVEL_STYLES[Math.min(5, Math.max(1, b.level)) as LevelKey].color,
+                    color: AQ_LEVEL_STYLES[Math.min(6, Math.max(1, b.level)) as LevelKey].color,
                     opacity: dark ? 0.14 : 0.1,
                   },
                   label: {
