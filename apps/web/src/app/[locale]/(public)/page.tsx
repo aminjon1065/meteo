@@ -316,7 +316,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
             </Panel>
             <Panel className="grid gap-2" data-testid="tomorrow">
               <p className="eyebrow">{t("tomorrow")}</p>
-              <div className="flex items-center justify-between gap-2.5 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1 text-sm">
                 <span>{t("airBySilam")}</span>
                 {data.silam.run && tomorrowSilam ? (
                   <AqBadge level={tomorrowLevel} label={tl(`${tomorrowLevel}` as "0")} size="sm" />
@@ -324,7 +324,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                   <span className="text-muted-foreground">{t("noForecast")}</span>
                 )}
               </div>
-              <div className="flex items-center justify-between gap-2.5 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-x-2.5 gap-y-1 text-sm">
                 <span>{tw("title")}</span>
                 <span className="num text-muted-foreground">
                   {tomorrowWx

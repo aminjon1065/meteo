@@ -77,7 +77,10 @@ export async function SiteHeader() {
           <MainNav items={items} className="ml-auto hidden lg:flex" />
           <div className="ml-auto flex items-center gap-1 lg:ml-0">
             <LanguageSwitcher variant="inline" />
-            <ThemeToggle />
+            {/* До 380 px переключатель темы остаётся в листе «Ещё» нижней навигации */}
+            <span className="hidden min-[380px]:inline-flex">
+              <ThemeToggle />
+            </span>
           </div>
         </div>
       </header>

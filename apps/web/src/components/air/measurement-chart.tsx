@@ -266,7 +266,11 @@ export function MeasurementChart({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
-        <Tabs value={range} onValueChange={(v) => setRange(v as ChartRange)}>
+        <Tabs
+          value={range}
+          onValueChange={(v) => setRange(v as ChartRange)}
+          className="max-w-full overflow-x-auto"
+        >
           <TabsList aria-label={labels.title} className="bg-surface-2">
             {CHART_RANGES.map((r) => (
               <TabsTrigger key={r} value={r} className="px-3 data-active:bg-card">

@@ -247,14 +247,17 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
         <h2 className="text-h2">{t("colors.title")}</h2>
         <ul className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
           {publicLevels.map((lv) => (
-            <li key={lv} className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5">
+            <li
+              key={lv}
+              className="flex flex-wrap items-start gap-x-3 gap-y-1.5 rounded-xl border bg-card px-4 py-3.5"
+            >
               <AqBadge level={lv} label={tl(`${lv}`)} size="md" className="shrink-0" />
               <p className="text-sm text-muted-foreground">
                 {t(`colors.level${lv}` as "colors.level1")}
               </p>
             </li>
           ))}
-          <li className="flex items-start gap-3 rounded-xl border bg-card px-4 py-3.5">
+          <li className="flex flex-wrap items-start gap-x-3 gap-y-1.5 rounded-xl border bg-card px-4 py-3.5">
             <AqBadge level={0} label={tl("0")} size="md" className="shrink-0" />
             <p className="text-sm text-muted-foreground">{t("colors.level0")}</p>
           </li>

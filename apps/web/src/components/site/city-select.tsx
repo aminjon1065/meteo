@@ -59,7 +59,7 @@ export function CitySelect({
         aria-label={`${pick(current.name, locale)} · ${t("city")}`}
         data-pending={pending || undefined}
         className={cn(
-          "inline-flex h-9 max-w-[11rem] items-center gap-1.5 rounded-full border bg-card pr-2.5 pl-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted data-pending:opacity-70 sm:max-w-none",
+          "inline-flex h-9 max-w-[8.5rem] min-w-0 items-center gap-1.5 rounded-full border bg-card pr-2.5 pl-3 text-sm font-semibold text-foreground transition-colors hover:bg-muted data-pending:opacity-70 min-[380px]:max-w-[11rem] sm:max-w-none",
           className,
         )}
       >

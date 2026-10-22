@@ -64,3 +64,34 @@ test("выбор города в шапке запоминается в cookie �
   await page.reload();
   await expect(page.getByRole("heading", { level: 1 })).toContainText("Худжанд");
 });
+
+test.describe("телефон 375 px", () => {
+  test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+
+  for (const locale of locales) {
+    test(`главная (${locale}): без горизонтальной прокрутки, слово уровня целиком, нижняя навигация`, async ({
+      page,
+    }) => {
+      await page.goto(`${prefix(locale)}/`);
+      await expect(page.getByTestId("status-level")).toBeVisible();
+      // Длинные подписи («Удовлетворительное», «Қаноатбахш», «Satisfactory») ужимаются под ширину колонки.
+      const level = page.getByTestId("status-level");
+      expect(await level.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
+      // Документ не шире экрана — ни один блок не вылезает за правый край.
+      const widths = await page.evaluate(() => ({
+        doc: document.documentElement.scrollWidth,
+        view: document.documentElement.clientWidth,
+      }));
+      expect(widths.doc).toBeLessThanOrEqual(widths.view);
+      // Нижняя навигация из пяти пунктов вместо бургера; язык — в листе «Ещё».
+      const bottom = page.getByRole("navigation", { name: t(locale, "common.menu") }).first();
+      await expect(bottom).toBeVisible();
+      await expect(bottom.getByRole("link")).toHaveCount(4);
+      await bottom.getByRole("button", { name: t(locale, "common.more") }).click();
+      await expect(page.getByRole("dialog")).toBeVisible();
+      await expect(
+        page.getByRole("dialog").getByRole("link", { name: t(locale, "nav.health") }),
+      ).toBeVisible();
+    });
+  }
+});

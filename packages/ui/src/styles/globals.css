@@ -181,6 +181,17 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Слово уровня в полосе состояния: размер по макету (--level-max), но не шире контейнера —
+   у Inter Tight 800 символ ≈ 0,6em, поэтому «Удовлетворительное» на 375 px ужимается до ~2rem;
+   overflow-wrap — страховка для ещё более длинных слов. */
+@utility level-word {
+  font-size: min(
+    var(--level-max, clamp(2.4rem, 6vw, 4rem)),
+    calc(100cqw / (var(--chars, 10) * 0.6))
+  );
+  overflow-wrap: anywhere;
+}
+
 /* Попапы MapLibre в цветах темы (светлой и тёмной); селекторы с двумя классами перекрывают
    стили maplibre-gl.css, которые подключаются позже вместе с чанком карты. */
 .maplibregl-popup .maplibregl-popup-content {

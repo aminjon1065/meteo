@@ -72,13 +72,16 @@ export function StatusBand({
           compact ? "py-6" : "pt-8 pb-7 lg:pt-9",
         )}
       >
-        <div>
+        <div className="min-w-0 @container">
           <Eyebrow className="eyebrow">{eyebrow}</Eyebrow>
           <p
-            className={cn(
-              "mt-2 mb-3 font-heading font-extrabold tracking-[-0.02em] text-balance",
-              compact ? "text-[clamp(2rem,4.5vw,3rem)] leading-none" : "text-display",
-            )}
+            className="level-word mt-2 mb-3 font-heading leading-none font-extrabold tracking-[-0.02em]"
+            style={
+              {
+                "--chars": levelLabel.length,
+                "--level-max": compact ? "clamp(2rem, 4.5vw, 3rem)" : "clamp(2.4rem, 6vw, 4rem)",
+              } as React.CSSProperties
+            }
             data-testid="status-level"
           >
             {levelLabel}
@@ -111,7 +114,7 @@ export function StatusBand({
             </div>
           ) : null}
         </div>
-        {aside ? <div className="grid gap-3">{aside}</div> : null}
+        {aside ? <div className="grid min-w-0 gap-3">{aside}</div> : null}
       </div>
     </section>
   );
