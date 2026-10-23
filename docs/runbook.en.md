@@ -499,7 +499,7 @@ Three vendor-independent ways to connect an air-quality station (`docs/02-archit
 | **Station agent** `apps/station-agent` | the vendor software writes CSV/TSV files to a folder on the station computer | Node.js 22, one file `station-agent.mjs` + `config.json`, outbound HTTPS |
 | **Direct upload** to `POST /api/v1/ingest/{code}` | the logger/controller can send HTTP requests with JSON itself | outbound HTTPS, the station key |
 | **Pull source** (SFTP/FTP/FTPS/HTTP) | the data is already published on a vendor's or the Agency's server | the worker can reach that server (outbound TCP 22/21/443 from the portal) |
-| **JSON API source** (several stations behind one address) | a sensor network publishes JSON over HTTP(S) — the primary data channel of the Agency's PM sensor network (airquality.meteo.tj, wwcs.tj API) | outbound HTTPS from the portal to the API |
+| **JSON API source** (several stations behind one address) | a sensor network publishes JSON over HTTP(S) — the primary data channel of the Agency's PM sensor network (wwcs.tj API) | outbound HTTPS from the portal to the API |
 
 **Network requirements.** Agent and loggers: outbound HTTPS only (TCP 443) from the station computer to the portal
 address (from the Agency DMZ or through a proxy; no inbound ports). Pull sources: outbound access from the portal server
@@ -549,7 +549,7 @@ when a source delivers no value for longer than its threshold or a station with 
 station's access, "Rotate key" in the card (the old key stops working immediately) or set the status "suspended"
 (response 403).
 
-**The Agency's PM sensor network (airquality.meteo.tj, contractor API wwcs.tj) — a "JSON API" source, the primary
+**The Agency's PM sensor network (open contractor API wwcs.tj) — a "JSON API" source, the primary
 data channel of this network on the portal (a regular connection, no separate consent needed).**
 The `json` source type polls a sensor-network JSON API: one request for the latest records of all stations
 (`GET https://wwcs.tj/services/airquality/stations` — an array of `{stationID, siteName, latitude, longitude, altitude,
@@ -563,8 +563,8 @@ codes are skipped with a note in the summary (`stationInactive:suspended`, `unkn
 are not taken (the portal stores pollutants only); the site's `aqi` is not used — the portal computes the index itself.
 
 1. **Stations and the source** are created by an idempotent script: first `pnpm --filter @meteo/db import-wwcs -- --dry-run`,
-   then `pnpm --filter @meteo/db import-wwcs`. It creates 9 stations (code = `stationID`, tg/ru/en names from
-   airquality.meteo.tj, coordinates and altitude from the API, region and district by PostGIS, automatic sensor,
+   then `pnpm --filter @meteo/db import-wwcs`. It creates 9 stations (code = `stationID`, tg/ru/en names from the table
+   in the script, coordinates and altitude from the API, region and district by PostGIS, automatic sensor,
    continuous series, PM2.5 and PM10 in µg/m³) and one `json` source "WWCS airquality API" in the card of station
    DYU01_ECO (**enabled**, "no data" threshold 60 min, 24 h history): the worker polls the API on the next `station-pull`
    cycle (every 10 minutes and at start-up) and backfills a day of history. The Agency building station DYU006_ECO is
@@ -595,7 +595,7 @@ are not taken (the portal stores pollutants only); the site's `aqi` is not used 
 6. **US AQI (EPA) scale** — the third table scale `US_AQI` (six categories, EPA colours, advice), not public by default.
    To show it to visitors: "Scales and thresholds" → "US AQI (EPA)" → "Default public scale" → "Save" (the index is
    recomputed; the legend and the "About the index" page switch to six levels). Thresholds — EPA 2024 in portal units;
-   airquality.meteo.tj uses the 2012 PM2.5 table and 10-minute values, so the numbers may differ slightly
+   a calculation with the 2012 PM2.5 table on 10-minute values gives slightly different numbers
    (docs/02-architecture.md §6.5).
 
 ## 10. Restoring administrator access and resetting 2FA

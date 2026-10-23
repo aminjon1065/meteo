@@ -62,7 +62,7 @@ export type StationSourceValues = z.output<typeof stationSourceInput>;
 
 /** Шаблоны маппинга для типичных форматов экспорта и JSON API (подставляются в форму). */
 export const MAPPING_TEMPLATES: Record<"wide" | "long" | "split" | "json", string> = {
-  // Открытый API сети PM‑датчиков Агентства (wwcs.tj, airquality.meteo.tj): коды станций = stationID,
+  // Открытый API сети PM‑датчиков Агентства (wwcs.tj): коды станций = stationID,
   // местное время без смещения, 10‑минутные значения, ряд за прошедшие часы для догрузки пропусков.
   json: JSON.stringify(
     {

@@ -1,5 +1,5 @@
 /**
- * Сеть PM‑датчиков Агентства (airquality.meteo.tj, открытый API подрядчика wwcs.tj) → реестр станций
+ * Сеть PM‑датчиков Агентства (открытый API подрядчика wwcs.tj) → реестр станций
  * портала и JSON‑источник для задачи worker'а station-pull (docs/02-architecture.md §8.4, runbook §9.4).
  *
  *   pnpm --filter @meteo/db import-wwcs -- [--url https://wwcs.tj/services/airquality/stations | --file stations.json]
@@ -75,7 +75,7 @@ interface WwcsStation {
 
 const t = (tg: string, ru: string, en: string): I18nText => ({ tg, ru, en });
 
-/** Названия с airquality.meteo.tj (tg) и переводы; siteName API — техническое, остаётся в описании. */
+/** Названия станций сети (tg) и переводы; siteName API — техническое, остаётся в описании. */
 const NAMES: Record<string, I18nText> = {
   DYU01_ECO: t(
     "Шукуфон 59 (Медгородок)",
@@ -117,9 +117,9 @@ const NAMES: Record<string, I18nText> = {
 };
 
 const DESCRIPTION = t(
-  "Датчики PM2.5/PM10‑и шабакаи мониторинги сифати ҳавои Агентӣ (airquality.meteo.tj). Маълумот ҳар 10 дақиқа тавассути API‑и кушоди wwcs.tj.",
-  "Датчик PM2.5/PM10 сети мониторинга качества воздуха Агентства (airquality.meteo.tj). Данные каждые 10 минут через открытый API wwcs.tj.",
-  "PM2.5/PM10 sensor of the Agency's air quality monitoring network (airquality.meteo.tj). Data every 10 minutes via the open wwcs.tj API.",
+  "Датчики PM2.5/PM10‑и шабакаи мониторинги сифати ҳавои Агентӣ. Маълумот ҳар 10 дақиқа тавассути API‑и кушоди wwcs.tj.",
+  "Датчик PM2.5/PM10 сети мониторинга качества воздуха Агентства. Данные каждые 10 минут через открытый API wwcs.tj.",
+  "PM2.5/PM10 sensor of the Agency's air quality monitoring network. Data every 10 minutes via the open wwcs.tj API.",
 );
 const SUSPENDED_NOTE = t(
   "Истгоҳ боздошта шудааст: датчик қиматҳои баръало нодуруст медиҳад (садҳо мкг/м³ ҳангоми заминаи муқаррарӣ); пас аз таъмири датчик фаъол кунед.",
@@ -300,7 +300,7 @@ try {
           stationId: anchor.id,
           kind: "json",
           enabled: !args.disabled,
-          label: "WWCS airquality API (airquality.meteo.tj)",
+          label: "WWCS airquality API",
           host: "",
           path: url,
           filePattern: "*",

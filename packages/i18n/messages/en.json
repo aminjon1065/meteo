@@ -424,7 +424,7 @@
         "passwordKeep": "leave empty to keep; “-” to remove",
         "secret": "Stored encrypted (STATION_SOURCES_KEY). You can enter env:NAME — an environment variable of the worker.",
         "hostFingerprint": "SHA256:… from ssh-keyscan host | ssh-keygen -lf -. Empty — no host key check.",
-        "mappingJson": "Path to the record array, station code field (stationField; codes match portal station codes or are mapped in stations), time field with its time zone, pollutant fields and units, averagingMin and, if available, history — the URL of the series for the past hours to backfill gaps. The template above is the wwcs.tj API (airquality.meteo.tj).",
+        "mappingJson": "Path to the record array, station code field (stationField; codes match portal station codes or are mapped in stations), time field with its time zone, pollutant fields and units, averagingMin and, if available, history — the URL of the series for the past hours to backfill gaps. The template above is the wwcs.tj API (the Agency's PM sensor network).",
         "mapping": "Same format as the station agent config: delimiter, time column and format, pollutant columns or long layout. The templates above are starting points.",
         "staleAfterMin": "E-mail to administrators when the source delivers no values within this time."
       },

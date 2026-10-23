@@ -29,6 +29,9 @@ esac
 [ -f "$REL/infra/compose/compose.prod.yml" ] || { echo "нет $REL/infra/compose/compose.prod.yml" >&2; exit 2; }
 # compose читает текущий каталог: при запуске через runuser/sudo он может быть недоступен deploy (/root).
 cd "$DIR"
+# Caddyfile монтируется в контейнер Caddy (root без capabilities): файлы релиза должны читаться всеми,
+# иначе Caddy портала перезапускается по кругу. Релиз мог быть распакован с umask 027 прежней обёрткой.
+chmod -R a+rX "$REL/infra"
 
 mkdir -p "$DIR/logs"
 LOGF="$DIR/logs/$(date -u +%Y%m%dT%H%M%SZ)-$SHA.log"

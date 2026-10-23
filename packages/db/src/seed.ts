@@ -322,14 +322,14 @@ await db
     },
     {
       // Шкала US AQI (EPA, Technical Assistance Document 2024): шесть категорий 0–50 … 301–500 с цветами
-      // EPA — для преемственности с airquality.meteo.tj; не публичная по умолчанию (переключается в админке).
+      // EPA — привычная шкала сети PM‑датчиков Агентства; не публичная по умолчанию (переключается в админке).
       code: "US_AQI",
       kind: "breakpoints",
       name: t("Индекси US AQI (EPA)", "Индекс US AQI (EPA)", "US AQI (EPA)"),
       description: t(
         "Шаш категорияи AQI‑и Агентии ҳифзи муҳити зисти ИМА: PM2.5 ва PM10 — миёнаи 24 соат, O3 ва CO — 8 соат, NO2 ва SO2 — 1 соат. Ҳудудҳо — EPA 2024 дар воҳидҳои портал.",
-        "Шесть категорий AQI Агентства по охране окружающей среды США: PM2.5 и PM10 — среднее за 24 ч, O3 и CO — 8 ч, NO2 и SO2 — 1 ч. Пороги — EPA 2024 в единицах портала (ppb/ppm переведены при 25 °C); на airquality.meteo.tj применяется таблица PM2.5 2012 г. к 10‑минутным значениям, поэтому числа могут немного отличаться.",
-        "Six US EPA AQI categories: PM2.5 and PM10 — 24‑hour mean, O3 and CO — 8‑hour, NO2 and SO2 — 1‑hour. Thresholds — EPA 2024 in portal units (ppb/ppm converted at 25 °C); airquality.meteo.tj applies the 2012 PM2.5 table to 10‑minute values, so numbers may differ slightly.",
+        "Шесть категорий AQI Агентства по охране окружающей среды США: PM2.5 и PM10 — среднее за 24 ч, O3 и CO — 8 ч, NO2 и SO2 — 1 ч. Пороги — EPA 2024 в единицах портала (ppb/ppm переведены при 25 °C).",
+        "Six US EPA AQI categories: PM2.5 and PM10 — 24‑hour mean, O3 and CO — 8‑hour, NO2 and SO2 — 1‑hour. Thresholds — EPA 2024 in portal units (ppb/ppm converted at 25 °C).",
       ),
       levels: [
         { level: 1, lo: 0, hi: 50, color: "#00E400", label: t("Хуб", "Хороший", "Good") },

@@ -3,6 +3,7 @@ import { pick } from "@meteo/i18n";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getBrandingCached } from "@/lib/settings";
+import { Logo } from "./logo";
 
 export async function SiteFooter() {
   const [t, tc, tn, locale, branding] = await Promise.all([
@@ -31,7 +32,10 @@ export async function SiteFooter() {
     <footer className="mt-10 border-t bg-card">
       <div className="container-page grid gap-8 py-8 pb-10 text-sm text-muted-foreground md:grid-cols-[2fr_1fr_1fr] md:gap-6">
         <div className="max-w-md space-y-2">
-          <p className="font-semibold text-foreground">{agency}</p>
+          <div className="flex items-center gap-3">
+            <Logo className="size-14" />
+            <p className="font-semibold text-foreground">{agency}</p>
+          </div>
           <p>{tc("fintaj")}</p>
           {note ? <p>{note}</p> : null}
           <p>{t("dataLicense")}</p>
