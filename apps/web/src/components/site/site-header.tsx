@@ -70,7 +70,11 @@ export async function SiteHeader() {
           </Link>
           {cityState.cities.length > 0 ? (
             <CitySelect
-              cities={cityState.cities.map((c) => ({ slug: c.slug, name: c.name }))}
+              cities={cityState.cities.map((c) => ({
+                slug: c.slug,
+                name: c.name,
+                region: c.regionCode,
+              }))}
               selected={cityState.city?.slug ?? null}
             />
           ) : null}

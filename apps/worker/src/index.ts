@@ -73,23 +73,23 @@ process.on("SIGTERM", () => void shutdown("SIGTERM"));
 process.on("SIGINT", () => void shutdown("SIGINT"));
 
 await registerSchedules();
+// Идентификатор запуска для стартовых задач. Только PID не годится: в контейнере он всегда 1, а BullMQ не ставит
+// задачу с jobId, который ещё хранится среди выполненных (removeOnComplete: 100), — после первой выкатки стартовые
+// задачи при перезапусках молча пропускались (опрос станций, пересчёт индекса, SmartMet/SILAM/CAP).
+const bootId = `${process.pid}-${Date.now()}`;
 // Первый heartbeat сразу, не дожидаясь интервала.
-await queue.add("heartbeat", {}, { jobId: `heartbeat:boot:${process.pid}` });
+await queue.add("heartbeat", {}, { jobId: `heartbeat:boot:${bootId}` });
 // При старте пересчитываем индекс за 30 дней (бэкфилл после импорта/простоя).
-await queue.add(
-  "index-compute",
-  { hours: 24 * 30 },
-  { jobId: `index-compute:boot:${process.pid}` },
-);
+await queue.add("index-compute", { hours: 24 * 30 }, { jobId: `index-compute:boot:${bootId}` });
 // Догоняем контроль качества и правила уведомлений сразу после старта.
-await queue.add("qc-batch", { hours: 48 }, { jobId: `qc-batch:boot:${process.pid}` });
-await queue.add("threshold-eval", {}, { jobId: `threshold-eval:boot:${process.pid}` });
-await queue.add("mailer", {}, { jobId: `mailer:boot:${process.pid}` });
+await queue.add("qc-batch", { hours: 48 }, { jobId: `qc-batch:boot:${bootId}` });
+await queue.add("threshold-eval", {}, { jobId: `threshold-eval:boot:${bootId}` });
+await queue.add("mailer", {}, { jobId: `mailer:boot:${bootId}` });
 // Прогнозы: SmartMet сразу, SILAM — проверка нового прогона (пропускается, если уже загружен).
-await queue.add("smartmet-sync", {}, { jobId: `smartmet-sync:boot:${process.pid}` });
-await queue.add("silam-sync", {}, { jobId: `silam-sync:boot:${process.pid}` });
+await queue.add("smartmet-sync", {}, { jobId: `smartmet-sync:boot:${bootId}` });
+await queue.add("silam-sync", {}, { jobId: `silam-sync:boot:${bootId}` });
 // Предупреждения CAP: первая синхронизация сразу после старта.
-await queue.add("cap-sync", {}, { jobId: `cap-sync:boot:${process.pid}` });
+await queue.add("cap-sync", {}, { jobId: `cap-sync:boot:${bootId}` });
 // Источники станций (SFTP/FTP/HTTP): первый забор файлов и проверка «долго нет данных».
-await queue.add("station-pull", {}, { jobId: `station-pull:boot:${process.pid}` });
+await queue.add("station-pull", {}, { jobId: `station-pull:boot:${bootId}` });
 logger.info({ env: env.NODE_ENV }, "worker started");

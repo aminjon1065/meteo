@@ -70,8 +70,14 @@ async function loadHomeData(locale: Locale) {
         })),
         latestPublishedEcoBulletin(db).catch(() => null),
       ]);
+    const cityPoints = cities.map((c) => ({ lon: c.geom.x, lat: c.geom.y }));
     const cityAir = city
-      ? summarizeCityAir({ lon: city.geom.x, lat: city.geom.y }, stations, aq.pollutantsById)
+      ? summarizeCityAir(
+          { lon: city.geom.x, lat: city.geom.y },
+          stations,
+          aq.pollutantsById,
+          cityPoints,
+        )
       : null;
     const level = cityAir?.level ?? 0;
     const advice =
@@ -109,6 +115,7 @@ async function loadHomeData(locale: Locale) {
           { lon: w.location.geom.x, lat: w.location.geom.y },
           stations,
           aq.pollutantsById,
+          cityPoints,
         ).level,
       ]),
     );

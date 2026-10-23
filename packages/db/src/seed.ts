@@ -729,6 +729,24 @@ await db
       sortOrder: 8,
       featured: false,
     },
+    // Вахдат и Гиссар — города с датчиками сети WWCS в ~20 км от Душанбе (за радиусом 15 км сводки
+    // «воздух в городе»): без своей точки их станции не попадали в сводку ни одного города.
+    {
+      slug: "vahdat",
+      name: t("Ваҳдат", "Вахдат", "Vahdat"),
+      geom: { x: 69.017, y: 38.56 },
+      regionId: rid.RRP,
+      sortOrder: 9,
+      featured: false,
+    },
+    {
+      slug: "hisor",
+      name: t("Ҳисор", "Гиссар", "Hisor"),
+      geom: { x: 68.55, y: 38.525 },
+      regionId: rid.RRP,
+      sortOrder: 10,
+      featured: false,
+    },
   ])
   .onConflictDoNothing();
 

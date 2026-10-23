@@ -31,6 +31,13 @@
     "legend": "Legend",
     "pagination": "Pagination",
     "city": "City",
+    "regionShort": {
+      "DU": "Dushanbe",
+      "SU": "Sughd",
+      "KT": "Khatlon",
+      "GB": "GBAO",
+      "RRP": "DRS"
+    },
     "more": "More"
   },
   "nav": {

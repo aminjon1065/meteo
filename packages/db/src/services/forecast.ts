@@ -18,6 +18,8 @@ export interface ForecastLocationRow {
   name: I18nText;
   geom: { x: number; y: number };
   regionId: number | null;
+  /** Код области (DU, SU, KT, GB, RRP) — группировка городов в выборе на портале. */
+  regionCode: string | null;
   regionName: I18nText | null;
   featured: boolean;
   sortOrder: number;
@@ -34,6 +36,7 @@ export async function listForecastLocations(
       name: s.forecastLocations.name,
       geom: s.forecastLocations.geom,
       regionId: s.forecastLocations.regionId,
+      regionCode: s.regions.code,
       regionName: s.regions.name,
       featured: s.forecastLocations.featured,
       sortOrder: s.forecastLocations.sortOrder,

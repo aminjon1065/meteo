@@ -34,6 +34,7 @@ export default async function WeatherPage({ params }: { params: Promise<{ locale
     getSelectedCitySlug(),
     loadStationSummaries().catch(() => null),
   ]);
+  const cityPoints = overview.map((o) => ({ lon: o.location.geom.x, lat: o.location.geom.y }));
   const rows = (list: typeof overview): CityWeatherRow[] =>
     list.map((o) => ({
       overview: o,
@@ -42,6 +43,7 @@ export default async function WeatherPage({ params }: { params: Promise<{ locale
             { lon: o.location.geom.x, lat: o.location.geom.y },
             air.stations,
             air.aq.pollutantsById,
+            cityPoints,
           ).level
         : 0,
       selected: o.location.slug === selected,

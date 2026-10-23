@@ -10,10 +10,10 @@ import {
   loadCurrentAq,
   type PollutantInfo,
 } from "@/lib/aq";
+import { distanceKm, type GeoPoint, stationsOfCity } from "@/lib/city-stations";
 import { getDb } from "@/lib/db";
 
-/** Станции в этом радиусе от точки прогноза считаются станциями города. */
-export const CITY_RADIUS_KM = 15;
+export { CITY_RADIUS_KM, distanceKm } from "@/lib/city-stations";
 
 export interface StationSummary {
   id: number;
@@ -39,7 +39,7 @@ export interface ConcentrationChip {
 }
 
 export interface CityAir {
-  /** Станции города (в радиусе CITY_RADIUS_KM), от худшего уровня к лучшему. */
+  /** Станции города (в радиусе CITY_RADIUS_KM и ближе к нему, чем к другим городам), от худшего уровня к лучшему. */
   stations: StationSummary[];
   fresh: StationSummary[];
   level: AqLevelOrNone;
@@ -51,17 +51,6 @@ export interface CityAir {
   dominant: PollutantInfo | undefined;
   /** Ближайшая станция с любыми данными, если в городе станций нет. */
   nearest: { station: StationSummary; distanceKm: number } | null;
-}
-
-export function distanceKm(a: { lon: number; lat: number }, b: { lon: number; lat: number }) {
-  const r = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * r * Math.asin(Math.sqrt(h));
 }
 
 /** Все публичные станции (кроме выведенных) с текущим индексом публичной шкалы. */
@@ -123,13 +112,17 @@ export function sortByLevel(list: StationSummary[]): StationSummary[] {
   });
 }
 
-/** Сводка качества воздуха для города по станциям в радиусе CITY_RADIUS_KM. */
+/**
+ * Сводка качества воздуха для города. `cities` — точки всех городов выбора: станция относится только
+ * к ближайшему из них (в радиусе CITY_RADIUS_KM), см. stationsOfCity.
+ */
 export function summarizeCityAir(
-  point: { lon: number; lat: number },
+  point: GeoPoint,
   all: StationSummary[],
   pollutantsById: Map<number, PollutantInfo>,
+  cities: GeoPoint[] = [],
 ): CityAir {
-  const inCity = sortByLevel(all.filter((s) => distanceKm(point, s) <= CITY_RADIUS_KM));
+  const inCity = sortByLevel(stationsOfCity(point, all, cities));
   const fresh = inCity.filter((s) => s.idx && !s.idx.stale);
   const level = fresh.reduce<AqLevelOrNone>((max, s) => (s.level > max ? s.level : max), 0);
   const updatedAt = fresh.reduce<Date | null>(
