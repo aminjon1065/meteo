@@ -140,6 +140,7 @@ export default async function MapPage({
           unsupported: t("webglUnsupported"),
         }}
         legend={<LevelLegend className="gap-x-3 gap-y-1" />}
+        legendChips={<LevelLegend variant="chips" className="gap-1.5" />}
       />
     </div>
   );

@@ -147,3 +147,47 @@ test("/api/v1/regions и /api/v1/districts: GeoJSON, кэш 10 минут, ETag 
   });
   expect(body.features[0]?.properties.level).toBeGreaterThan(0);
 });
+
+test.describe("телефон", () => {
+  test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
+
+  test("/map: карта на весь экран, слои в шторке, SILAM управляется карточкой внизу", async ({
+    page,
+  }) => {
+    const violations = trackCspViolations(page);
+    await page.goto("/ru/map");
+    await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
+    // Панели слоёв поверх карты нет: только кнопка «Слои» (число — включённые слои сверх станций).
+    await expect(page.locator("aside")).toBeHidden();
+    await expect(page.getByRole("list", { name: t("ru", "common.legend") })).toBeVisible();
+    const layersButton = page.getByRole("button", { name: new RegExp(t("ru", "map.layers")) });
+    await expect(layersButton).toBeVisible();
+
+    await layersButton.click();
+    const sheet = page.getByRole("dialog", { name: t("ru", "map.layers") });
+    await expect(sheet).toBeVisible();
+    const pngRequest = page.waitForRequest((r) =>
+      /\/silam\/\d{10}\/[A-Z0-9]+\/\d{3}\.png$/.test(r.url()),
+    );
+    const silam = sheet.getByRole("checkbox", { name: t("ru", "map.silam") });
+    await silam.click();
+    await expect(silam).toHaveAttribute("aria-checked", "true");
+    await pngRequest;
+    await page.keyboard.press("Escape");
+    await expect(sheet).toBeHidden();
+
+    // Время и вещество — в карточке внизу карты, без открытия шторки.
+    const card = page.getByRole("region", { name: t("ru", "map.silam") });
+    await expect(card).toBeVisible();
+    await card.getByRole("combobox", { name: t("ru", "silam.pollutant") }).selectOption("PM10");
+    const slider = card.getByRole("slider", { name: t("ru", "silam.time") });
+    await slider.focus();
+    await page.keyboard.press("ArrowRight");
+    await expect(card.getByRole("button", { name: t("ru", "silam.play") })).toBeVisible();
+    // Карточка не перекрывает масштаб и атрибуцию карты.
+    const cardBox = await card.boundingBox();
+    const attrib = await page.locator(".maplibregl-ctrl-attrib").boundingBox();
+    expect(cardBox && attrib && cardBox.y + cardBox.height <= attrib.y).toBeTruthy();
+    expect(violations()).toEqual([]);
+  });
+});

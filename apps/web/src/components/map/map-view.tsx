@@ -5,7 +5,15 @@ import { Badge } from "@meteo/ui/components/badge";
 import { Button } from "@meteo/ui/components/button";
 import { Checkbox } from "@meteo/ui/components/checkbox";
 import { NativeSelect, NativeSelectOption } from "@meteo/ui/components/native-select";
-import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@meteo/ui/components/sheet";
+import { cn } from "@meteo/ui/lib/utils";
+import { ChevronLeftIcon, ChevronRightIcon, LayersIcon, PauseIcon, PlayIcon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import type { BoundariesLayer, SilamOverlay } from "./station-map";
 import { StationMapLazy } from "./station-map.lazy";
@@ -68,8 +76,10 @@ export interface MapViewProps {
     warningsOpen: string;
     unsupported: string;
   };
-  /** Легенда уровней (серверный компонент) */
+  /** Легенда уровней (серверный компонент): в панели слоёв. */
   legend: ReactNode;
+  /** Та же легенда «фишками» поверх карты — на телефоне, где панели нет. */
+  legendChips?: ReactNode;
   /** Слой, включённый при открытии (ссылки «Прогноз SILAM» / «Предупреждения» с главной). */
   initialLayer?: "silam" | "warnings";
 }
@@ -103,8 +113,10 @@ export function MapView({
   regionsHref,
   labels,
   legend,
+  legendChips,
   initialLayer,
 }: MapViewProps) {
+  const [layersOpen, setLayersOpen] = useState(false);
   const available = catalog.run !== null && catalog.pollutants.length > 0;
   const [silamOn, setSilamOn] = useState(initialLayer === "silam" && available);
   const [warningsOn, setWarningsOn] = useState(warnings.count > 0 || initialLayer === "warnings");
@@ -184,6 +196,194 @@ export function MapView({
     [locale],
   );
 
+  const timeLabel = frame ? timeFmt.format(new Date(frame.time)) : "—";
+  const silamMeta = [
+    frame?.max !== null && frame?.max !== undefined && pollutant
+      ? labels.maxInDomain
+          .replace("{value}", String(Math.round(frame.max * 10) / 10))
+          .replace("{unit}", pollutant.unit)
+      : null,
+    catalog.run
+      ? labels.run.replace("{time}", runFmt.format(new Date(catalog.run.originTime)))
+      : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const pollutantSelect = (className?: string) =>
+    pollutant ? (
+      <NativeSelect
+        aria-label={labels.pollutant}
+        value={pollutant.code}
+        onChange={(e) => setCode(e.target.value)}
+        className={cn("h-8 text-xs", className)}
+      >
+        {catalog.pollutants.map((p) => (
+          <NativeSelectOption key={p.code} value={p.code}>
+            {p.shortName} · {p.unit}
+          </NativeSelectOption>
+        ))}
+      </NativeSelect>
+    ) : null;
+
+  const playback = (
+    <>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={labels.prev}
+        onClick={() => setIndex((i) => Math.max(0, i - 1))}
+      >
+        <ChevronLeftIcon />
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={playing ? labels.pause : labels.play}
+        aria-pressed={playing}
+        onClick={() => setPlaying((p) => !p)}
+      >
+        {playing ? <PauseIcon /> : <PlayIcon />}
+      </Button>
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon-sm"
+        aria-label={labels.next}
+        onClick={() => setIndex((i) => Math.min(frames.length - 1, i + 1))}
+      >
+        <ChevronRightIcon />
+      </Button>
+    </>
+  );
+
+  const slider = (className?: string) => (
+    <input
+      type="range"
+      aria-label={labels.time}
+      min={0}
+      max={Math.max(0, frames.length - 1)}
+      value={index}
+      onChange={(e) => {
+        setPlaying(false);
+        setIndex(Number(e.target.value));
+      }}
+      className={cn("w-full accent-brand", className)}
+    />
+  );
+
+  /**
+   * Переключатели слоёв. `inlineSilam` — управление прогнозом SILAM прямо под переключателем
+   * (панель на широком экране); на телефоне оно в карточке внизу карты. `idp` — префикс id, чтобы
+   * подписи не путались между панелью и шторкой.
+   */
+  const layerToggles = (idp: string, inlineSilam: boolean) => (
+    <div className="flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <Checkbox id={`${idp}-stations`} checked disabled />
+        <label htmlFor={`${idp}-stations`}>{labels.stations}</label>
+      </div>
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`${idp}-regions`}
+          checked={regionsOn}
+          onCheckedChange={(checked) => setRegionsOn(checked === true)}
+        />
+        <label htmlFor={`${idp}-regions`} className="flex-1">
+          {labels.regions}
+        </label>
+      </div>
+      {regionsOn ? (
+        <div className="flex flex-col gap-1.5 rounded-lg bg-surface-2 p-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id={`${idp}-regions-fill`}
+              checked={regionsFill}
+              onCheckedChange={(checked) => setRegionsFill(checked === true)}
+            />
+            <label htmlFor={`${idp}-regions-fill`} className="flex-1">
+              {labels.regionsFill}
+            </label>
+          </div>
+          <p className="text-[11px] leading-snug text-muted-foreground">{labels.regionsHint}</p>
+        </div>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`${idp}-silam`}
+          checked={silamOn}
+          disabled={!available}
+          onCheckedChange={(checked) => {
+            setSilamOn(checked === true);
+            if (!checked) setPlaying(false);
+          }}
+        />
+        <label htmlFor={`${idp}-silam`} className="flex-1">
+          {labels.silam}
+        </label>
+        {!available ? <Badge variant="secondary">{labels.soon}</Badge> : null}
+      </div>
+      {inlineSilam && silamOn && available && pollutant ? (
+        <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-2">
+          {pollutantSelect()}
+          <div className="flex items-center gap-1">
+            {playback}
+            <span className="ml-1 flex-1 text-xs tabular-nums">{timeLabel}</span>
+          </div>
+          {slider()}
+          <p className="text-[11px] leading-snug text-muted-foreground">{silamMeta}</p>
+          <p className="text-[11px] leading-snug text-muted-foreground">{labels.hint}</p>
+        </div>
+      ) : null}
+      {!available ? (
+        <p className="text-xs leading-snug text-muted-foreground">{labels.noData}</p>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id={`${idp}-warnings`}
+          checked={warningsOn}
+          onCheckedChange={(checked) => setWarningsOn(checked === true)}
+        />
+        <label htmlFor={`${idp}-warnings`} className="flex-1">
+          {labels.warnings}
+        </label>
+        <Badge variant={warnings.count > 0 ? "destructive" : "secondary"}>
+          {labels.warningsCount}
+        </Badge>
+      </div>
+      {warningsOn ? (
+        <div className="flex flex-col gap-1 rounded-lg bg-surface-2 p-2 text-xs">
+          {warnings.count === 0 ? (
+            <p className="text-muted-foreground">{labels.warningsNone}</p>
+          ) : null}
+          <ul className="flex flex-wrap gap-x-3 gap-y-1">
+            {warnings.legend.map((l) => (
+              <li key={l.severity} className="flex items-center gap-1.5">
+                <span
+                  className="inline-block size-2.5 rounded-full"
+                  style={{ background: l.color }}
+                  aria-hidden="true"
+                />
+                {l.label}
+              </li>
+            ))}
+          </ul>
+          <a
+            href={warnings.href}
+            className="text-muted-foreground underline-offset-4 hover:underline"
+          >
+            {labels.warningsOpen}
+          </a>
+        </div>
+      ) : null}
+    </div>
+  );
+
+  // Слои, включённые сверх станций, — число на кнопке «Слои» на телефоне.
+  const extraLayers = [regionsOn, silamOn && available, warningsOn].filter(Boolean).length;
+
   return (
     <div className="relative h-full w-full">
       <StationMapLazy
@@ -199,171 +399,76 @@ export function MapView({
         boundaries={boundaries}
         unsupportedLabel={labels.unsupported}
       />
-      <aside className="absolute top-3 left-3 z-10 flex w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-xl border bg-card/95 p-3.5 text-sm shadow-md backdrop-blur">
+
+      {/* Широкий экран: панель слоёв слева сверху. */}
+      <aside className="absolute top-3 left-3 z-10 hidden w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-xl border bg-card/95 p-3.5 text-sm shadow-md backdrop-blur md:flex">
         <h1 className="font-heading text-base font-bold">{labels.title}</h1>
         <div className="flex flex-col gap-2">
           <p className="eyebrow">{labels.layers}</p>
-          <div className="flex items-center gap-2">
-            <Checkbox id="layer-stations" checked disabled />
-            <label htmlFor="layer-stations">{labels.stations}</label>
-          </div>
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="layer-regions"
-              checked={regionsOn}
-              onCheckedChange={(checked) => setRegionsOn(checked === true)}
-            />
-            <label htmlFor="layer-regions" className="flex-1">
-              {labels.regions}
-            </label>
-          </div>
-          {regionsOn ? (
-            <div className="flex flex-col gap-1.5 rounded-lg bg-surface-2 p-2 text-xs">
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="layer-regions-fill"
-                  checked={regionsFill}
-                  onCheckedChange={(checked) => setRegionsFill(checked === true)}
-                />
-                <label htmlFor="layer-regions-fill" className="flex-1">
-                  {labels.regionsFill}
-                </label>
-              </div>
-              <p className="text-[11px] leading-snug text-muted-foreground">{labels.regionsHint}</p>
-            </div>
-          ) : null}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="layer-silam"
-              checked={silamOn}
-              disabled={!available}
-              onCheckedChange={(checked) => {
-                setSilamOn(checked === true);
-                if (!checked) setPlaying(false);
-              }}
-            />
-            <label htmlFor="layer-silam" className="flex-1">
-              {labels.silam}
-            </label>
-            {!available ? <Badge variant="secondary">{labels.soon}</Badge> : null}
-          </div>
-          {silamOn && available && pollutant ? (
-            <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-2">
-              <NativeSelect
-                aria-label={labels.pollutant}
-                value={pollutant.code}
-                onChange={(e) => setCode(e.target.value)}
-                className="h-8 text-xs"
-              >
-                {catalog.pollutants.map((p) => (
-                  <NativeSelectOption key={p.code} value={p.code}>
-                    {p.shortName} · {p.unit}
-                  </NativeSelectOption>
-                ))}
-              </NativeSelect>
-              <div className="flex items-center gap-1">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={labels.prev}
-                  onClick={() => setIndex((i) => Math.max(0, i - 1))}
-                >
-                  <ChevronLeftIcon />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={playing ? labels.pause : labels.play}
-                  aria-pressed={playing}
-                  onClick={() => setPlaying((p) => !p)}
-                >
-                  {playing ? <PauseIcon /> : <PlayIcon />}
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon-sm"
-                  aria-label={labels.next}
-                  onClick={() => setIndex((i) => Math.min(frames.length - 1, i + 1))}
-                >
-                  <ChevronRightIcon />
-                </Button>
-                <span className="ml-1 flex-1 text-xs tabular-nums">
-                  {frame ? timeFmt.format(new Date(frame.time)) : "—"}
-                </span>
-              </div>
-              <input
-                type="range"
-                aria-label={labels.time}
-                min={0}
-                max={Math.max(0, frames.length - 1)}
-                value={index}
-                onChange={(e) => {
-                  setPlaying(false);
-                  setIndex(Number(e.target.value));
-                }}
-                className="w-full accent-brand"
-              />
-              <p className="text-[11px] leading-snug text-muted-foreground">
-                {frame?.max !== null && frame?.max !== undefined
-                  ? `${labels.maxInDomain.replace("{value}", String(Math.round(frame.max * 10) / 10)).replace("{unit}", pollutant.unit)} · `
-                  : ""}
-                {catalog.run
-                  ? labels.run.replace("{time}", runFmt.format(new Date(catalog.run.originTime)))
-                  : ""}
-              </p>
-              <p className="text-[11px] leading-snug text-muted-foreground">{labels.hint}</p>
-            </div>
-          ) : null}
-          {!available ? (
-            <p className="text-xs leading-snug text-muted-foreground">{labels.noData}</p>
-          ) : null}
-          <div className="flex items-center gap-2">
-            <Checkbox
-              id="layer-warnings"
-              checked={warningsOn}
-              onCheckedChange={(checked) => setWarningsOn(checked === true)}
-            />
-            <label htmlFor="layer-warnings" className="flex-1">
-              {labels.warnings}
-            </label>
-            <Badge variant={warnings.count > 0 ? "destructive" : "secondary"}>
-              {labels.warningsCount}
-            </Badge>
-          </div>
-          {warningsOn ? (
-            <div className="flex flex-col gap-1 rounded-lg bg-surface-2 p-2 text-xs">
-              {warnings.count === 0 ? (
-                <p className="text-muted-foreground">{labels.warningsNone}</p>
-              ) : null}
-              <ul className="flex flex-wrap gap-x-3 gap-y-1">
-                {warnings.legend.map((l) => (
-                  <li key={l.severity} className="flex items-center gap-1.5">
-                    <span
-                      className="inline-block size-2.5 rounded-full"
-                      style={{ background: l.color }}
-                      aria-hidden="true"
-                    />
-                    {l.label}
-                  </li>
-                ))}
-              </ul>
-              <a
-                href={warnings.href}
-                className="text-muted-foreground underline-offset-4 hover:underline"
-              >
-                {labels.warningsOpen}
-              </a>
-            </div>
-          ) : null}
+          {layerToggles("layer", true)}
         </div>
         <div className="flex flex-col gap-2">
           <p className="eyebrow">{labels.legend}</p>
           {legend}
         </div>
       </aside>
+
+      {/* Телефон: карта на весь экран, слои — в нижней шторке, SILAM и легенда — внизу карты. */}
+      <h1 className="sr-only md:hidden">{labels.title}</h1>
+      <div className="absolute top-3 left-3 z-10 md:hidden">
+        <Sheet open={layersOpen} onOpenChange={setLayersOpen}>
+          <SheetTrigger
+            aria-haspopup="dialog"
+            className="inline-flex h-10 items-center gap-2 rounded-full border bg-card/95 px-3.5 text-sm font-semibold text-foreground shadow-md backdrop-blur hover:bg-muted"
+          >
+            <LayersIcon className="size-4" aria-hidden="true" />
+            {labels.layers}
+            {extraLayers > 0 ? (
+              <span className="inline-flex min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-xs font-semibold text-primary-foreground tabular-nums">
+                {extraLayers}
+              </span>
+            ) : null}
+          </SheetTrigger>
+          <SheetContent
+            side="bottom"
+            className="max-h-[85dvh] overflow-y-auto rounded-t-2xl pb-[max(1rem,env(safe-area-inset-bottom))]"
+          >
+            <SheetHeader>
+              <SheetTitle>{labels.layers}</SheetTitle>
+            </SheetHeader>
+            <div className="flex flex-col gap-5 px-4 text-base">
+              {layerToggles("sheet-layer", false)}
+              <div className="flex flex-col gap-2">
+                <p className="eyebrow">{labels.legend}</p>
+                {legend}
+              </div>
+            </div>
+          </SheetContent>
+        </Sheet>
+      </div>
+      {/* Над нижней строкой карты: масштаб и атрибуция OpenStreetMap (обязательна по лицензии)
+          остаются видны. */}
+      <div className="pointer-events-none absolute right-3 bottom-10 left-3 z-10 flex flex-col gap-2 md:hidden">
+        {silamOn && available && pollutant ? (
+          <section
+            aria-label={labels.silam}
+            className="pointer-events-auto flex flex-col gap-1.5 rounded-xl border bg-card/95 p-2.5 shadow-md backdrop-blur"
+          >
+            <div className="flex items-center gap-2">
+              {pollutantSelect("w-auto shrink-0")}
+              <span className="ml-auto truncate text-xs font-medium tabular-nums">{timeLabel}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              {playback}
+              {slider("ml-1 flex-1")}
+            </div>
+            {silamMeta ? (
+              <p className="truncate text-[11px] leading-snug text-muted-foreground">{silamMeta}</p>
+            ) : null}
+          </section>
+        ) : null}
+        {legendChips}
+      </div>
     </div>
   );
 }
