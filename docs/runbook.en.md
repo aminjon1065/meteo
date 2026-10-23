@@ -11,6 +11,10 @@ All commands run from the repository directory on the server (`/opt/meteoportal`
 Shorthand: `dc = docker compose --env-file .env -f infra/compose/compose.prod.yml`
 (add to `~/.bashrc`: `alias dc='docker compose --env-file .env -f infra/compose/compose.prod.yml'`).
 
+A host shared with other applications, with deployment from GitHub Actions (the current `havo.tj` VPS), is
+described in section 13: per‑environment directories `/opt/meteo/<environment>`, the shared proxy `/opt/edge` and a
+`dc` command per environment.
+
 Server requirements: 4 vCPU, 8 GB RAM, 100 GB SSD (room for 5 years of data), static IP, a domain (subdomain)
 with DNS control, open ports 80/443, outbound access to SmartMet Server, FMI THREDDS (`thredds.silam.fmi.fi`),
 the CAP feed and the SMTP server.
@@ -68,12 +72,13 @@ Check after start‑up (section 1.7): `curl -I https://portal.meteo.tj/` → `20
 | Variable | Value | Note |
 |---|---|---|
 | `SITE_ADDRESS` | `portal.meteo.tj` | domain for Caddy; `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` (`https://…`) derive from it |
-| `POSTGRES_PASSWORD` | `openssl rand -base64 24` | password of the `meteo` role |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24` | password of the `meteo` role; hex only — it is part of `DATABASE_URL`, and `/ + =` from base64 break the URL |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 48` | session signing; changing it ends all sessions |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` | address and a password ≥ 10 characters | first administrator; used once by seed while the users table is empty |
 | `SMTP_URL` | `smtp://user:pass@mail.meteo.tj:587` or `smtps://…:465` | without it e‑mails only go to the worker log; URL‑encode special characters in the password (`@` → `%40`) |
 | `MAIL_FROM` | `"Meteoportal <noreply@meteo.tj>"` | the sender domain must pass SPF/DKIM/DMARC (section 1.8) |
 | `IMAGE_TAG` | `latest` or a commit SHA | image version from GHCR |
+| `IMAGE_REPO` | `ghcr.io/aminjon1065` (default) | registry and owner of the `meteoportal-*` images |
 
 Integrations (can be set later, section 9): `SMARTMET_URL`, `SMARTMET_PRODUCER`, `SMARTMET_API_KEY`,
 `SMARTMET_HOURLY_STEPS`, `SMARTMET_DAILY_DAYS`; `SILAM_NCSS_URL`, `SILAM_DATASET`, `SILAM_KEEP_RUNS`;
@@ -99,7 +104,7 @@ docker login ghcr.io          # token with read:packages
 dc pull
 ```
 
-After the repository moves to the Customer's GitHub, replace the owner in the `image:` lines of the three services in `compose.prod.yml`.
+After the repository moves to the Customer's GitHub, set `IMAGE_REPO=ghcr.io/<new owner>` in `.env`.
 
 Option B — build on the server (no GHCR access or local changes needed):
 
@@ -131,7 +136,9 @@ Directory owners inside the volumes are set by the images (user `app`); no manua
 ```bash
 dc up -d postgres redis                 # database and Redis
 dc up -d migrate && dc logs -f migrate  # Drizzle migrations + TimescaleDB/PostGIS SQL; wait for Exited (0)
-dc run --rm worker node dist/seed.js    # reference data (pollutants, scales, limit values, regions, forecast points) and the first administrator
+# reference data (pollutants, scales, limit values, regions, forecast points) and the first administrator; SEED_ADMIN_* are
+# passed explicitly — compose gives the container only the variables listed in compose.prod.yml, without -e no admin is created
+dc run --rm -e SEED_ADMIN_EMAIL -e SEED_ADMIN_PASSWORD -e SEED_ADMIN_NAME worker node dist/seed.js
 dc up -d                                # web, worker, caddy, backup
 dc ps                                   # all services healthy
 ```
@@ -651,3 +658,35 @@ At hand‑over to the Customer: `.env` and the restic password handed over by pr
 administrators with 2FA set up; the restore test (3.2) performed on staging with a log entry; external monitoring of
 `/api/healthz` configured; DNS/TLS and mail (SPF/DKIM/DMARC) verified with a test e‑mail from "Settings"; documentation —
 `docs/manuals` (HTML/PDF: `pnpm docs:build`).
+
+## 13. Shared host and deployment from GitHub Actions
+
+The portal runs on a Hostinger KVM 4 VPS (`46.202.155.70`, Ubuntu 26.04) behind Cloudflare (`havo.tj`). Other
+applications share the host, so ports 80/443 belong to a shared reverse proxy (`/opt/edge`, see `infra/edge/README.md`);
+the portal has two environments, each with its own database and volumes:
+
+| Environment | URL | Directory | Compose project | Name in the `edge` network |
+|---|---|---|---|---|
+| production | `https://havo.tj` | `/opt/meteo/production` | `meteo` | `meteo-prod` |
+| staging | `https://staging.havo.tj` | `/opt/meteo/staging` | `meteo-staging` | `meteo-staging` |
+
+Request path: visitor → Cloudflare → shared Caddy (Cloudflare Origin Certificate, client IP from `CF-Connecting-IP`
+for Cloudflare addresses only) → the portal's Caddy (HTTP `:80` inside the `edge` network; `infra/compose/compose.edge.yml`)
+→ web.
+
+- **Host setup (once, as root):** `sh infra/deploy/setup-host.sh aminjon1065/meteo` (user `deploy`,
+  `/usr/local/bin/meteo-deploy`, `/opt/meteo/*`, network `edge`); `sh infra/deploy/harden-host.sh` is run by the server
+  administrator (key‑only SSH, fail2ban, unattended upgrades). Firewall — in hPanel (TCP 22/80/443, UDP 443).
+- **Environment files:** `/opt/meteo/<environment>/.env` (owner `deploy`, mode 600) as in 1.3 plus `EDGE_ALIAS` and
+  `IMAGE_REPO`; `IMAGE_TAG` is managed by the deployment (`.deploy.env`). Use `/opt/meteo/<environment>/dc` instead of `dc`.
+- **GitHub:** environments `staging` and `production` (Required reviewers, branch `main` only), each with a secret
+  `DEPLOY_SSH_KEY`. The matching public keys sit in `/home/deploy/.ssh/authorized_keys` with a forced command
+  (`restrict,command="/usr/local/bin/meteo-deploy <environment>"`): a key can only deploy a commit to its own environment.
+- **Cloudflare:** proxied `A` records for `havo.tj`, `www`, `staging`; SSL/TLS **Full (strict)**; Origin Certificate
+  issued from the CSR generated on the server (`/opt/edge/certs/havo.tj.csr`; the key never leaves the server);
+  Rocket Loader and Email Obfuscation off (CSP); WAF Skip rule for `/api/v1/ingest/*` and `/api/healthz`.
+- **Flow:** push to `main` → CI → images `ghcr.io/aminjon1065/meteoportal-*:<sha>` → **Deploy → staging** automatically
+  → **Deploy → production** after approval. On the server `infra/deploy/deploy.sh` pulls images, backs up (production),
+  migrates, seeds, restarts, waits for health and rolls back to the previous version if the new one does not come up.
+  Re‑deploy or roll back: Actions → Deploy → Run workflow (environment + full commit SHA). The public Actions log only
+  shows the steps; service logs stay on the server (`/opt/meteo/<environment>/logs`).

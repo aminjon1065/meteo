@@ -70,7 +70,7 @@
 | 6.4 | Dependabot | ⬜ | включить после переноса репозитория в GitHub Заказчика (`.github/dependabot.yml`, еженедельно, группировка minor/patch) |
 | 6.5 | Образы non-root | ✅ | web/worker/backup — пользователь `app`/`backup`; redis — `user: 999:1000`; postgres — пользователь образа |
 | 6.6 | Read-only root FS, `cap_drop: ALL`, `no-new-privileges`, лимиты памяти/PID, ротация логов | ✅ | `infra/compose/compose.prod.yml`: web (tmpfs `/tmp`, `.next/cache`), worker, migrate, redis, backup — read-only; Caddy — read-only + `NET_BIND_SERVICE`; postgres — без read-only (сокеты/статистика), с `no-new-privileges`. Проверка: `docker compose … config` |
-| 6.7 | Секреты в CI | ✅ | только `GITHUB_TOKEN` для GHCR; пароли E2E — тестовые значения в workflow |
+| 6.7 | Секреты в CI | ✅ | `GITHUB_TOKEN` для GHCR; пароли E2E — тестовые значения в workflow; выкатка — `DEPLOY_SSH_KEY` в окружениях GitHub `staging`/`production` (у production — обязательное одобрение), ключ на сервере открывает только принудительную команду `meteo-deploy <окружение>` (без shell и проброса портов); `.env` окружений — только на сервере (`docs/runbook.md` §13) |
 
 ## 7. Наблюдаемость инцидентов
 

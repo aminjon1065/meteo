@@ -1,9 +1,18 @@
 # Caddy: TLS (Let's Encrypt автоматически), сжатие, заголовки безопасности, статика, прокси.
+# Два режима (docs/runbook.md §13):
+#  - один хост — CADDY_SITE_ADDRESS = домен портала, Caddy сам выпускает сертификат на 80/443;
+#  - за общим обратным прокси (compose.edge.yml) — CADDY_SITE_ADDRESS = ":80", TLS завершает
+#    общий Caddy, а этот слушает HTTP только во внутренней сети edge.
 {
 	email admin@meteo.tj
+	# Заголовки X-Forwarded-* принимаются только от прокси из частных сетей (общий Caddy в сети
+	# Docker). От клиентов из интернета они перезаписываются адресом TCP‑соединения.
+	servers {
+		trusted_proxies static private_ranges
+	}
 }
 
-{$SITE_ADDRESS} {
+{$CADDY_SITE_ADDRESS} {
 	encode zstd gzip
 
 	header {
@@ -41,12 +50,14 @@
 	}
 
 	handle {
+		# X-Forwarded-Proto Caddy ставит сам: схема соединения или (от доверенного прокси) присланное
+		# им значение — за общим прокси это https, хотя сюда запрос приходит по HTTP.
 		reverse_proxy web:3000 {
-			header_up X-Forwarded-Proto {scheme}
-			# IP клиента для лимитов запросов и журнала аудита: всегда адрес TCP‑соединения,
-			# а не значение, присланное клиентом в X-Forwarded-For (web доверяет первому адресу).
-			header_up X-Forwarded-For {remote_host}
-			header_up X-Real-IP {remote_host}
+			# IP клиента для лимитов запросов и журнала аудита (web доверяет первому адресу
+			# X-Forwarded-For): адрес TCP‑соединения, а за доверенным прокси — переданный им адрес
+			# клиента. Значение, присланное самим клиентом, не принимается.
+			header_up X-Forwarded-For {client_ip}
+			header_up X-Real-IP {client_ip}
 		}
 	}
 

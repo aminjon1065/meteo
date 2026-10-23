@@ -1,0 +1,52 @@
+# Общий обратный прокси хоста (Caddy): единственный владелец портов 80/443, TLS и маршрутизация
+# по доменам к приложениям в сети Docker «edge» (docs/runbook.md §13, infra/edge/README.md).
+# На сервере живёт в /opt/edge; это эталон, по которому он развёрнут.
+#
+#   docker network create edge                       # один раз на хосте
+#   docker compose -f /opt/edge/compose.yml up -d
+#   docker compose -f /opt/edge/compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
+name: edge
+
+services:
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      # Каталог, а не отдельный файл: правка Caddyfile редактором (новый inode) видна без пересоздания.
+      - ./conf:/etc/caddy:ro
+      - ./certs:/certs:ro
+      - data:/data
+      - config:/config
+    tmpfs:
+      - /tmp
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    networks:
+      - edge
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+    deploy:
+      resources:
+        limits:
+          memory: 512m
+          pids: 512
+
+networks:
+  edge:
+    external: true
+
+volumes:
+  data:
+  config:

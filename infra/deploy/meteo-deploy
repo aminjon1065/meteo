@@ -1,0 +1,65 @@
+#!/bin/sh
+# Принудительная команда SSH‑ключей GitHub Actions (устанавливается в /usr/local/bin скриптом
+# setup-host.sh; docs/runbook.md §13). Строка в ~deploy/.ssh/authorized_keys:
+#
+#   restrict,command="/usr/local/bin/meteo-deploy staging" ssh-ed25519 AAAA… gha-meteo-staging
+#
+# Ключ даёт ровно одно право: выкатить коммит репозитория в «своё» окружение. Shell, проброс
+# портов и выбор окружения клиенту недоступны. Клиент передаёт команду «deploy <полный SHA>»,
+# а в stdin — токен GitHub задания (GITHUB_TOKEN: contents:read, packages:read). Токен нужен,
+# чтобы скачать infra/ этого коммита и войти в GHCR; на диск он не пишется.
+set -eu
+set -f
+umask 027
+
+ENV_NAME=${1:-}
+case "$ENV_NAME" in
+  staging | production) ;;
+  *) echo "meteo-deploy: неверное окружение" >&2; exit 2 ;;
+esac
+
+# shellcheck disable=SC2086 # разбиение команды клиента на слова — намеренно (globbing выключен)
+set -- ${SSH_ORIGINAL_COMMAND:-}
+if [ "$#" -ne 2 ] || [ "$1" != deploy ]; then
+  echo "использование: deploy <полный SHA коммита>" >&2
+  exit 2
+fi
+SHA=$2
+if ! printf '%s' "$SHA" | grep -Eq '^[0-9a-f]{40}$'; then
+  echo "meteo-deploy: нужен полный SHA коммита (40 шестнадцатеричных символов)" >&2
+  exit 2
+fi
+
+GHCR_TOKEN=
+IFS= read -r GHCR_TOKEN || true
+if [ -z "$GHCR_TOKEN" ]; then
+  echo "meteo-deploy: нет токена GitHub в stdin" >&2
+  exit 2
+fi
+export GHCR_TOKEN
+
+# REPO=владелец/репозиторий, METEO_BASE=/opt/meteo
+. /etc/meteo-deploy.conf
+DIR="$METEO_BASE/$ENV_NAME"
+REL="$DIR/releases/$SHA"
+
+# Одна выкатка окружения за раз; блокировка держится до конца deploy.sh (fd 9 наследуется через exec).
+exec 9>"$DIR/.lock"
+if ! flock -n 9; then
+  echo "meteo-deploy: выкатка $ENV_NAME уже идёт" >&2
+  exit 75
+fi
+
+if [ ! -f "$REL/infra/deploy/deploy.sh" ]; then
+  tmp="$REL.tmp.$$"
+  rm -rf "$tmp"
+  mkdir -p "$tmp"
+  curl -fsSL --retry 3 \
+    -H "Authorization: Bearer $GHCR_TOKEN" -H "Accept: application/vnd.github+json" \
+    "https://api.github.com/repos/$REPO/tarball/$SHA" |
+    tar -xz -C "$tmp" --strip-components=1 --wildcards '*/infra/*'
+  rm -rf "$REL"
+  mv "$tmp" "$REL"
+fi
+
+exec sh "$REL/infra/deploy/deploy.sh" "$ENV_NAME" "$SHA"

@@ -18,7 +18,9 @@ packages/core   доменная логика без I/O (RBAC, уровни, п
 packages/db     схема Drizzle, миграции, TimescaleDB/PostGIS SQL, seed
 packages/i18n   локали и сообщения интерфейса
 packages/ui     дизайн‑система: токены, компоненты shadcn/ui, доменные компоненты
-infra/compose   docker-compose (dev) и compose.prod.yml (prod) + Caddyfile
+infra/compose   docker-compose (dev), compose.prod.yml (prod), compose.edge.yml (за общим прокси) + Caddyfile
+infra/edge      общий обратный прокси хоста с несколькими приложениями (Caddy, /opt/edge на сервере)
+infra/deploy    выкатка из GitHub Actions: подготовка хоста, meteo-deploy, deploy.sh, dc
 infra/backup    скрипт резервного копирования
 infra/data      fetch-map-assets.sh: экстракт тайлов Protomaps (OSM) и ассеты стиля; tiles/ — гитигнорируется
 docs/           проектная документация и ADR
@@ -58,6 +60,8 @@ pnpm dev                        # web: http://localhost:3000, worker: healthz н
 ## Продакшен
 
 Один хост с Docker: `docker compose --env-file .env -f infra/compose/compose.prod.yml up -d`.
+Хост с другими приложениями (общий прокси `infra/edge`, `compose.edge.yml`) и выкатка из GitHub Actions на
+staging/production (`.github/workflows/deploy.yml`, `infra/deploy/`) — [docs/runbook.md](docs/runbook.md) §13.
 Подробности — в [docs/runbook.md](docs/runbook.md) (развёртывание, DNS/TLS/SMTP, обновление, бэкап, инциденты) и в [docs/02-architecture.md](docs/02-architecture.md) §11.
 
 ## Документация

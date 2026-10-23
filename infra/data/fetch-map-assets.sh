@@ -3,7 +3,9 @@
 #  1. pmtiles CLI (go-pmtiles) — во временную папку;
 #  2. экстракт векторных тайлов Protomaps по bbox Таджикистана → infra/data/tiles/tajikistan.pmtiles;
 #  3. шрифты и спрайты стиля Protomaps → apps/web/public/basemaps (гитигнорируются).
-# Переменные: BBOX (lon_min,lat_min,lon_max,lat_max), MAXZOOM, BUILD (YYYYMMDD.pmtiles).
+# Переменные: BBOX (lon_min,lat_min,lon_max,lat_max), MAXZOOM, BUILD (YYYYMMDD.pmtiles);
+# SKIP_TILES=1 — только шрифты и спрайты (CI перед сборкой образа web), SKIP_ASSETS=1 — только тайлы
+# (сервер: тайлы кладутся в том tiles, docs/runbook.md §1.5).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -12,10 +14,13 @@ ASSETS_DIR="$ROOT/apps/web/public/basemaps"
 TMP="${MAP_TMP:-${TMPDIR:-/tmp}/meteo-map-assets}"
 BBOX="${BBOX:-66.5,36.5,75.5,41.5}"
 MAXZOOM="${MAXZOOM:-14}"
-mkdir -p "$TILES_DIR" "$ASSETS_DIR" "$TMP/bin" "$TMP/dl"
+mkdir -p "$TMP/bin" "$TMP/dl"
+[ "${SKIP_TILES:-0}" = "1" ] || mkdir -p "$TILES_DIR"
+[ "${SKIP_ASSETS:-0}" = "1" ] || mkdir -p "$ASSETS_DIR"
 
 log() { printf '[map-assets] %s\n' "$*"; }
 
+if [ "${SKIP_TILES:-0}" != "1" ]; then
 # 1. pmtiles CLI
 if ! command -v pmtiles >/dev/null 2>&1 && [ ! -x "$TMP/bin/pmtiles" ]; then
   OS="$(uname -s)"; ARCH="$(uname -m)"
@@ -59,9 +64,12 @@ else
   log "тайлы уже есть: $TILES_DIR/tajikistan.pmtiles"
 fi
 "$PMTILES" show "$TILES_DIR/tajikistan.pmtiles" | head -20
+fi
 
 # 3. Шрифты и спрайты стиля
-if [ ! -d "$ASSETS_DIR/fonts" ]; then
+if [ "${SKIP_ASSETS:-0}" = "1" ]; then
+  log "шрифты и спрайты пропущены (SKIP_ASSETS=1)"
+elif [ ! -d "$ASSETS_DIR/fonts" ]; then
   log "скачиваю basemaps-assets (шрифты и спрайты)"
   curl -fsSL https://github.com/protomaps/basemaps-assets/archive/refs/heads/main.zip -o "$TMP/dl/assets.zip"
   rm -rf "$TMP/assets" && mkdir -p "$TMP/assets" && (cd "$TMP/assets" && unzip -q -o "$TMP/dl/assets.zip")

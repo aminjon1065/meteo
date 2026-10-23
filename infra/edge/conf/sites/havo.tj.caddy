@@ -1,0 +1,22 @@
+# Метеопортал (github.com/aminjon1065/meteo): production и staging на этом хосте.
+# DNS в Cloudflare (проксирование включено), SSL/TLS «Full (strict)». Сертификат между Cloudflare
+# и сервером — Origin Certificate Cloudflare на havo.tj и *.havo.tj (ключ создан на сервере и его
+# не покидает; runbook §13.4). Портал внутри — Caddy портала в сети edge (compose.edge.yml).
+(havo_origin_tls) {
+	tls /certs/havo.tj.pem /certs/havo.tj.key
+}
+
+havo.tj {
+	import havo_origin_tls
+	import proxy_to meteo-prod:80
+}
+
+www.havo.tj {
+	import havo_origin_tls
+	redir https://havo.tj{uri} permanent
+}
+
+staging.havo.tj {
+	import havo_origin_tls
+	import proxy_to meteo-staging:80
+}

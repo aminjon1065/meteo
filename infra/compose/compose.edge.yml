@@ -1,0 +1,22 @@
+# Хост с несколькими приложениями (docs/runbook.md §13): порты 80/443 занимает общий Caddy
+# (infra/edge), а Caddy портала слушает HTTP :80 только во внутренней сети Docker «edge» под именем
+# EDGE_ALIAS — к нему общий Caddy и проксирует домен портала. TLS завершается на общем Caddy.
+#
+#   docker compose -p meteo --env-file .env \
+#     -f infra/compose/compose.prod.yml -f infra/compose/compose.edge.yml up -d
+#
+# Сеть создаётся один раз на хосте: docker network create edge
+services:
+  caddy:
+    ports: !reset []
+    environment:
+      CADDY_SITE_ADDRESS: ":80"
+    networks:
+      default: {}
+      edge:
+        aliases:
+          - ${EDGE_ALIAS:?задайте EDGE_ALIAS в .env (имя портала в сети edge, например meteo-prod)}
+
+networks:
+  edge:
+    external: true

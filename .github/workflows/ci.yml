@@ -5,9 +5,11 @@ on:
     branches: [main]
   pull_request:
 
+# PR: новый push отменяет прежний прогон. main: каждый коммит — свой прогон до конца (в нём выкатка;
+# её очередь держит concurrency окружения в deploy.yml), иначе push обрывал бы идущую выкатку.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name == 'pull_request' && github.ref || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   NEXT_TELEMETRY_DISABLED: 1
@@ -198,6 +200,11 @@ jobs:
             dockerfile: infra/backup/Dockerfile
     steps:
       - uses: actions/checkout@v4
+      # Шрифты и спрайты подложки карты гитигнорируются (ADR-003), а образ web копирует public/ целиком.
+      # Тайлы (210 МБ) в образ не входят — они в томе tiles на сервере.
+      - name: Map fonts and sprites (web)
+        if: matrix.name == 'web'
+        run: SKIP_TILES=1 bash infra/data/fetch-map-assets.sh
       - uses: docker/setup-buildx-action@v3
       - name: Build (local, for scanning)
         uses: docker/build-push-action@v6
@@ -207,6 +214,7 @@ jobs:
           load: true
           push: false
           tags: meteoportal-${{ matrix.name }}:scan
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
       - name: Trivy — уязвимости образа (HIGH/CRITICAL с исправлением блокируют)
@@ -231,5 +239,34 @@ jobs:
           file: ${{ matrix.dockerfile }}
           push: true
           tags: ghcr.io/${{ github.repository_owner }}/meteoportal-${{ matrix.name }}:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/meteoportal-${{ matrix.name }}:latest
+          labels: org.opencontainers.image.source=https://github.com/${{ github.repository }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  # Выкатка (docs/runbook.md §13): каждый зелёный коммит main — на staging сразу, на production —
+  # тот же образ после одобрения в окружении GitHub «production» (Required reviewers).
+  deploy-staging:
+    name: Deploy → staging
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [checks, security, migrations, e2e, docker]
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: staging
+      sha: ${{ github.sha }}
+    secrets: inherit
+
+  deploy-production:
+    name: Deploy → production
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [deploy-staging]
+    permissions:
+      contents: read
+      packages: read
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: production
+      sha: ${{ github.sha }}
+    secrets: inherit

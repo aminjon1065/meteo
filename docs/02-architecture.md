@@ -100,7 +100,7 @@ meteo/
 │   ├── backup/              # run.sh: pg_dump + архив загрузок, ротация
 │   └── data/                # сборка PMTiles‑экстракта, границы, символы погоды (неделя 2+)
 ├── docs/                    # эта документация, руководства (tg/ru/en), runbook, ADR
-├── .github/workflows/       # ci.yml: lint, i18n‑check, typecheck, test, build; миграции на TimescaleDB; образы в GHCR
+├── .github/workflows/       # ci.yml: lint, i18n‑check, typecheck, test, build; миграции на TimescaleDB; образы в GHCR; deploy.yml: выкатка по SSH
 ├── biome.json, turbo.json, tsconfig.base.json, pnpm-workspace.yaml, .env.example
 ```
 

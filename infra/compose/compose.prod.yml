@@ -1,5 +1,8 @@
 # Продакшен / staging: один хост, Caddy (TLS), web, worker, migrate, postgres, redis, backup.
 # Запуск: docker compose --env-file .env -f infra/compose/compose.prod.yml up -d
+# Хост с несколькими приложениями и общим обратным прокси: добавить -f infra/compose/compose.edge.yml
+# (docs/runbook.md §13; там же выкатка из GitHub Actions — infra/deploy/).
+# Образы: ${IMAGE_REPO}/meteoportal-{web,worker,backup}:${IMAGE_TAG} — их публикует CI (.github/workflows/ci.yml).
 #
 # Усиление (docs/security-checklist.md): приложения работают от непривилегированных пользователей
 # образов, корневая ФС только для чтения (запись — в именованные тома и tmpfs), сброшены все
@@ -38,7 +41,8 @@ services:
       - "443:443"
       - "443:443/udp"
     environment:
-      SITE_ADDRESS: ${SITE_ADDRESS}
+      # Адрес сайта в Caddyfile: домен (TLS на этом хосте) или ":80" за общим прокси (compose.edge.yml).
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:-${SITE_ADDRESS}}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -67,7 +71,7 @@ services:
         condition: service_healthy
 
   web:
-    image: ghcr.io/meteo-tj/meteoportal-web:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REPO:-ghcr.io/aminjon1065}/meteoportal-web:${IMAGE_TAG:-latest}
     build:
       context: ../..
       dockerfile: apps/web/Dockerfile
@@ -118,7 +122,7 @@ services:
           pids: 512
 
   worker:
-    image: ghcr.io/meteo-tj/meteoportal-worker:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REPO:-ghcr.io/aminjon1065}/meteoportal-worker:${IMAGE_TAG:-latest}
     build:
       context: ../..
       dockerfile: apps/worker/Dockerfile
@@ -180,7 +184,7 @@ services:
           pids: 512
 
   migrate:
-    image: ghcr.io/meteo-tj/meteoportal-worker:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REPO:-ghcr.io/aminjon1065}/meteoportal-worker:${IMAGE_TAG:-latest}
     command: ["node", "dist/migrate.js"]
     <<: *hardening
     environment:
@@ -253,7 +257,7 @@ services:
           pids: 128
 
   backup:
-    image: ghcr.io/meteo-tj/meteoportal-backup:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REPO:-ghcr.io/aminjon1065}/meteoportal-backup:${IMAGE_TAG:-latest}
     build:
       context: ../backup
     restart: unless-stopped

@@ -1,0 +1,93 @@
+name: Deploy
+
+# Выкатка опубликованных CI образов на VPS (docs/runbook.md §13). Вызывается из CI после зелёной
+# сборки main: staging — сразу, production — после одобрения в окружении GitHub «production».
+# Вручную (Actions → Deploy → Run workflow) — повторная выкатка или возврат на прежнюю версию:
+# любой коммит main, образы которого CI опубликовал в GHCR.
+#
+# На сервере ключ окружения (секрет DEPLOY_SSH_KEY окружения GitHub) открывает только принудительную
+# команду /usr/local/bin/meteo-deploy <окружение>: она скачивает infra/ коммита и запускает
+# infra/deploy/deploy.sh. Токен задания передаётся в stdin (для скачивания и входа в GHCR) и
+# на сервере не сохраняется.
+on:
+  workflow_call:
+    inputs:
+      environment:
+        type: string
+        required: true
+      sha:
+        type: string
+        required: true
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Окружение
+        type: choice
+        options: [staging, production]
+        required: true
+      sha:
+        description: Полный SHA коммита main с опубликованными образами (пусто — последний коммит выбранной ветки)
+        type: string
+        required: false
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  deploy:
+    name: Deploy → ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: ${{ inputs.environment }}
+      url: ${{ inputs.environment == 'production' && 'https://havo.tj' || 'https://staging.havo.tj' }}
+    concurrency:
+      group: deploy-${{ inputs.environment }}
+      cancel-in-progress: false
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST || '46.202.155.70' }}
+      SHA: ${{ inputs.sha || github.sha }}
+      SITE_URL: ${{ inputs.environment == 'production' && 'https://havo.tj' || 'https://staging.havo.tj' }}
+    steps:
+      - name: Check SHA
+        run: |
+          echo "$SHA" | grep -Eq '^[0-9a-f]{40}$' || { echo "::error::нужен полный SHA коммита"; exit 1; }
+
+      - name: SSH key of the environment
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          # Публичный ключ хоста (не секрет): защита от подмены сервера.
+          KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS || '46.202.155.70 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIHskUaVBp017U8UVTCuInGz3uXYd0CoUPt03I0+BPuJ1' }}
+        run: |
+          if [ -z "$DEPLOY_SSH_KEY" ]; then
+            echo "::error::В окружении GitHub «${{ inputs.environment }}» нет секрета DEPLOY_SSH_KEY (runbook §13.3)"
+            exit 1
+          fi
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+
+      - name: Deploy on the server
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          printf '%s\n' "$GITHUB_TOKEN" | ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes -o ServerAliveInterval=30 "deploy@$DEPLOY_HOST" "deploy $SHA"
+
+      - name: External health check
+        run: |
+          for attempt in 1 2 3 4 5 6; do
+            if curl -fsS -o /dev/null -w "%{http_code} за %{time_total} с\n" "$SITE_URL/api/healthz"; then
+              exit 0
+            fi
+            echo "попытка $attempt: нет ответа, повтор через 10 с"
+            sleep 10
+          done
+          echo "::error::$SITE_URL/api/healthz не отвечает снаружи (DNS/Cloudflare/общий прокси, runbook §13)"
+          exit 1
+
+      - name: Remove SSH key
+        if: always()
+        run: rm -f ~/.ssh/deploy_key

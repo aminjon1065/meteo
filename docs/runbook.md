@@ -12,6 +12,9 @@ PostGIS), redis, backup. Архитектура — `docs/02-architecture.md`, �
 с правом запускать Docker. Сокращение: `dc = docker compose --env-file .env -f infra/compose/compose.prod.yml`
 (удобно добавить в `~/.bashrc`: `alias dc='docker compose --env-file .env -f infra/compose/compose.prod.yml'`).
 
+Сервер с несколькими приложениями и выкаткой из GitHub Actions (текущий VPS `havo.tj`) — раздел 13:
+там же каталоги `/opt/meteo/<окружение>`, общий прокси `/opt/edge` и команда `dc` для каждого окружения.
+
 Требования к серверу: 4 vCPU, 8 ГБ RAM, 100 ГБ SSD (с запасом на 5 лет данных), статический IP,
 домен (поддомен) с правом управлять DNS, открытые порты 80/443, исходящий доступ к SmartMet Server,
 THREDDS FMI (`thredds.silam.fmi.fi`), фиду CAP и SMTP‑серверу.
@@ -69,12 +72,13 @@ git clone <адрес репозитория> /opt/meteoportal && cd /opt/meteop
 | Переменная | Значение | Примечание |
 |---|---|---|
 | `SITE_ADDRESS` | `portal.meteo.tj` | домен для Caddy; из него собираются `BETTER_AUTH_URL` и `NEXT_PUBLIC_APP_URL` (`https://…`) |
-| `POSTGRES_PASSWORD` | `openssl rand -base64 24` | пароль роли `meteo` |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24` | пароль роли `meteo`; только hex — пароль входит в `DATABASE_URL`, символы `/ + =` из base64 ломают адрес |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 48` | подписи сессий; смена завершает все сессии |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` | адрес и пароль ≥ 10 символов | первый администратор; используется один раз при seed, пока таблица пользователей пуста |
 | `SMTP_URL` | `smtp://user:pass@mail.meteo.tj:587` или `smtps://…:465` | без него письма только в лог worker'а; спецсимволы в пароле — URL‑кодировать (`@` → `%40`) |
 | `MAIL_FROM` | `"Метеопортал <noreply@meteo.tj>"` | домен отправителя должен проходить SPF/DKIM/DMARC (раздел 1.8) |
 | `IMAGE_TAG` | `latest` или SHA коммита | версия образов из GHCR |
+| `IMAGE_REPO` | `ghcr.io/aminjon1065` (по умолчанию) | реестр и владелец образов `meteoportal-*` |
 
 Интеграции (можно задать позже, раздел 9): `SMARTMET_URL`, `SMARTMET_PRODUCER`, `SMARTMET_API_KEY`,
 `SMARTMET_HOURLY_STEPS`, `SMARTMET_DAILY_DAYS`; `SILAM_NCSS_URL`, `SILAM_DATASET`, `SILAM_KEEP_RUNS`;
@@ -100,7 +104,7 @@ docker login ghcr.io          # токен read:packages
 dc pull
 ```
 
-После переноса репозитория в GitHub Заказчика замените владельца в `image:` трёх сервисов `compose.prod.yml`.
+После переноса репозитория в GitHub Заказчика задайте в `.env` `IMAGE_REPO=ghcr.io/<новый владелец>`.
 
 Вариант Б — сборка на сервере (нет доступа к GHCR или нужны локальные правки):
 
@@ -132,7 +136,9 @@ docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
 ```bash
 dc up -d postgres redis                 # база и Redis
 dc up -d migrate && dc logs -f migrate  # миграции Drizzle + SQL TimescaleDB/PostGIS; ждать Exited (0)
-dc run --rm worker node dist/seed.js    # справочники (вещества, шкалы, ПДК, регионы, точки прогноза) и первый администратор
+# справочники (вещества, шкалы, ПДК, регионы, точки прогноза) и первый администратор; SEED_ADMIN_* передаются
+# явно — compose отдаёт контейнеру только перечисленные в compose.prod.yml переменные, без -e администратор не создаётся
+dc run --rm -e SEED_ADMIN_EMAIL -e SEED_ADMIN_PASSWORD -e SEED_ADMIN_NAME worker node dist/seed.js
 dc up -d                                # web, worker, caddy, backup
 dc ps                                   # все сервисы healthy
 ```
@@ -655,3 +661,110 @@ DATABASE_URL=… pnpm db:import-history -- --file ~/archive/du-2023.xlsx --mappi
 администратора с настроенной 2FA; тест восстановления (3.2) выполнен на staging с записью в журнале; внешний
 мониторинг `/api/healthz` настроен; DNS/TLS и почта (SPF/DKIM/DMARC) проверены письмом из «Настроек»; документация —
 `docs/manuals` (HTML/PDF: `pnpm docs:build`).
+
+## 13. Хост с несколькими приложениями и выкатка из GitHub Actions
+
+Так развёрнут портал на VPS Hostinger KVM 4 (`46.202.155.70`, Ubuntu 26.04, 4 vCPU / 16 ГБ / 200 ГБ), домен
+`havo.tj` в Cloudflare. На сервере живут и другие приложения, поэтому порты 80/443 занимает общий обратный прокси
+(`/opt/edge`, `infra/edge/`), а у портала два окружения со своими базами и томами:
+
+| Окружение | Адрес | Каталог | Проект compose | Имя в сети `edge` |
+|---|---|---|---|---|
+| production | `https://havo.tj` (`www` → перенаправление) | `/opt/meteo/production` | `meteo` | `meteo-prod` |
+| staging | `https://staging.havo.tj` | `/opt/meteo/staging` | `meteo-staging` | `meteo-staging` |
+
+Путь запроса: посетитель → Cloudflare (TLS, кэш, защита) → общий Caddy `edge-caddy-1` (Origin Certificate,
+реальный IP клиента из `CF-Connecting-IP`) → Caddy портала (HTTP `:80` только в сети `edge`, статика тайлов,
+SILAM, загрузок) → web. Режим «за общим прокси» включает `infra/compose/compose.edge.yml` поверх `compose.prod.yml`.
+
+### 13.1. Подготовка хоста (однократно)
+
+```bash
+# из копии репозитория на сервере, от root
+sh infra/deploy/setup-host.sh aminjon1065/meteo   # пользователь deploy, /usr/local/bin/meteo-deploy, /opt/meteo/*, сеть edge
+sh infra/deploy/harden-host.sh                    # администратор сервера: SSH только по ключам, fail2ban, автообновления
+```
+
+`harden-host.sh` отключает вход по паролю — перед запуском проверьте вход по ключу (команда в шапке скрипта).
+Межсетевой экран — в hPanel (VPS → Межсетевой экран: TCP 22, 80, 443, UDP 443): Docker публикует порты в обход ufw.
+
+Общий прокси: содержимое `infra/edge/` → `/opt/edge` (`compose.yml`, `conf/Caddyfile`, `conf/sites/*.caddy`,
+`certs/` с правами 700), затем `docker compose -f /opt/edge/compose.yml up -d`. Как подключить другое приложение —
+`infra/edge/README.md`.
+
+### 13.2. Окружения портала
+
+`/opt/meteo/<окружение>/.env` (владелец `deploy`, права 600) — как в 1.3, плюс `EDGE_ALIAS` (имя в сети `edge`,
+таблица выше) и `IMAGE_REPO`; `IMAGE_TAG` не задаётся — его ведёт выкатка. Тайлы карты кладутся в тома
+`meteo_tiles` и `meteo-staging_tiles` (как в 1.5; на сервере достаточно `SKIP_ASSETS=1 ./infra/data/fetch-map-assets.sh`).
+
+| Что | Где |
+|---|---|
+| Версии (только `infra/` коммита) | `releases/<sha>/`; хранятся текущая, предыдущая и ещё три |
+| Текущая версия | `current` → `releases/<sha>`, тег образов — `.deploy.env` (`IMAGE_TAG`, `PREVIOUS_TAG`) |
+| История и журналы выкаток | `deploy.log`, `logs/<время>-<sha>.log` (90 дней) |
+| docker compose окружения | `./dc` — вместо `dc` из начала документа: `/opt/meteo/production/dc ps`, `… logs -f worker` |
+
+### 13.3. GitHub (однократно)
+
+1. Settings → Environments: `staging` (Deployment branches: только `main`) и `production` (Required reviewers —
+   ответственные за выпуск; Deployment branches: только `main`).
+2. В каждом окружении секрет `DEPLOY_SSH_KEY` — приватный ключ своей пары ed25519. Публичные ключи — в
+   `/home/deploy/.ssh/authorized_keys` с принудительной командой, ключ одного окружения не выкатывает другое:
+
+   ```
+   restrict,command="/usr/local/bin/meteo-deploy staging" ssh-ed25519 AAAA… gha-meteo-staging
+   restrict,command="/usr/local/bin/meteo-deploy production" ssh-ed25519 AAAA… gha-meteo-production
+   ```
+
+3. Необязательно: переменные `DEPLOY_HOST` и `DEPLOY_KNOWN_HOSTS` (значения по умолчанию — в `deploy.yml`; при
+   переезде на другой сервер задать их). Пакеты `meteoportal-*` в GHCR можно оставить приватными: выкатка входит
+   в реестр токеном задания.
+
+Ротация ключа выкатки: новая пара → публичный ключ в `authorized_keys` (строка как выше) → секрет окружения →
+удалить старую строку.
+
+### 13.4. Cloudflare и TLS
+
+- DNS: `A` для `havo.tj`, `www`, `staging` → `46.202.155.70`, проксирование включено (оранжевое облако);
+  `AAAA` → `2a02:4780:41:1d30::1` — по желанию.
+- SSL/TLS → Overview: **Full (strict)**; Edge Certificates: Always Use HTTPS.
+- Сертификат между Cloudflare и сервером — Origin Certificate (15 лет). Ключ и CSR созданы на сервере
+  (`/opt/edge/certs/havo.tj.key`, `havo.tj.csr`), ключ сервер не покидает: SSL/TLS → Origin Server → Create
+  Certificate → «Use my private key and CSR» → вставить CSR, имена `havo.tj`, `*.havo.tj` → сохранить выданный
+  сертификат в `/opt/edge/certs/havo.tj.pem` → `docker compose -f /opt/edge/compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile`.
+- Выключить Rocket Loader и Email Address Obfuscation: они вставляют свои скрипты, которые блокирует CSP портала.
+- Bot Fight Mode / WAF не должны показывать проверку логгерам станций и проверке здоровья: правило Skip для
+  `/api/v1/ingest/*` и `/api/healthz` (иначе приём данных по API и внешняя проверка в GitHub Actions получают 403).
+- Ограничения бесплатного тарифа: тело запроса ≤ 100 МБ (загрузки CMS, импорт CSV), ответ ≤ 100 с.
+
+### 13.5. Выкатка, проверка, возврат
+
+1. Push в `main` → CI (lint, typecheck, unit, E2E, Lighthouse, миграции, `pnpm audit`, Trivy) → образы
+   `ghcr.io/aminjon1065/meteoportal-{web,worker,backup}:<sha>`.
+2. **Deploy → staging** — сразу; **Deploy → production** — тот же образ после Review deployments → Approve.
+3. На сервере `deploy.sh`: pull образов → бэкап (production) → postgres/redis → миграции → справочники →
+   перезапуск → ожидание healthy и `/api/healthz` через Caddy портала и общий прокси. Если версия не поднялась —
+   автоматический возврат на предыдущую (миграции не откатываются, см. раздел 2). Затем GitHub проверяет
+   `https://<адрес>/api/healthz` снаружи, через Cloudflare.
+4. Повторная выкатка или возврат на прежнюю версию — Actions → Deploy → Run workflow: окружение и полный SHA
+   коммита `main` (его образы уже в GHCR).
+
+Журнал GitHub Actions у публичного репозитория открыт всем, поэтому скрипт выкатки печатает только шаги, а журналы
+миграций и сервисов пишет на сервер (`/opt/meteo/<окружение>/logs`). Несколько выкаток одного окружения не идут
+одновременно (блокировка на сервере и `concurrency` в `deploy.yml`).
+
+### 13.6. После первой выкатки
+
+1. Вход `https://havo.tj/admin` администратором из `.env` окружения (`grep SEED_ADMIN /opt/meteo/production/.env`
+   на сервере), настройка 2FA, второй администратор (1.7); затем удалить `SEED_ADMIN_PASSWORD` из `.env`.
+2. Границы областей и районов (1.6) — с рабочей станции через SSH‑туннель к PostgreSQL окружения:
+
+   ```bash
+   PG=$(ssh root@46.202.155.70 "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' meteo-postgres-1" | awk '{print $1}')
+   ssh -N -L 15432:$PG:5432 root@46.202.155.70 &
+   DATABASE_URL=postgres://meteo:<POSTGRES_PASSWORD окружения>@127.0.0.1:15432/meteo pnpm --filter @meteo/db boundaries
+   kill %1
+   ```
+
+3. Пароль restic (`RESTIC_PASSWORD` из `.env` production) — в менеджер паролей; офсайт‑репозиторий — раздел 3.
