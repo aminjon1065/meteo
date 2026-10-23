@@ -297,10 +297,12 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
         value: Math.round((6 + 2 * wave) * 10) / 10,
       });
     }
-    // Подозрительное значение ≈ 3 часа назад, но не в 07:00 по Душанбе: этот час перезаписывает сценарий
-    // ручного ввода (e2e/admin/measurements.spec.ts), и при прогоне в 10:00–11:00 очередь QC оказывалась пустой.
+    // Подозрительное значение ≈ 3 часа назад, но не в часы, которые перезаписывают другие сценарии:
+    // 07:00 по Душанбе — ручной ввод (e2e/admin/measurements.spec.ts), 4–6 ч назад — приём по API
+    // (e2e/public/ingest.spec.ts пишет PM2.5 «<5» за текущий час − 4 ч). Поэтому из 07:00 сдвигаем
+    // вперёд, на 2 ч назад: сдвиг назад попадал под приём по API, и в 10:00–11:00 очередь QC пустела.
     let suspectTime = floorHour(new Date(now.getTime() - 3 * HOUR));
-    if (dushanbeHour(suspectTime) === 7) suspectTime = new Date(suspectTime.getTime() - HOUR);
+    if (dushanbeHour(suspectTime) === 7) suspectTime = new Date(suspectTime.getTime() + HOUR);
     for (const r of rows) {
       if (
         r.pollutantId === need(pid, E2E.suspectPollutant) &&
