@@ -184,10 +184,19 @@ test.describe("телефон", () => {
     await slider.focus();
     await page.keyboard.press("ArrowRight");
     await expect(card.getByRole("button", { name: t("ru", "silam.play") })).toBeVisible();
-    // Карточка не перекрывает масштаб и атрибуцию карты.
+    // Карточка не перекрывает нижнюю строку карты (масштаб и атрибуция OSM): она выше её на
+    // bottom-10 (40 px). Атрибуцию сравниваем, только если она видна: без тайлов подложки (в CI
+    // файла .pmtiles нет) MapLibre прячет пустую атрибуцию.
     const cardBox = await card.boundingBox();
-    const attrib = await page.locator(".maplibregl-ctrl-attrib").boundingBox();
-    expect(cardBox && attrib && cardBox.y + cardBox.height <= attrib.y).toBeTruthy();
+    const mapBox = await page.locator("[data-map-layers]").first().boundingBox();
+    if (!cardBox || !mapBox) throw new Error("нет размеров карточки SILAM или карты");
+    const cardBottom = cardBox.y + cardBox.height;
+    expect(cardBottom).toBeLessThanOrEqual(mapBox.y + mapBox.height - 32);
+    const attrib = page.locator(".maplibregl-ctrl-attrib");
+    if (await attrib.isVisible()) {
+      const attribBox = await attrib.boundingBox();
+      if (attribBox) expect(cardBottom).toBeLessThanOrEqual(attribBox.y);
+    }
     expect(violations()).toEqual([]);
   });
 });
