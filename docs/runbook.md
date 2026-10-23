@@ -732,10 +732,14 @@ sh infra/deploy/harden-host.sh                    # администратор �
 - Сертификат между Cloudflare и сервером — Origin Certificate (15 лет). Ключ и CSR созданы на сервере
   (`/opt/edge/certs/havo.tj.key`, `havo.tj.csr`), ключ сервер не покидает: SSL/TLS → Origin Server → Create
   Certificate → «Use my private key and CSR» → вставить CSR, имена `havo.tj`, `*.havo.tj` → сохранить выданный
-  сертификат в `/opt/edge/certs/havo.tj.pem` → `docker compose -f /opt/edge/compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile`.
+  сертификат в `/opt/edge/certs/havo.tj.pem` → `docker compose -f /opt/edge/compose.yml exec caddy caddy reload --force --config /etc/caddy/Caddyfile`
+  (`--force` обязателен: Caddyfile не менялся, и без него Caddy не перечитывает файлы сертификатов).
+  Выпущен 23.10.2026, действует до 19.10.2041; временный самоподписанный — `havo.tj.selfsigned.pem`.
 - Выключить Rocket Loader и Email Address Obfuscation: они вставляют свои скрипты, которые блокирует CSP портала.
 - Bot Fight Mode / WAF не должны показывать проверку логгерам станций и проверке здоровья: правило Skip для
   `/api/v1/ingest/*` и `/api/healthz` (иначе приём данных по API и внешняя проверка в GitHub Actions получают 403).
+  Настроено: Security rules → «Skip: station ingest API and healthz (meteo portal)» — пропускает Browser Integrity
+  Check, Security Level, User Agent Blocking и Super Bot Fight Mode; Bot Fight Mode выключен.
 - Ограничения бесплатного тарифа: тело запроса ≤ 100 МБ (загрузки CMS, импорт CSV), ответ ≤ 100 с.
 
 ### 13.5. Выкатка, проверка, возврат

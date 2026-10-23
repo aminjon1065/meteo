@@ -24,9 +24,13 @@ RUN pnpm --filter @meteo/web build
 FROM node:22-alpine AS runner
 WORKDIR /app
 ENV NODE_ENV=production PORT=3000 HOSTNAME=0.0.0.0 NEXT_TELEMETRY_DISABLED=1
+# Менеджеры пакетов базового образа в рантайме не нужны (запуск — node напрямую), а встроенные
+# зависимости npm (brace-expansion, pacote, sigstore…) — постоянный источник CVE в скане Trivy.
 # /app/uploads и /app/silam создаются заранее с владельцем app: именованные тома
 # при первом монтировании наследуют владельца каталога из образа.
-RUN addgroup -S app && adduser -S app -G app \
+RUN rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack /opt/yarn-v* \
+      /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+    && addgroup -S app && adduser -S app -G app \
     && mkdir -p /app/uploads /app/silam && chown app:app /app/uploads /app/silam
 COPY --from=build --chown=app:app /repo/apps/web/.next/standalone ./
 COPY --from=build --chown=app:app /repo/apps/web/.next/static ./apps/web/.next/static

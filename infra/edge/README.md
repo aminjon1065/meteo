@@ -54,6 +54,9 @@ Cloudflare ──► :443 edge-caddy-1 ──(сеть edge)──► meteo-prod
    docker compose -f /opt/edge/compose.yml exec caddy caddy reload --config /etc/caddy/Caddyfile
    ```
 
+После замены только файла сертификата в `certs/` (Caddyfile не менялся) нужен `caddy reload --force` —
+иначе Caddy считает конфигурацию неизменной и продолжает отдавать прежний сертификат.
+
 Сервисы на самом хосте (не в Docker) доступны прокси как `host.docker.internal` после добавления
 `extra_hosts: ["host.docker.internal:host-gateway"]` к сервису `caddy` в `compose.yml`.
 
