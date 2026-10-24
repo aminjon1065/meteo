@@ -64,14 +64,31 @@ export async function cachedJson<T>(
   return { value, hit: false };
 }
 
-/** Удаляет записи по префиксу ключа (после ручного ввода/импорта — свежий индекс без ожидания TTL). */
+/** Экранирует спецсимволы glob-шаблона Redis (MATCH), чтобы префикс сравнивался буквально. */
+export function escapeRedisGlob(value: string): string {
+  return value.replace(/[*?[\]\\]/g, "\\$&");
+}
+
+/** Ключей за один шаг SCAN — подсказка Redis, а не точный размер страницы. */
+const SCAN_COUNT = 500;
+
+/**
+ * Удаляет записи по префиксу ключа (после ручного ввода/импорта — свежий индекс без ожидания TTL).
+ * Ключи перебираются курсором SCAN и удаляются UNLINK по страницам: в отличие от KEYS это не
+ * блокирует Redis, общий с очередями воркера и rate limiting, на время обхода всей базы.
+ */
 export async function invalidateCache(prefix: string): Promise<void> {
   for (const key of memory.keys()) if (key.startsWith(PREFIX + prefix)) memory.delete(key);
   const redis = getRedis();
   if (!redis) return;
   try {
-    const keys = await redis.keys(`${PREFIX}${prefix}*`);
-    if (keys.length) await redis.del(...keys);
+    const pattern = `${escapeRedisGlob(PREFIX + prefix)}*`;
+    let cursor = "0";
+    do {
+      const [next, keys] = await redis.scan(cursor, "MATCH", pattern, "COUNT", SCAN_COUNT);
+      if (keys.length) await redis.unlink(...keys);
+      cursor = next;
+    } while (cursor !== "0");
   } catch {
     // недоступен — записи истекут по TTL
   }

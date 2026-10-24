@@ -39,6 +39,7 @@ import {
   type PullSourceResult,
   resolveSourceSecrets,
 } from "./shared";
+import { ForbiddenTargetError } from "./target";
 
 const DEFAULT_HISTORY_HOURS = 24;
 const DEFAULT_HISTORY_MAX_HOURS = 72;
@@ -154,6 +155,8 @@ export async function pullJsonSource(
             "station-pull: json history fetched",
           );
         } catch (error) {
+          // Запрещённый адрес истории — ошибка настройки источника, как и у основного адреса.
+          if (error instanceof ForbiddenTargetError) throw error;
           // История — догрузка; без неё свежие записи всё равно принимаются.
           const message = summarizeError(error);
           pushError("history", message);

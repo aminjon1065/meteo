@@ -8,7 +8,13 @@ let transport: Transporter | null = null;
 export function getTransport(): { transport: Transporter; dev: boolean } {
   if (!transport) {
     if (env.SMTP_URL) {
-      transport = nodemailer.createTransport(env.SMTP_URL);
+      // Таймауты на одно письмо: зависший SMTP не держит рассылку (и её замок) десятки минут.
+      transport = nodemailer.createTransport({
+        url: env.SMTP_URL,
+        connectionTimeout: 30_000,
+        greetingTimeout: 30_000,
+        socketTimeout: 60_000,
+      });
       logger.info("smtp transport configured");
     } else {
       transport = nodemailer.createTransport({ jsonTransport: true });

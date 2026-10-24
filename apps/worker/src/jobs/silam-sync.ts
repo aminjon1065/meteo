@@ -1,4 +1,4 @@
-import { mkdir, rm, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rename, rm, writeFile } from "node:fs/promises";
 import { join, resolve } from "node:path";
 import {
   buildSilamSubsetUrl,
@@ -199,12 +199,59 @@ export const silamSync: JobDefinition<SilamSyncData> = {
   },
 };
 
-async function syncSilam(data: SilamSyncData) {
+/**
+ * Ставит каталог `tmpDir` на место `dir`: прежний (если есть) уходит в сторону и удаляется после
+ * переименования, так что на месте всегда целый каталог — старый или новый.
+ */
+export async function replaceDirectory(tmpDir: string, dir: string): Promise<void> {
+  const aside = `${dir}.old-${process.pid}-${Date.now()}`;
+  let hadOld = true;
+  try {
+    await rename(dir, aside);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
+    hadOld = false;
+  }
+  try {
+    await rename(tmpDir, dir);
+  } catch (error) {
+    if (hadOld) await rename(aside, dir).catch(() => {});
+    throw error;
+  }
+  if (hadOld) await rm(aside, { recursive: true, force: true });
+}
+
+/** Каталоги, оставшиеся от прерванной синхронизации (рестарт контейнера посреди отрисовки). */
+const LEFTOVER_DIR = /^\d{10}\.(tmp|old)-\d+-\d+$/;
+
+export async function removeLeftoverDirs(silamDir: string): Promise<number> {
+  let names: string[];
+  try {
+    names = await readdir(silamDir);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") return 0;
+    throw error;
+  }
+  const leftovers = names.filter((n) => LEFTOVER_DIR.test(n));
+  for (const name of leftovers) await rm(join(silamDir, name), { recursive: true, force: true });
+  return leftovers.length;
+}
+
+/**
+ * Синхронизация прогона SILAM. Порядок важен: сначала полная выгрузка и разбор, затем растры во
+ * временный каталог, подмена каталога и только потом замена записей в базе одной транзакцией —
+ * если THREDDS не ответит или файл окажется битым (в т. ч. при перезагрузке с force), текущий
+ * прогон остаётся на месте.
+ */
+export async function syncSilam(data: SilamSyncData) {
   {
     const now = new Date();
     const start = localMidnightUtc(now);
     const end = new Date(start.getTime() + FORECAST_HOURS * HOUR);
     const base = { baseUrl: env.SILAM_NCSS_URL, dataset: env.SILAM_DATASET };
+    // Под замком silam-sync других синхронизаций нет — временные каталоги прошлых запусков ничьи.
+    const leftovers = await removeLeftoverDirs(env.SILAM_DIR);
+    if (leftovers) logger.warn({ leftovers }, "silam: removed leftover temp dirs");
 
     // 1. Дешёвая проверка: время запуска последнего прогона по одному шагу.
     const probeStart = new Date(Math.floor(now.getTime() / HOUR) * HOUR);
@@ -232,12 +279,8 @@ async function syncSilam(data: SilamSyncData) {
       logger.info({ origin: origin.toISOString() }, "silam run already loaded");
       return { skipped: true, origin: origin.toISOString() };
     }
-    if (existing) {
-      await db.delete(silamRuns).where(eq(silamRuns.id, existing.id));
-      await rm(join(env.SILAM_DIR, runKey(origin)), { recursive: true, force: true });
-    }
 
-    // 2. Полная выгрузка и разбор.
+    // 2. Полная выгрузка и разбор — до любых изменений в базе и на диске.
     const [pollutantRows, config] = await Promise.all([
       db
         .select({ id: pollutants.id, code: pollutants.code, unit: pollutants.unit })
@@ -263,50 +306,37 @@ async function syncSilam(data: SilamSyncData) {
     const bounds = gridBounds(parsed.gridBase);
     const grid = { nx: parsed.gridBase.nx, ny: parsed.gridBase.ny, ...bounds };
 
-    const [run] = await db
-      .insert(silamRuns)
-      .values({
-        originTime: origin,
-        status: "running",
-        hours: parsed.times.length,
-        grid,
-        meta: { dataset: env.SILAM_DATASET, url: env.SILAM_NCSS_URL, bytes: buffer.length },
-      })
-      .returning({ id: silamRuns.id });
-    if (!run) throw new Error("Не удалось создать silam_runs");
     const key = runKey(origin);
     const runDir = resolve(env.SILAM_DIR, key);
+    const tmpDir = `${runDir}.tmp-${process.pid}-${Date.now()}`;
 
-    // 3. Растры по веществам и часам.
-    const fieldRows: (typeof silamFields.$inferInsert)[] = [];
-    for (const [code, list] of parsed.fields) {
-      const pollutant = pollutantByCode.get(code);
-      if (!pollutant) continue;
-      const th = thresholds.get(pollutant.id) ?? [];
-      const dir = join(runDir, code);
-      await mkdir(dir, { recursive: true });
-      for (const field of list) {
-        const g: Grid = { ...parsed.gridBase, values: field.values };
-        const raster = rasterizeLevels(g, th, { scale: RASTER_SCALE, alpha: 0.55 });
-        const file = `${key}/${code}/${String(field.timeIndex).padStart(3, "0")}.png`;
-        await writeFile(
-          resolve(env.SILAM_DIR, file),
-          encodePng(raster.width, raster.height, raster.data),
-        );
-        fieldRows.push({
-          runId: run.id,
-          pollutantId: pollutant.id,
-          time: parsed.times[field.timeIndex] as Date,
-          file,
-          stats: raster.stats,
-        });
+    // 3. Растры по веществам и часам — во временный каталог (пути в базе — итоговые: <key>/…).
+    const fieldRows: Omit<typeof silamFields.$inferInsert, "runId">[] = [];
+    try {
+      for (const [code, list] of parsed.fields) {
+        const pollutant = pollutantByCode.get(code);
+        if (!pollutant) continue;
+        const th = thresholds.get(pollutant.id) ?? [];
+        await mkdir(join(tmpDir, code), { recursive: true });
+        for (const field of list) {
+          const g: Grid = { ...parsed.gridBase, values: field.values };
+          const raster = rasterizeLevels(g, th, { scale: RASTER_SCALE, alpha: 0.55 });
+          const name = `${String(field.timeIndex).padStart(3, "0")}.png`;
+          await writeFile(
+            join(tmpDir, code, name),
+            encodePng(raster.width, raster.height, raster.data),
+          );
+          fieldRows.push({
+            pollutantId: pollutant.id,
+            time: parsed.times[field.timeIndex] as Date,
+            file: `${key}/${code}/${name}`,
+            stats: raster.stats,
+          });
+        }
       }
-    }
-    for (let i = 0; i < fieldRows.length; i += 500) {
-      await db
-        .insert(silamFields)
-        .values(fieldRows.slice(i, i + 500))
-        .onConflictDoNothing();
+    } catch (error) {
+      await rm(tmpDir, { recursive: true, force: true });
+      throw error;
     }
 
     // 4. Точечный прогноз: города и станции.
@@ -326,7 +356,7 @@ async function syncSilam(data: SilamSyncData) {
     ].filter(
       (t) => t.x >= bounds.west && t.x <= bounds.east && t.y >= bounds.south && t.y <= bounds.north,
     );
-    const pointRows: (typeof silamPointForecast.$inferInsert)[] = [];
+    const pointRows: Omit<typeof silamPointForecast.$inferInsert, "runId">[] = [];
     for (const [code, list] of parsed.fields) {
       const pollutant = pollutantByCode.get(code);
       if (!pollutant) continue;
@@ -338,7 +368,6 @@ async function syncSilam(data: SilamSyncData) {
           const value = sampleGrid(g, target.x, target.y);
           if (!Number.isFinite(value)) continue;
           pointRows.push({
-            runId: run.id,
             locationId: target.locationId,
             stationId: target.stationId,
             pollutantId: pollutant.id,
@@ -349,16 +378,45 @@ async function syncSilam(data: SilamSyncData) {
         }
       }
     }
-    for (let i = 0; i < pointRows.length; i += 2000) {
-      await db
-        .insert(silamPointForecast)
-        .values(pointRows.slice(i, i + 2000))
-        .onConflictDoNothing();
+    // 5. Подмена: файлы — переименованием каталога (у перезагружаемого прогона те же пути), записи —
+    // одной транзакцией: прежняя запись прогона (каскадом поля и точки) заменяется новой.
+    await replaceDirectory(tmpDir, runDir);
+    let runId: number;
+    try {
+      runId = await db.transaction(async (tx) => {
+        if (existing) await tx.delete(silamRuns).where(eq(silamRuns.id, existing.id));
+        const [run] = await tx
+          .insert(silamRuns)
+          .values({
+            originTime: origin,
+            status: "ok",
+            hours: parsed.times.length,
+            grid,
+            meta: { dataset: env.SILAM_DATASET, url: env.SILAM_NCSS_URL, bytes: buffer.length },
+          })
+          .returning({ id: silamRuns.id });
+        if (!run) throw new Error("Не удалось создать silam_runs");
+        for (let i = 0; i < fieldRows.length; i += 500) {
+          await tx
+            .insert(silamFields)
+            .values(fieldRows.slice(i, i + 500).map((r) => ({ ...r, runId: run.id })))
+            .onConflictDoNothing();
+        }
+        for (let i = 0; i < pointRows.length; i += 2000) {
+          await tx
+            .insert(silamPointForecast)
+            .values(pointRows.slice(i, i + 2000).map((r) => ({ ...r, runId: run.id })))
+            .onConflictDoNothing();
+        }
+        return run.id;
+      });
+    } catch (error) {
+      // Новый прогон без записи в базе — файлы не нужны (у перезагружаемого остаются под старой записью).
+      if (!existing) await rm(runDir, { recursive: true, force: true });
+      throw error;
     }
 
-    await db.update(silamRuns).set({ status: "ok" }).where(eq(silamRuns.id, run.id));
-
-    // 5. Ретенция: оставляем последние N успешных прогонов, остальные удаляем вместе с файлами.
+    // 6. Ретенция: оставляем последние N успешных прогонов, остальные удаляем вместе с файлами.
     const keep = await db
       .select({ id: silamRuns.id })
       .from(silamRuns)
@@ -389,7 +447,7 @@ async function syncSilam(data: SilamSyncData) {
     }
 
     const summary = {
-      runId: run.id,
+      runId,
       origin: origin.toISOString(),
       hours: parsed.times.length,
       fields: fieldRows.length,

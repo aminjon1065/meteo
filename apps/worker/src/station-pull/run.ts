@@ -32,6 +32,7 @@ import {
   type PullSourceResult,
   resolveSourceSecrets,
 } from "./shared";
+import { ForbiddenTargetError } from "./target";
 
 export type { PullSourceOptions, PullSourceResult } from "./shared";
 
@@ -188,6 +189,9 @@ export async function pullStationSource(
             "station-pull: file processed",
           );
         } catch (error) {
+          // Запрещённый адрес (в т. ч. после DNS или редиректа) — ошибка настройки всего источника,
+          // а не одного файла: источник помечается сбойным, причина видна в админке.
+          if (error instanceof ForbiddenTargetError) throw error;
           const message = summarizeError(error);
           pushError(file.name, message);
           if (error instanceof FileTooLargeError) {

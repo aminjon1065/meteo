@@ -393,11 +393,11 @@ Replace `silam-sync '{"force":true}'` with the job and parameters you need:
 | Job | Parameters | When |
 |---|---|---|
 | `smartmet-sync` | `{"force":true}`; `{"slugs":["dushanbe"]}` — only the listed points | after changing `SMARTMET_*`, adding a forecast point |
-| `silam-sync` | `{"force":true}` — re‑download the current run, bypass the circuit breaker | after a THREDDS failure, dataset change |
+| `silam-sync` | `{"force":true}` — re‑download the current run, bypass the circuit breaker; the previous run stays on the map until the new one is downloaded and rendered (a THREDDS failure mid-download deletes nothing) | after a THREDDS failure, dataset change |
 | `cap-sync` | `{"force":true}`; `{"url":"file:///…/feed.atom","force":true}` — one‑off source (e.g. the `infra/data/cap` fixtures) | after changing `CAP_FEED_URL`, for testing |
 | `station-pull` | `{}`; `{"sourceId":5,"force":true}` — one SFTP/FTP/HTTP source, even a disabled one, re-reading the newest file | after configuring a source in the station card (the "Check now" button does the same) |
 | `index-compute` | `{}` | after a bulk import or scale changes (the panel does it itself) |
-| `qc-batch`, `threshold-eval`, `mailer` | `{}` | speed up queue processing |
+| `qc-batch`, `threshold-eval`, `mailer` | `{}` | speed up queue processing (`mailer` runs under a lock: a concurrent run is skipped, no email is sent twice) |
 
 On a developer machine the same is done by `pnpm --filter @meteo/worker enqueue <job> '<json>'`. Results — in
 `dc logs -f worker` (`job completed` / `job failed` lines) and on the dashboard.
@@ -508,6 +508,13 @@ portal server's external IP goes on its whitelist. The station key and source pa
 once and only its hash is stored; source passwords are encrypted with `STATION_SOURCES_KEY` (`.env`,
 `openssl rand -base64 32`; without it `BETTER_AUTH_SECRET` is used — after rotating that secret the passwords must be
 re-entered) or given as `env:NAME` references to a worker environment variable.
+
+**Allowed pull-source addresses.** Private networks are allowed (station servers on the Agency LAN, short names such as
+`station-pc`). Forbidden: loopback, link-local (the cloud metadata address `169.254.169.254`), multicast,
+`*.localhost`/`*.internal` names and — when the worker runs in Docker — the subnets of its own interfaces (compose
+services `postgres`, `redis`, `web`). The check covers not only the configured address but also what the name resolves
+to in DNS, and every HTTP redirect (at most 5; on a redirect to another host the source login and password are not
+sent). A source with such an address gets the "failed" status with the reason `Адрес источника запрещён: <name> → <address>`.
 
 **Step by step (agent or direct upload):**
 
