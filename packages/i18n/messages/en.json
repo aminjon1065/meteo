@@ -4,6 +4,7 @@
     "siteTagline": "Air quality and weather of Tajikistan",
     "agency": "Agency for Hydrometeorology of the Committee for Environmental Protection under the Government of the Republic of Tajikistan",
     "fintaj": "FINTAJ project supported by the Finnish Meteorological Institute (FMI)",
+    "fmiName": "Finnish Meteorological Institute (FMI)",
     "language": "Language",
     "skipToContent": "Skip to content",
     "loading": "Loading…",
@@ -122,6 +123,7 @@
   "footer": {
     "rights": "© {year} Agency for Hydrometeorology of the Republic of Tajikistan",
     "dataLicense": "Data is available under an open licence",
+    "supportedBy": "FINTAJ project supported by",
     "api": "API for developers",
     "subscribe": "Email alerts",
     "sections": "Portal sections",

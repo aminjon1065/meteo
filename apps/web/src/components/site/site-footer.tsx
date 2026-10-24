@@ -3,6 +3,7 @@ import { pick } from "@meteo/i18n";
 import { getLocale, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getBrandingCached } from "@/lib/settings";
+import { FmiLogo } from "./fmi-logo";
 import { Logo } from "./logo";
 
 export async function SiteFooter() {
@@ -36,7 +37,11 @@ export async function SiteFooter() {
             <Logo className="size-14" />
             <p className="font-semibold text-foreground">{agency}</p>
           </div>
-          <p>{tc("fintaj")}</p>
+          {/* Партнёр проекта — под Агентством и мельче его эмблемы; поле вокруг логотипа ≥ 1/4 знака. */}
+          <div className="space-y-3 py-1.5">
+            <p>{t("supportedBy")}</p>
+            <FmiLogo alt={tc("fmiName")} onWhite />
+          </div>
           {note ? <p>{note}</p> : null}
           <p>{t("dataLicense")}</p>
         </div>

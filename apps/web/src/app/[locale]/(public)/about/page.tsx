@@ -3,6 +3,7 @@ import { pick } from "@meteo/i18n";
 import { CloudSunIcon, RadioIcon, SirenIcon, WindIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { FmiLogo } from "@/components/site/fmi-logo";
 import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getBrandingCached } from "@/lib/settings";
@@ -73,6 +74,7 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
           <h2 className="text-h2">{t("project.title")}</h2>
           <p className="mt-2 text-sm text-muted-foreground">{t("project.text")}</p>
           <p className="mt-2 text-sm text-muted-foreground">{t("project.fmi")}</p>
+          <FmiLogo alt={tc("fmiName")} size="md" className="mt-4" />
         </section>
       </div>
 
