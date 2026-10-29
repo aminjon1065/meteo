@@ -1,0 +1,23 @@
+{
+  "title": "Temperature 2 m (GFS)",
+  "abstract": "Air temperature at 2 m, °C. GFS 0.25°, Tajikistan.",
+  "producer": "gfs_surface",
+  "views": [
+    {
+      "layers": [
+        {
+          "qid": "l",
+          "layer_type": "isoband",
+          "parameter": "Temperature",
+          "isobands": "json:isobands/temperature.json",
+          "css": "isobands/temperature.css",
+          "subdivide": 4,
+          "smoother": {
+            "size": 2,
+            "degree": 2
+          }
+        }
+      ]
+    }
+  ]
+}

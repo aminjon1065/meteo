@@ -1,0 +1,15 @@
+# Настройки загрузки GFS (читает /smartmet/run/data/gfs/bin/get_gfs.sh из пакета smartmet-data-gfs).
+# Область — Таджикистан с соседними территориями, чтобы карта не обрывалась на границе.
+# Имена файлов: <прогон>_gfs_tajikistan_{surface,pressure}.sqd в /smartmet/data/gfs/tajikistan/*/querydata.
+AREA="tajikistan"
+
+TOP=46
+BOTTOM=32
+LEFT=58
+RIGHT=82
+
+# ("начало шаг конец") в часах: до 126 ч через 3 ч, далее до 240 ч через 6 ч
+INTERVALS=("0 3 126" "132 6 240")
+
+# 0p25 — 0,25° (~25 км)
+RESOLUTION=0p25

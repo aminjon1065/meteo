@@ -17,6 +17,18 @@ export interface SilamOverlay {
   bounds: { west: number; south: number; east: number; north: number };
 }
 
+/** Слой погоды SmartMet: шаблоны адресов тайлов /wms/…/{z}/{x}/{y}.png (weather-layers.ts). */
+export interface WeatherOverlay {
+  /** Заливка (изобанды). */
+  tiles: string;
+  /** Стрелки ветра поверх заливки. */
+  arrows?: string | null;
+  /** Область данных модели: тайлы вне неё не запрашиваются. */
+  bounds: { west: number; south: number; east: number; north: number };
+  minzoom: number;
+  maxzoom: number;
+}
+
 export interface BoundariesLayer {
   /** GeoJSON областей (/api/v1/regions). */
   regionsUrl: string;
@@ -40,6 +52,8 @@ export interface StationMapProps {
   locale: Locale;
   /** Растровый слой SILAM поверх подложки (null — выключен). */
   overlay?: SilamOverlay | null;
+  /** Слой погоды SmartMet (null — выключен). */
+  weather?: WeatherOverlay | null;
   /** GeoJSON действующих CAP‑предупреждений (/api/v1/alerts?format=geojson); null — слой выключен. */
   warningsUrl?: string | null;
   /** Ссылка и подпись кнопки в попапе предупреждения. */
@@ -72,12 +86,14 @@ export interface MapDiagnosticsElement extends HTMLElement {
 
 /**
  * Порядок оверлеев снизу вверх. Все они вставляются под подписи подложки (первый symbol‑слой
- * стиля), станции добавляются поверх всего: подложка → заливка областей → SILAM → контуры
- * районов и областей → предупреждения → станции.
+ * стиля), станции добавляются поверх всего: подложка → заливка областей → SILAM → погода SmartMet
+ * (заливка, стрелки) → контуры районов и областей → предупреждения → станции.
  */
 const OVERLAY_ORDER = [
   "regions-fill",
   "silam-raster",
+  "weather-raster",
+  "weather-arrows",
   "districts-line",
   "regions-line",
   "warnings-fill",
@@ -156,6 +172,7 @@ export function StationMap({
   zoom,
   ariaLabel,
   overlay,
+  weather,
   warningsUrl,
   warningsHref,
   warningsOpenLabel,
@@ -167,11 +184,14 @@ export function StationMap({
   const mapRef = useRef<maplibregl.Map | null>(null);
   const overlayRef = useRef<SilamOverlay | null>(overlay ?? null);
   overlayRef.current = overlay ?? null;
+  const weatherRef = useRef<WeatherOverlay | null>(weather ?? null);
+  weatherRef.current = weather ?? null;
   const warningsRef = useRef<string | null>(warningsUrl ?? null);
   warningsRef.current = warningsUrl ?? null;
   const boundariesRef = useRef<BoundariesLayer | null>(boundaries ?? null);
   boundariesRef.current = boundaries ?? null;
   const applyRef = useRef<(() => void) | null>(null);
+  const applyWeatherRef = useRef<(() => void) | null>(null);
   const applyWarningsRef = useRef<(() => void) | null>(null);
   const applyBoundariesRef = useRef<(() => void) | null>(null);
   /**
@@ -233,6 +253,7 @@ export function StationMap({
       const layers: string[] = [];
       if (isVisible("stations-points")) layers.push("stations");
       if (isVisible("silam-raster")) layers.push("silam");
+      if (isVisible("weather-raster")) layers.push("weather");
       if (isVisible("warnings-fill")) layers.push("warnings");
       if (isVisible("regions-line")) layers.push("regions");
       if (isVisible("regions-fill") && boundariesRef.current?.fill) layers.push("regions-fill");
@@ -275,6 +296,56 @@ export function StationMap({
         existing.updateImage({ url: o.url, coordinates });
         map.setLayoutProperty("silam-raster", "visibility", "visible");
       }
+      syncDiagnostics();
+    };
+
+    /**
+     * Растровые тайлы погоды SmartMet: источник на каждый слой (заливка, стрелки). Смена срока —
+     * setTiles того же источника: MapLibre держит прежние тайлы, пока не загрузятся новые.
+     */
+    const setWeatherLayer = (
+      id: "weather-raster" | "weather-arrows",
+      tiles: string | null | undefined,
+      w: WeatherOverlay | null,
+    ) => {
+      const sourceId = id === "weather-raster" ? "weather" : "weather-arrows";
+      const existing = map.getSource(sourceId) as maplibregl.RasterTileSource | undefined;
+      if (!w || !tiles) {
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
+        return;
+      }
+      if (!existing) {
+        map.addSource(sourceId, {
+          type: "raster",
+          tiles: [tiles],
+          tileSize: 256,
+          bounds: [w.bounds.west, w.bounds.south, w.bounds.east, w.bounds.north],
+          minzoom: w.minzoom,
+          maxzoom: w.maxzoom,
+          attribution: "GFS (NOAA) · SmartMet Server (FMI)",
+        });
+        map.addLayer(
+          {
+            id,
+            type: "raster",
+            source: sourceId,
+            paint: {
+              "raster-opacity": id === "weather-raster" ? 0.78 : 0.9,
+              "raster-fade-duration": 0,
+              "raster-resampling": "linear",
+            },
+          },
+          beforeIdFor(id),
+        );
+        return;
+      }
+      if (existing.tiles?.[0] !== tiles) existing.setTiles([tiles]);
+      map.setLayoutProperty(id, "visibility", "visible");
+    };
+    const applyWeather = () => {
+      const w = weatherRef.current;
+      setWeatherLayer("weather-raster", w?.tiles, w);
+      setWeatherLayer("weather-arrows", w?.arrows, w);
       syncDiagnostics();
     };
 
@@ -510,6 +581,7 @@ export function StationMap({
     const addStations = () => {
       styleReadyRef.current = true;
       applyOverlay();
+      applyWeather();
       applyWarnings();
       applyBoundaries();
       if (map.getSource("stations")) {
@@ -606,6 +678,7 @@ export function StationMap({
     map.on("load", addStations);
     map.on("style.load", addStations);
     applyRef.current = applyOverlay;
+    applyWeatherRef.current = applyWeather;
     applyWarningsRef.current = applyWarnings;
     applyBoundariesRef.current = applyBoundaries;
 
@@ -634,6 +707,13 @@ export function StationMap({
     if (styleReadyRef.current) applyRef.current();
     // Иначе слой добавит обработчик style.load (addStations → applyOverlay).
   }, [overlay]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: поля weather — триггеры; объект читается из weatherRef
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !applyWeatherRef.current) return;
+    if (styleReadyRef.current) applyWeatherRef.current();
+  }, [weather?.tiles, weather?.arrows]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: warningsUrl — триггер; значение читается из warningsRef
   useEffect(() => {

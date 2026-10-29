@@ -1,0 +1,6 @@
+# GFS: прогоны 00/06/12/18 UTC доступны примерно через 3 ч 20 мин.
+# Как в пакете smartmet-data-gfs; TERM=dumb — чтобы get_gfs.sh писал журнал в /smartmet/logs/data.
+15 * * * * utcrun  3 env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+15 * * * * utcrun  9 env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+15 * * * * utcrun 15 env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+15 * * * * utcrun 21 env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh

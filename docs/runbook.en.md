@@ -457,8 +457,9 @@ run the job manually (section 7).
 
 | Variable | Value |
 |---|---|
-| `SMARTMET_URL` | server address with the timeseries plugin, e.g. `https://smartmet.meteo.tj` (default: the sandbox `https://opendata.fmi.fi`) |
-| `SMARTMET_PRODUCER` | model producer on the Agency's server (ask the SmartMet administrator); for opendata — `ecmwf` |
+| `SMARTMET_URL` | server address with the timeseries plugin: the SmartMet on the portal server — `http://smartmet:8080` (§14); default: the sandbox `https://opendata.fmi.fi` |
+| `SMARTMET_PRODUCER` | model producer: `gfs` for the portal's SmartMet; `ecmwf` for opendata |
+| `SMARTMET_WMS_URL` | SmartMet with the WMS plugin for weather layers on the map (web) — `http://smartmet:8080`; empty — no layer |
 | `SMARTMET_API_KEY` | if the server requires a key (sent with the request) |
 | `SMARTMET_HOURLY_STEPS` / `SMARTMET_DAILY_DAYS` | hourly (72) and daily (10) forecast horizon |
 
@@ -482,7 +483,7 @@ and stations.
 
 | Variable | Value |
 |---|---|
-| `CAP_FEED_URL` | the editor's Atom/RSS feed (`https://alert.meteo.tj/cap/feed.atom`), an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
+| `CAP_FEED_URL` | the SmartMet Alert feed on the portal server — `http://smartalert/capfeed.php` (§14); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
 | `CAP_TIMEOUT_MS` | request timeout (15000) |
 
 Check: `curl -fsS "$CAP_FEED_URL" | head -20`; then a manual `cap-sync` run with `force` and `/admin/cap` →
@@ -697,3 +698,126 @@ for Cloudflare addresses only) → the portal's Caddy (HTTP `:80` inside the `ed
   migrates, seeds, restarts, waits for health and rolls back to the previous version if the new one does not come up.
   Re‑deploy or roll back: Actions → Deploy → Run workflow (environment + full commit SHA). The public Actions log only
   shows the steps; service logs stay on the server (`/opt/meteo/<environment>/logs`).
+
+## 14. SmartMet Server and SmartMet Alert
+
+Under the Terms of Reference (module 2), SmartMet Server and SmartMet Alert are installed in the Customer's
+infrastructure with FMI tooling. No separate AlmaLinux/Rocky Linux server was provided for SmartMet, so it runs on
+the portal server (Ubuntu) in FMI's official containers. Data processing uses FMI's standard RPMs
+(`smartmet-qdtools`, `smartmet-data-gfs` from the `smartmet-open` repository) inside a Rocky Linux 10 container.
+`/smartmet` has the same layout as an installation made with `fmidev/smartmet-install`, so FMI documentation
+applies. Decision and deviations from the Terms of Reference: `docs/adr/ADR-010-smartmet-server.md`.
+
+### 14.1. Components
+
+| Service (`/opt/smartmet/compose.yml`) | Image | Purpose | Address |
+|---|---|---|---|
+| `server` | `fmidev/smartmetserver:26.08.01` | SmartMet Server: timeseries, WMS (`/wms`, `/wmts`, `/tiles`) | `http://smartmet:8080` on Docker network `smartmet`; from the host `http://127.0.0.1:8180` |
+| `data` | `smartmet-data:local` (built from `infra/smartmet/data`) | GFS 0.25° download for 58–82° E, 32–46° N, up to 240 h, at 03:15, 09:15, 15:15, 21:15 UTC | — |
+| `alert-web` | `fmidev/smartmetalert:26.10.21` | warnings map and CAP feed `capfeed.php` (tg/ru/en) | `http://smartalert` on network `smartmet`; from the host `http://127.0.0.1:8181` |
+
+Nothing is exposed publicly (ports are bound to `127.0.0.1` only).
+
+| What | Where |
+|---|---|
+| Configuration (copy of `infra/smartmet` from the repository) | `/opt/smartmet` |
+| Model data (querydata) | `/smartmet/data/gfs/tajikistan/{surface,pressure}/querydata` |
+| Download logs | `/smartmet/logs/data/gfs_tajikistan_<run hour>.log` |
+| SmartMet Alert editor publications | `/smartmet/editor/smartalert/<source>/publishedCap/<date>/` |
+| GFS area and forecast steps | `infra/smartmet/cnf/data/gfs.cnf` |
+| Download schedule | `infra/smartmet/cnf/cron/cron.d/gfs.cron` |
+| Server data sources | `infra/smartmet/etc/engines/querydata.conf` |
+| Portal WMS layers | `infra/smartmet/wms/customers/tajikistan/products/*.json` |
+| Warnings map (centre, languages, hazards) | `infra/smartmet/alert/capmap-config.js`, `index.html` |
+
+Resources: ~130 MB of memory at runtime; ~160 MB of data per run (4 surface and 2 pressure-level runs are kept),
+editor copies in `/smartmet/editor/in` (2 runs).
+
+### 14.2. Installation and updates
+
+```bash
+# from a workstation, repository root
+rsync -a --delete infra/smartmet/ root@46.202.155.70:/opt/smartmet/
+
+# on the server
+mkdir -p /smartmet/data /smartmet/logs /smartmet/tmp /smartmet/editor/smartalert
+chown -R 101010:101010 /smartmet
+cd /opt/smartmet && docker compose build data && docker compose up -d
+```
+
+- New FMI image version: change the tag in `compose.yml`, then `docker compose pull && docker compose up -d`.
+- Configuration change: files are mounted one by one, so after `rsync` run
+  `docker compose up -d --force-recreate <service>`.
+- Update FMI packages in the download container: `docker compose build --pull --no-cache data && docker compose up -d data`.
+
+### 14.3. Checks
+
+```bash
+cd /opt/smartmet
+docker compose ps                                   # server healthy, data and alert-web Up
+ls -l /smartmet/data/gfs/tajikistan/surface/querydata/
+tail -20 /smartmet/logs/data/gfs_tajikistan_*.log
+
+# forecast for Dushanbe
+curl -fsS "http://127.0.0.1:8180/timeseries?producer=gfs&latlon=38.56,68.78&param=time,origintime,Temperature,WindSpeedMS,Precipitation1h,TotalCloudCover,SmartSymbol&timesteps=4&format=json"
+
+# WMS layers and a temperature map
+curl -fsS "http://127.0.0.1:8180/wms?service=WMS&request=GetCapabilities&version=1.3.0" | grep -o "<Name>tajikistan:[^<]*"
+curl -fsS -o /tmp/t.png "http://127.0.0.1:8180/wms?service=WMS&request=GetMap&version=1.3.0&layers=tajikistan:temperature&styles=&crs=EPSG:3857&bbox=7402746,4369641,8404622,5086374&width=800&height=572&format=image/png&transparent=true"
+
+# CAP feed
+curl -fsS http://127.0.0.1:8181/capfeed.php | head -30
+```
+
+Out-of-schedule GFS download (for example after downtime):
+
+```bash
+docker compose -f /opt/smartmet/compose.yml exec -d data \
+  runuser -u smartmet -- env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+```
+
+The server picks up a new run within a minute. If GFS (NOAA NOMADS) is unavailable, the server keeps serving the
+last downloaded run; the `origintime` field of the response shows its time.
+
+### 14.4. WMS layers
+
+Portal layers are the `tajikistan:*` products: `temperature`, `precipitation`, `windspeed`, `wind` (arrows),
+`cloudcover`, `pressure` (isobars). Palettes and classes are FMI image resources (`/smartmet/share/wms/resources`);
+smoothing uses the layer parameters `subdivide` and `smoother`. Parameter reference: `docs/reference.md` in
+[fmidev/smartmet-plugin-wms](https://github.com/fmidev/smartmet-plugin-wms). Time is the `time` parameter
+(ISO 8601, UTC); available times are listed in GetCapabilities (`<Dimension name="time">`).
+
+### 14.5. SmartMet Alert editor
+
+The CAP editor (Java, Liberica JRE 8 Full; FMI provides the package adapted for Tajikistan) is installed on an
+Agency workstation and publishes files into `/smartmet/editor/smartalert` on the server. Access is SFTP/SSHFS with
+a separate account restricted to that directory; Samba is not exposed to the internet. The account is created once
+the workstation and the FMI package are ready. Check: `*_ALERT_*.xml` files appear in `publishedCap/<date>/` and
+`capfeed.php` lists them.
+
+### 14.6. Connecting the portal
+
+The portal takes forecasts, weather layers and warnings from this SmartMet once its `web` and `worker` services join
+the Docker network `smartmet` and the environment `.env` sets the variables below. Joining the network is done by
+`infra/compose/compose.smartmet.yml`: `deploy.sh` and `dc` add it automatically when the `smartmet` network exists on
+the host (i.e. the `/opt/smartmet` project was started before the portal). Production and staging join the same
+network and use one SmartMet.
+
+Order: start SmartMet (§14.2) → add the variables to `/opt/meteo/<environment>/.env` → deploy a version with
+`compose.smartmet.yml` (or, for an already deployed one, `/opt/meteo/<environment>/dc up -d web worker`). Check:
+`docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' meteo-worker-1` lists the `smartmet`
+network; the admin dashboard shows the SmartMet and CAP integrations as "ok"; `/map?layer=weather` shows the weather
+layer. To go back to the FMI sandbox, remove the variables from `.env` and run `dc up -d web worker`.
+
+| Variable | Value |
+|---|---|
+| `SMARTMET_URL` | `http://smartmet:8080` |
+| `SMARTMET_PRODUCER` | `gfs` |
+| `SMARTMET_WMS_URL` | `http://smartmet:8080` |
+| `CAP_FEED_URL` | `http://smartalert/capfeed.php` |
+
+### 14.7. Backup
+
+Configuration lives in the repository (`infra/smartmet`); model data is restored by the next download. The editor
+publications in `/smartmet/editor/smartalert` must be kept. They are not yet part of the restic snapshots of the
+`backup` service (section 3): mount the directory into `backup` and add it to the paths in `infra/backup/run.sh`.

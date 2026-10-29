@@ -8,6 +8,7 @@ import { LevelLegend } from "@/components/air/level-legend";
 import { MapView, type SilamCatalog } from "@/components/map/map-view";
 import { getDb } from "@/lib/db";
 import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
+import { loadWeatherCatalog } from "@/lib/weather-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -75,12 +76,14 @@ export default async function MapPage({
   const { locale } = (await params) as { locale: Locale };
   setRequestLocale(locale);
   const { layer } = await searchParams;
-  const [t, tsl, ts, tw, catalog, warningList] = await Promise.all([
+  const [t, tsl, ts, tw, twx, catalog, weather, warningList] = await Promise.all([
     getTranslations("map"),
     getTranslations("silam"),
     getTranslations("stations"),
     getTranslations("warnings"),
+    getTranslations("weather"),
     loadSilamCatalog(),
+    loadWeatherCatalog(),
     loadLocalizedWarnings(locale, { horizonDays: 1 }).catch(() => [] as LocalizedWarning[]),
   ]);
   const localePrefix = locale === "tg" ? "" : `/${locale}`;
@@ -100,8 +103,11 @@ export default async function MapPage({
     <div className="relative h-[calc(100dvh-4rem-3.75rem-env(safe-area-inset-bottom,0px))] w-full lg:h-[calc(100dvh-4rem)]">
       <MapView
         locale={locale}
-        initialLayer={layer === "silam" || layer === "warnings" ? layer : undefined}
+        initialLayer={
+          layer === "silam" || layer === "warnings" || layer === "weather" ? layer : undefined
+        }
         catalog={catalog}
+        weather={weather}
         warnings={warnings}
         openLabel={t("open")}
         statusLabels={{
@@ -138,6 +144,19 @@ export default async function MapPage({
           warningsCount: t("warningsCount", { count: warnings.count }),
           warningsOpen: t("warningsOpen"),
           unsupported: t("webglUnsupported"),
+          weather: t("weather"),
+          weatherParam: t("weatherParam"),
+          weatherRun: t("weatherRun", { time: "{time}" }),
+          weatherHint: t("weatherHint"),
+          weatherNoData: t("weatherNoData"),
+          weatherScale: t("weatherScale", { unit: "{unit}" }),
+          weatherParams: {
+            temperature: twx("temperature"),
+            precipitation: twx("precip"),
+            wind: twx("wind"),
+            cloudcover: twx("cloud"),
+          },
+          weatherUnits: { celsius: "°C", mmh: t("unitMmh"), ms: twx("ms"), percent: "%" },
         }}
         legend={<LevelLegend className="gap-x-3 gap-y-1" />}
         legendChips={<LevelLegend variant="chips" className="gap-1.5" />}

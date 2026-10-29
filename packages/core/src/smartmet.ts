@@ -241,7 +241,11 @@ export function parseDaily(rows: unknown): DailyPoint[] {
   return out;
 }
 
-/** Старый WeatherSymbol3 → ближайший SmartSymbol. */
+/**
+ * Старый WeatherSymbol3 (FMI) → ближайший SmartSymbol: 1 ясно, 2 переменная облачность, 3 облачно, 21–23 ливни,
+ * 31–33 дождь, 41–43 ливневый снег, 51–53 снегопад, 61–64 грозы, 71–73 ливневый мокрый снег,
+ * 81–83 мокрый снег, 91–92 дымка/туман.
+ */
 export function symbol3ToSmart(code: number | null): number | null {
   if (code === null) return null;
   const map: Record<number, number> = {
@@ -251,25 +255,25 @@ export function symbol3ToSmart(code: number | null): number | null {
     21: 21,
     22: 24,
     23: 27,
-    31: 31,
-    32: 32,
-    33: 33,
-    41: 41,
-    42: 44,
-    43: 47,
-    51: 51,
-    52: 52,
-    53: 53,
-    61: 61,
-    62: 64,
-    63: 67,
-    64: 67,
-    71: 71,
-    72: 74,
-    73: 77,
-    81: 71,
-    82: 74,
-    83: 77,
+    31: 37,
+    32: 38,
+    33: 39,
+    41: 51,
+    42: 52,
+    43: 53,
+    51: 57,
+    52: 58,
+    53: 59,
+    61: 71,
+    62: 77,
+    63: 74,
+    64: 77,
+    71: 41,
+    72: 42,
+    73: 43,
+    81: 47,
+    82: 48,
+    83: 49,
     91: 9,
     92: 9,
   };

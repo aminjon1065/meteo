@@ -1,0 +1,62 @@
+{
+  "title": "Total cloud cover (GFS)",
+  "abstract": "Total cloud cover, %. GFS 0.25°, Tajikistan. Slate palette for a light basemap.",
+  "producer": "gfs_surface",
+  "views": [
+    {
+      "layers": [
+        {
+          "qid": "l",
+          "layer_type": "isoband",
+          "parameter": "TotalCloudCover",
+          "isobands": [
+            {
+              "qid": "cloud_10_25",
+              "lolimit": 10,
+              "attributes": {
+                "fill": "rgba(100,116,139,0.18)"
+              },
+              "hilimit": 25
+            },
+            {
+              "qid": "cloud_25_50",
+              "lolimit": 25,
+              "attributes": {
+                "fill": "rgba(100,116,139,0.32)"
+              },
+              "hilimit": 50
+            },
+            {
+              "qid": "cloud_50_75",
+              "lolimit": 50,
+              "attributes": {
+                "fill": "rgba(71,85,105,0.46)"
+              },
+              "hilimit": 75
+            },
+            {
+              "qid": "cloud_75_90",
+              "lolimit": 75,
+              "attributes": {
+                "fill": "rgba(51,65,85,0.58)"
+              },
+              "hilimit": 90
+            },
+            {
+              "qid": "cloud_90_inf",
+              "lolimit": 90,
+              "attributes": {
+                "fill": "rgba(30,41,59,0.70)"
+              }
+            }
+          ],
+          "subdivide": 4,
+          "smoother": {
+            "size": 2,
+            "degree": 2
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -62,6 +62,7 @@ Station page (`/air/stations/<station slug>`):
 
 - **Current values** — the index with its level, the dominant pollutant, cards for each pollutant (value, unit, level) and the scale used.
 - **Location** — map with the station position.
+- **Weather — GFS forecast** — weather maps from the Agency's SmartMet Server: air temperature, precipitation, wind (speed in colour and direction arrows) or cloud cover — pick the parameter in the drop‑down. The slider and the "‹ ›" buttons step through the forecast every 3 hours for 5 days, then every 6 hours up to 10 days; "▶" starts the animation. Below the slider are the value scale and the GFS run time. One forecast layer is shown at a time: turning on the weather turns off SILAM and vice versa.
 - **SILAM forecast** — model air‑quality forecast for the station coordinates for today, tomorrow and the day after (daily mean level by the worst pollutant).
 - **Ratio to limit values (Agency method)** — a table like the daily bulletins: the daily mean concentration and its ratio to the daily MPC, the maximum single value of the day and its ratio to the single MPC for every pollutant; below it the NO₂+SO₂ summation (sum of the daily-MPC ratios when the station measures both) and a note on high (≥ 10 single MPCs) and extremely high (≥ 50) pollution cases. Ratios ≥ 1 are highlighted. Calculated from valid measurements of the last 24 hours.
 - **Advice** — what to do at the current level (general population); the full version by group is in the "Health" section.

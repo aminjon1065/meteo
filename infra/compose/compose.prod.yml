@@ -97,6 +97,8 @@ services:
       STATION_SOURCES_KEY: ${STATION_SOURCES_KEY:-}
       # Для признака «SMTP настроен» на дашборде админки (отправляет письма worker).
       SMTP_URL: ${SMTP_URL:-}
+      # SmartMet Server с WMS для слоёв погоды на карте (runbook §14); пусто — слои не показываются.
+      SMARTMET_WMS_URL: ${SMARTMET_WMS_URL:-}
     volumes:
       - uploads:/app/uploads
       - silam:/app/silam:ro

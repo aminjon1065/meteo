@@ -16,7 +16,8 @@
       "!**/.turbo",
       "!**/drizzle/meta",
       "!**/*.docx",
-      "!apps/station-agent/station-agent.mjs"
+      "!apps/station-agent/station-agent.mjs",
+      "!infra/smartmet/alert"
     ]
   },
   "formatter": {

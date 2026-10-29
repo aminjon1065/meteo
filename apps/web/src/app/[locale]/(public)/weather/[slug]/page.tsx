@@ -27,7 +27,7 @@ import { loadCurrentAq } from "@/lib/aq";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 import { type LocalizedWarning, loadWarningsForPoint } from "@/lib/warnings";
-import { aggregateDay, symbolLabel, windDirectionKey } from "@/lib/weather";
+import { aggregateDay, modelLabel, symbolLabel, windDirectionKey } from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
 
@@ -297,7 +297,7 @@ export default async function WeatherLocationPage({
             : ""}
           {forecast.originTime
             ? `${t("model", {
-                producer: forecast.producer ?? "SmartMet",
+                producer: modelLabel(forecast.producer),
                 time: format.dateTime(forecast.originTime, {
                   timeZone: "UTC",
                   day: "numeric",
@@ -307,7 +307,7 @@ export default async function WeatherLocationPage({
                 }),
               })} · `
             : ""}
-          {t("source")}
+          {t("source", { model: modelLabel(forecast.producer) })}
         </p>
       </div>
     </>

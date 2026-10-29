@@ -97,7 +97,8 @@ describe("smartmet client", () => {
   it("ночные варианты и ключи символов", () => {
     expect(nightVariant(1, 23)).toBe(101);
     expect(nightVariant(1, 12)).toBe(1);
-    expect(symbolKey(132)).toBe("rain");
+    expect(symbolKey(132)).toBe("rainPeriods");
+    expect(symbolKey(138)).toBe("rain");
     expect(symbolPath(104, "dark")).toBe("/weather-symbols/dark/104.svg");
     expect(symbolPath(999)).toBeNull();
   });

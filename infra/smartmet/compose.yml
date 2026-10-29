@@ -1,0 +1,78 @@
+# SmartMet Server (FMI) и загрузка данных моделей — отдельный compose-проект на сервере портала.
+# На хосте: /opt/smartmet — этот каталог, /smartmet — данные в штатной раскладке FMI (data, logs, tmp, editor).
+# Наружу ничего не публикуется: портал ходит в сеть «smartmet» по адресу http://smartmet:8080,
+# для проверок с хоста — http://127.0.0.1:8180.
+name: smartmet
+
+services:
+  server:
+    image: fmidev/smartmetserver:26.08.01
+    restart: unless-stopped
+    hostname: smartmet
+    volumes:
+      - /smartmet/data:/smartmet/data:ro
+      - ./etc/smartmet.conf:/etc/smartmet/smartmet.conf:ro
+      - ./etc/engines/querydata.conf:/etc/smartmet/engines/querydata.conf:ro
+      - ./etc/plugins/wms.conf:/etc/smartmet/plugins/wms.conf:ro
+      # Слои WMS для портала: tajikistan:temperature, tajikistan:precipitation, … (палитры — ресурсы образа)
+      - ./wms/customers/tajikistan:/smartmet/share/wms/customers/tajikistan:ro
+    ports:
+      - "127.0.0.1:8180:8080"
+    networks:
+      smartmet:
+        aliases: [smartmet]
+    mem_limit: 3g
+    cpus: 2
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost:8080/wms?service=WMS&request=GetCapabilities&version=1.3.0"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  data:
+    build: ./data
+    image: smartmet-data:local
+    restart: unless-stopped
+    volumes:
+      - /smartmet/data:/smartmet/data
+      - /smartmet/logs:/smartmet/logs
+      - /smartmet/tmp:/smartmet/tmp
+      - /smartmet/editor:/smartmet/editor
+      - ./cnf/data/gfs.cnf:/smartmet/cnf/data/gfs.cnf:ro
+      - ./cnf/cron/cron.d/gfs.cron:/smartmet/cnf/cron/cron.d/gfs.cron:ro
+    environment:
+      TZ: UTC
+    mem_limit: 1g
+    cpus: 1
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+  # Веб-карта и CAP-лента SmartMet Alert (fmidev/smartalert-web): /capfeed.php — источник предупреждений
+  # для портала (CAP_FEED_URL=http://smartalert/capfeed.php). Редактор SmartMet Alert публикует CAP в
+  # /smartmet/editor/smartalert/<источник>/publishedCap/<дата>/*_ALERT_*.xml.
+  alert-web:
+    image: fmidev/smartmetalert:26.10.21
+    restart: unless-stopped
+    volumes:
+      - /smartmet/editor/smartalert:/var/www/html/data:ro
+      - ./alert/capmap-config.js:/var/www/html/capmap-config.js:ro
+      - ./alert/index.html:/var/www/html/index.html:ro
+    ports:
+      - "127.0.0.1:8181:80"
+    networks:
+      smartmet:
+        aliases: [smartalert]
+    mem_limit: 256m
+    cpus: 0.5
+    logging:
+      driver: json-file
+      options: { max-size: "20m", max-file: "5" }
+
+networks:
+  smartmet:
+    name: smartmet

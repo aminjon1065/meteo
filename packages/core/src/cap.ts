@@ -489,6 +489,8 @@ export function parseCapFeed(body: string, baseUrl?: string): CapFeedSources {
       return { kind: "unknown", links: [], inline: [] };
     }
     const links: string[] = [];
+    // Пустая лента SmartAlert (capfeed.php) содержит запись «нет предупреждений» со ссылкой на саму ленту.
+    const self = baseUrl ? resolveUrl(baseUrl) : null;
     if (root === "feed") {
       const feed = isNode(doc) && isNode(doc.feed) ? doc.feed : {};
       for (const entry of list(feed.entry).filter(isNode)) {
@@ -502,7 +504,7 @@ export function parseCapFeed(body: string, baseUrl?: string): CapFeedSources {
         const hasInline = isNode(content) && isNode(content.alert);
         if (href && !hasInline) {
           const url = resolveUrl(href, baseUrl);
-          if (url) links.push(url);
+          if (url && url !== self) links.push(url);
         }
       }
       return { kind: "atom", links: uniq(links), inline: inlineAlerts(body) };

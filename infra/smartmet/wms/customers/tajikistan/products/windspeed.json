@@ -1,0 +1,22 @@
+{
+  "title": "Wind speed 10 m (GFS)",
+  "abstract": "Wind speed at 10 m, m/s. GFS 0.25°, Tajikistan.",
+  "producer": "gfs_surface",
+  "views": [
+    {
+      "layers": [
+        {
+          "qid": "l",
+          "layer_type": "isoband",
+          "parameter": "WindSpeedMS",
+          "isobands": "json:isobands/windspeed.json",
+          "subdivide": 4,
+          "smoother": {
+            "size": 2,
+            "degree": 2
+          }
+        }
+      ]
+    }
+  ]
+}

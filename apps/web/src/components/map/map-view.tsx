@@ -15,8 +15,20 @@ import {
 import { cn } from "@meteo/ui/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon, LayersIcon, PauseIcon, PlayIcon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
-import type { BoundariesLayer, SilamOverlay } from "./station-map";
+import type { BoundariesLayer, SilamOverlay, WeatherOverlay } from "./station-map";
 import { StationMapLazy } from "./station-map.lazy";
+import {
+  WEATHER_AREA,
+  WEATHER_MAX_ZOOM,
+  WEATHER_MIN_ZOOM,
+  WEATHER_PARAM_DEFS,
+  WEATHER_PARAMS,
+  type WeatherCatalog,
+  type WeatherParam,
+  type WeatherParamDef,
+  weatherTileUrl,
+} from "./weather-layers";
+import { WeatherLegend } from "./weather-legend";
 
 export interface SilamFrame {
   time: string;
@@ -39,9 +51,14 @@ export interface WarningsLayer {
   legend: Array<{ severity: string; label: string; color: string }>;
 }
 
+/** Прогнозный растровый слой: одновременно показывается один, у него общий ползунок времени. */
+type Forecast = "silam" | "weather";
+
 export interface MapViewProps {
   locale: Locale;
   catalog: SilamCatalog;
+  /** Слои погоды SmartMet (WMS). */
+  weather: WeatherCatalog;
   warnings: WarningsLayer;
   openLabel: string;
   statusLabels: Record<string, string>;
@@ -75,22 +92,31 @@ export interface MapViewProps {
     warningsCount: string;
     warningsOpen: string;
     unsupported: string;
+    weather: string;
+    weatherParam: string;
+    weatherRun: string;
+    weatherHint: string;
+    weatherNoData: string;
+    /** «Шкала, {unit}». */
+    weatherScale: string;
+    weatherParams: Record<WeatherParam, string>;
+    weatherUnits: Record<WeatherParamDef["unit"], string>;
   };
   /** Легенда уровней (серверный компонент): в панели слоёв. */
   legend: ReactNode;
   /** Та же легенда «фишками» поверх карты — на телефоне, где панели нет. */
   legendChips?: ReactNode;
-  /** Слой, включённый при открытии (ссылки «Прогноз SILAM» / «Предупреждения» с главной). */
-  initialLayer?: "silam" | "warnings";
+  /** Слой, включённый при открытии (ссылки «Прогноз SILAM» / «Предупреждения» / «Карта погоды»). */
+  initialLayer?: "silam" | "warnings" | "weather";
 }
 
-const PLAY_INTERVAL_MS = 800;
+const PLAY_INTERVAL_MS: Record<Forecast, number> = { silam: 800, weather: 1200 };
 
-function nearestFrameIndex(frames: SilamFrame[], now: number): number {
+function nearestIndex(times: string[], at: number): number {
   let best = 0;
   let bestDiff = Number.POSITIVE_INFINITY;
-  frames.forEach((f, i) => {
-    const diff = Math.abs(new Date(f.time).getTime() - now);
+  times.forEach((t, i) => {
+    const diff = Math.abs(new Date(t).getTime() - at);
     if (diff < bestDiff) {
       bestDiff = diff;
       best = i;
@@ -101,11 +127,13 @@ function nearestFrameIndex(frames: SilamFrame[], now: number): number {
 
 /**
  * Карта с панелью слоёв: станции, границы регионов (с опциональной заливкой по уровню индекса),
- * растровый прогноз SILAM с выбором вещества и ползунком времени, предупреждения CAP.
+ * прогноз погоды SmartMet (температура, осадки, ветер, облачность) или растровый прогноз SILAM —
+ * с ползунком времени, предупреждения CAP.
  */
 export function MapView({
   locale,
   catalog,
+  weather,
   warnings,
   openLabel,
   statusLabels,
@@ -117,8 +145,17 @@ export function MapView({
   initialLayer,
 }: MapViewProps) {
   const [layersOpen, setLayersOpen] = useState(false);
-  const available = catalog.run !== null && catalog.pollutants.length > 0;
-  const [silamOn, setSilamOn] = useState(initialLayer === "silam" && available);
+  const silamAvailable = catalog.run !== null && catalog.pollutants.length > 0;
+  const weatherAvailable = weather.run !== null && weather.times.length > 0;
+  const [active, setActive] = useState<Forecast | null>(() =>
+    initialLayer === "silam" && silamAvailable
+      ? "silam"
+      : initialLayer === "weather" && weatherAvailable
+        ? "weather"
+        : null,
+  );
+  const silamOn = active === "silam";
+  const weatherOn = active === "weather";
   const [warningsOn, setWarningsOn] = useState(warnings.count > 0 || initialLayer === "warnings");
   const [regionsOn, setRegionsOn] = useState(true);
   const [regionsFill, setRegionsFill] = useState(false);
@@ -138,25 +175,42 @@ export function MapView({
     () => catalog.pollutants.find((p) => p.code === code) ?? catalog.pollutants[0],
     [catalog.pollutants, code],
   );
-  const frames = pollutant?.frames ?? [];
-  const [index, setIndex] = useState(() => nearestFrameIndex(frames, Date.now()));
+  const silamFrames = pollutant?.frames ?? [];
+  const silamTimes = useMemo(() => silamFrames.map((f) => f.time), [silamFrames]);
+  const [param, setParam] = useState<WeatherParam>("temperature");
+  const weatherDef = WEATHER_PARAM_DEFS[param];
+
+  /** Сроки активного слоя — по ним ходит ползунок. */
+  const times = weatherOn ? weather.times : silamTimes;
+  const [index, setIndex] = useState(() =>
+    nearestIndex(active === "weather" ? weather.times : silamTimes, Date.now()),
+  );
   const [playing, setPlaying] = useState(false);
   const preloaded = useRef(new Set<string>());
 
-  // Ползунок остаётся на том же часе при смене вещества (у всех веществ один набор часов).
+  /** Переключение прогнозного слоя: ползунок встаёт на ближайший срок к показанному. */
+  const switchForecast = (next: Forecast | null) => {
+    const shown = times[index];
+    const nextTimes = next === "weather" ? weather.times : next === "silam" ? silamTimes : [];
+    setIndex(nearestIndex(nextTimes, shown ? new Date(shown).getTime() : Date.now()));
+    setPlaying(false);
+    setActive(next);
+  };
+
+  // Ползунок остаётся на том же сроке при смене вещества (у всех веществ один набор часов).
   useEffect(() => {
-    setIndex((i) => Math.min(i, Math.max(0, frames.length - 1)));
-  }, [frames.length]);
+    setIndex((i) => Math.min(i, Math.max(0, times.length - 1)));
+  }, [times.length]);
 
   useEffect(() => {
-    if (!playing) return;
+    if (!playing || !active) return;
     const id = window.setInterval(() => {
-      setIndex((i) => (frames.length ? (i + 1) % frames.length : 0));
-    }, PLAY_INTERVAL_MS);
+      setIndex((i) => (times.length ? (i + 1) % times.length : 0));
+    }, PLAY_INTERVAL_MS[active]);
     return () => window.clearInterval(id);
-  }, [playing, frames.length]);
+  }, [playing, active, times.length]);
 
-  // Предзагрузка кадров выбранного вещества, чтобы перемотка была плавной.
+  // Предзагрузка кадров SILAM выбранного вещества, чтобы перемотка была плавной.
   useEffect(() => {
     if (!silamOn || !pollutant) return;
     for (const f of pollutant.frames) {
@@ -167,10 +221,23 @@ export function MapView({
     }
   }, [silamOn, pollutant]);
 
-  const frame = frames[index];
+  const shownTime = times[index];
+  const silamFrame = silamOn ? silamFrames[index] : undefined;
   const overlay: SilamOverlay | null =
-    silamOn && available && frame && catalog.run
-      ? { url: frame.url, bounds: catalog.run.bounds }
+    silamOn && silamAvailable && silamFrame && catalog.run
+      ? { url: silamFrame.url, bounds: catalog.run.bounds }
+      : null;
+  const weatherOverlay: WeatherOverlay | null =
+    weatherOn && weatherAvailable && weather.run && shownTime
+      ? {
+          tiles: weatherTileUrl(weather.run.originTime, weatherDef.base, shownTime),
+          arrows: weatherDef.arrows
+            ? weatherTileUrl(weather.run.originTime, weatherDef.arrows, shownTime)
+            : null,
+          bounds: WEATHER_AREA,
+          minzoom: WEATHER_MIN_ZOOM,
+          maxzoom: WEATHER_MAX_ZOOM,
+        }
       : null;
   const timeFmt = useMemo(
     () =>
@@ -196,11 +263,13 @@ export function MapView({
     [locale],
   );
 
-  const timeLabel = frame ? timeFmt.format(new Date(frame.time)) : "—";
+  // Время и даты форматирует Intl: в Node и браузере ICU разный (например, у tg), поэтому у этих
+  // подписей suppressHydrationWarning — после первого обновления остаётся формат браузера.
+  const timeLabel = shownTime ? timeFmt.format(new Date(shownTime)) : "—";
   const silamMeta = [
-    frame?.max !== null && frame?.max !== undefined && pollutant
+    silamFrame?.max !== null && silamFrame?.max !== undefined && pollutant
       ? labels.maxInDomain
-          .replace("{value}", String(Math.round(frame.max * 10) / 10))
+          .replace("{value}", String(Math.round(silamFrame.max * 10) / 10))
           .replace("{unit}", pollutant.unit)
       : null,
     catalog.run
@@ -209,6 +278,10 @@ export function MapView({
   ]
     .filter(Boolean)
     .join(" · ");
+  const weatherMeta = weather.run
+    ? labels.weatherRun.replace("{time}", runFmt.format(new Date(weather.run.originTime)))
+    : "";
+  const weatherScale = labels.weatherScale.replace("{unit}", labels.weatherUnits[weatherDef.unit]);
 
   const pollutantSelect = (className?: string) =>
     pollutant ? (
@@ -225,6 +298,21 @@ export function MapView({
         ))}
       </NativeSelect>
     ) : null;
+
+  const paramSelect = (className?: string) => (
+    <NativeSelect
+      aria-label={labels.weatherParam}
+      value={param}
+      onChange={(e) => setParam(e.target.value as WeatherParam)}
+      className={cn("h-8 text-xs", className)}
+    >
+      {WEATHER_PARAMS.map((p) => (
+        <NativeSelectOption key={p} value={p}>
+          {labels.weatherParams[p]}
+        </NativeSelectOption>
+      ))}
+    </NativeSelect>
+  );
 
   const playback = (
     <>
@@ -252,7 +340,7 @@ export function MapView({
         variant="ghost"
         size="icon-sm"
         aria-label={labels.next}
-        onClick={() => setIndex((i) => Math.min(frames.length - 1, i + 1))}
+        onClick={() => setIndex((i) => Math.min(times.length - 1, i + 1))}
       >
         <ChevronRightIcon />
       </Button>
@@ -264,7 +352,7 @@ export function MapView({
       type="range"
       aria-label={labels.time}
       min={0}
-      max={Math.max(0, frames.length - 1)}
+      max={Math.max(0, times.length - 1)}
       value={index}
       onChange={(e) => {
         setPlaying(false);
@@ -274,12 +362,35 @@ export function MapView({
     />
   );
 
+  /** Выбор вещества/параметра, время, ползунок, шкала и подписи активного прогноза (панель). */
+  const forecastControls = (kind: Forecast) => (
+    <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-2">
+      {kind === "silam" ? pollutantSelect() : paramSelect()}
+      <div className="flex items-center gap-1">
+        {playback}
+        <span className="ml-1 flex-1 text-xs tabular-nums" suppressHydrationWarning>
+          {timeLabel}
+        </span>
+      </div>
+      {slider()}
+      {kind === "weather" ? (
+        <WeatherLegend def={weatherDef} locale={locale} caption={weatherScale} />
+      ) : null}
+      <p className="text-[11px] leading-snug text-muted-foreground" suppressHydrationWarning>
+        {kind === "silam" ? silamMeta : weatherMeta}
+      </p>
+      <p className="text-[11px] leading-snug text-muted-foreground">
+        {kind === "silam" ? labels.hint : labels.weatherHint}
+      </p>
+    </div>
+  );
+
   /**
-   * Переключатели слоёв. `inlineSilam` — управление прогнозом SILAM прямо под переключателем
-   * (панель на широком экране); на телефоне оно в карточке внизу карты. `idp` — префикс id, чтобы
-   * подписи не путались между панелью и шторкой.
+   * Переключатели слоёв. `inline` — управление прогнозом прямо под переключателем (панель на
+   * широком экране); на телефоне оно в карточке внизу карты. `idp` — префикс id, чтобы подписи не
+   * путались между панелью и шторкой.
    */
-  const layerToggles = (idp: string, inlineSilam: boolean) => (
+  const layerToggles = (idp: string, inline: boolean) => (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
         <Checkbox id={`${idp}-stations`} checked disabled />
@@ -312,32 +423,34 @@ export function MapView({
       ) : null}
       <div className="flex items-center gap-2">
         <Checkbox
+          id={`${idp}-weather`}
+          checked={weatherOn}
+          disabled={!weatherAvailable}
+          onCheckedChange={(checked) => switchForecast(checked === true ? "weather" : null)}
+        />
+        <label htmlFor={`${idp}-weather`} className="flex-1">
+          {labels.weather}
+        </label>
+        {!weatherAvailable ? <Badge variant="secondary">{labels.soon}</Badge> : null}
+      </div>
+      {inline && weatherOn && weatherAvailable ? forecastControls("weather") : null}
+      {!weatherAvailable ? (
+        <p className="text-xs leading-snug text-muted-foreground">{labels.weatherNoData}</p>
+      ) : null}
+      <div className="flex items-center gap-2">
+        <Checkbox
           id={`${idp}-silam`}
           checked={silamOn}
-          disabled={!available}
-          onCheckedChange={(checked) => {
-            setSilamOn(checked === true);
-            if (!checked) setPlaying(false);
-          }}
+          disabled={!silamAvailable}
+          onCheckedChange={(checked) => switchForecast(checked === true ? "silam" : null)}
         />
         <label htmlFor={`${idp}-silam`} className="flex-1">
           {labels.silam}
         </label>
-        {!available ? <Badge variant="secondary">{labels.soon}</Badge> : null}
+        {!silamAvailable ? <Badge variant="secondary">{labels.soon}</Badge> : null}
       </div>
-      {inlineSilam && silamOn && available && pollutant ? (
-        <div className="flex flex-col gap-2 rounded-lg bg-surface-2 p-2">
-          {pollutantSelect()}
-          <div className="flex items-center gap-1">
-            {playback}
-            <span className="ml-1 flex-1 text-xs tabular-nums">{timeLabel}</span>
-          </div>
-          {slider()}
-          <p className="text-[11px] leading-snug text-muted-foreground">{silamMeta}</p>
-          <p className="text-[11px] leading-snug text-muted-foreground">{labels.hint}</p>
-        </div>
-      ) : null}
-      {!available ? (
+      {inline && silamOn && silamAvailable && pollutant ? forecastControls("silam") : null}
+      {!silamAvailable ? (
         <p className="text-xs leading-snug text-muted-foreground">{labels.noData}</p>
       ) : null}
       <div className="flex items-center gap-2">
@@ -382,7 +495,9 @@ export function MapView({
   );
 
   // Слои, включённые сверх станций, — число на кнопке «Слои» на телефоне.
-  const extraLayers = [regionsOn, silamOn && available, warningsOn].filter(Boolean).length;
+  const extraLayers = [regionsOn, active !== null, warningsOn].filter(Boolean).length;
+  const mobileForecast =
+    (silamOn && silamAvailable && pollutant) || (weatherOn && weatherAvailable);
 
   return (
     <div className="relative h-full w-full">
@@ -393,6 +508,7 @@ export function MapView({
         stationHrefPrefix={stationHrefPrefix}
         className="h-full w-full"
         overlay={overlay}
+        weather={weatherOverlay}
         warningsUrl={warningsOn ? warnings.url : null}
         warningsHref={warnings.href}
         warningsOpenLabel={labels.warningsOpen}
@@ -401,7 +517,7 @@ export function MapView({
       />
 
       {/* Широкий экран: панель слоёв слева сверху. */}
-      <aside className="absolute top-3 left-3 z-10 hidden w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 rounded-xl border bg-card/95 p-3.5 text-sm shadow-md backdrop-blur md:flex">
+      <aside className="absolute top-3 left-3 z-10 hidden max-h-[calc(100%-1.5rem)] w-72 max-w-[calc(100%-1.5rem)] flex-col gap-3 overflow-y-auto rounded-xl border bg-card/95 p-3.5 text-sm shadow-md backdrop-blur md:flex">
         <h1 className="font-heading text-base font-bold">{labels.title}</h1>
         <div className="flex flex-col gap-2">
           <p className="eyebrow">{labels.layers}</p>
@@ -413,7 +529,7 @@ export function MapView({
         </div>
       </aside>
 
-      {/* Телефон: карта на весь экран, слои — в нижней шторке, SILAM и легенда — внизу карты. */}
+      {/* Телефон: карта на весь экран, слои — в нижней шторке, прогноз и легенда — внизу карты. */}
       <h1 className="sr-only md:hidden">{labels.title}</h1>
       <div className="absolute top-3 left-3 z-10 md:hidden">
         <Sheet open={layersOpen} onOpenChange={setLayersOpen}>
@@ -449,21 +565,34 @@ export function MapView({
       {/* Над нижней строкой карты: масштаб и атрибуция OpenStreetMap (обязательна по лицензии)
           остаются видны. */}
       <div className="pointer-events-none absolute right-3 bottom-10 left-3 z-10 flex flex-col gap-2 md:hidden">
-        {silamOn && available && pollutant ? (
+        {mobileForecast ? (
           <section
-            aria-label={labels.silam}
+            aria-label={weatherOn ? labels.weather : labels.silam}
             className="pointer-events-auto flex flex-col gap-1.5 rounded-xl border bg-card/95 p-2.5 shadow-md backdrop-blur"
           >
             <div className="flex items-center gap-2">
-              {pollutantSelect("w-auto shrink-0")}
-              <span className="ml-auto truncate text-xs font-medium tabular-nums">{timeLabel}</span>
+              {weatherOn ? paramSelect("w-auto shrink-0") : pollutantSelect("w-auto shrink-0")}
+              <span
+                className="ml-auto truncate text-xs font-medium tabular-nums"
+                suppressHydrationWarning
+              >
+                {timeLabel}
+              </span>
             </div>
             <div className="flex items-center gap-1">
               {playback}
               {slider("ml-1 flex-1")}
             </div>
-            {silamMeta ? (
-              <p className="truncate text-[11px] leading-snug text-muted-foreground">{silamMeta}</p>
+            {weatherOn ? (
+              <WeatherLegend def={weatherDef} locale={locale} caption={weatherScale} />
+            ) : null}
+            {(weatherOn ? weatherMeta : silamMeta) ? (
+              <p
+                className="truncate text-[11px] leading-snug text-muted-foreground"
+                suppressHydrationWarning
+              >
+                {weatherOn ? weatherMeta : silamMeta}
+              </p>
             ) : null}
           </section>
         ) : null}

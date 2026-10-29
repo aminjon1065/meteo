@@ -13,5 +13,9 @@ case "$(basename "$DIR")" in
   *) echo "dc: запускать как /opt/meteo/<production|staging>/dc" >&2; exit 2 ;;
 esac
 REL=$(readlink -f "$DIR/current")
+# SmartMet на этом же хосте (runbook §14) — как в deploy.sh.
+if [ -f "$REL/infra/compose/compose.smartmet.yml" ] && docker network inspect smartmet >/dev/null 2>&1; then
+  set -- -f "$REL/infra/compose/compose.smartmet.yml" "$@"
+fi
 exec docker compose -p "$PROJECT" --env-file "$DIR/.env" --env-file "$DIR/.deploy.env" \
   -f "$REL/infra/compose/compose.prod.yml" -f "$REL/infra/compose/compose.edge.yml" "$@"

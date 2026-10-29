@@ -1,0 +1,23 @@
+{
+  "title": "Precipitation 1 h (GFS)",
+  "abstract": "Precipitation amount, mm/h. GFS 0.25°, Tajikistan.",
+  "producer": "gfs_surface",
+  "views": [
+    {
+      "layers": [
+        {
+          "qid": "l",
+          "layer_type": "isoband",
+          "parameter": "Precipitation1h",
+          "isobands": "json:isobands/precipitation.json",
+          "css": "isobands/precipitation.css",
+          "subdivide": 4,
+          "smoother": {
+            "size": 2,
+            "degree": 2
+          }
+        }
+      ]
+    }
+  ]
+}

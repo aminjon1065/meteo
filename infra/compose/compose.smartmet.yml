@@ -1,0 +1,18 @@
+# SmartMet Server и SmartMet Alert на том же хосте (infra/smartmet, docs/runbook.md §14): web и worker
+# подключаются к сети Docker «smartmet» и обращаются к сервисам по именам smartmet и smartalert.
+# deploy.sh и dc.sh добавляют этот файл сами, если сеть smartmet есть на хосте. Адреса — в .env:
+#   SMARTMET_URL=http://smartmet:8080  SMARTMET_PRODUCER=gfs  SMARTMET_WMS_URL=http://smartmet:8080
+#   CAP_FEED_URL=http://smartalert/capfeed.php
+services:
+  web:
+    networks:
+      default: {}
+      smartmet: {}
+  worker:
+    networks:
+      default: {}
+      smartmet: {}
+
+networks:
+  smartmet:
+    external: true

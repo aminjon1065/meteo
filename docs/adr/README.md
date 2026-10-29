@@ -11,3 +11,4 @@
 | [ADR-007](ADR-007-deployment.md) | Docker Compose на одном хосте + Caddy | Accepted |
 | [ADR-008](ADR-008-i18n.md) | next-intl + jsonb/таблицы переводов, tg по умолчанию | Accepted |
 | [ADR-009](ADR-009-aqi-engine.md) | Табличный движок индекса с тремя шкалами | Accepted |
+| [ADR-010](ADR-010-smartmet-server.md) | SmartMet Server и SmartMet Alert — контейнеры FMI на сервере портала | Accepted |

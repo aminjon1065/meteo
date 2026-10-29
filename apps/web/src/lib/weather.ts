@@ -16,6 +16,15 @@ export function symbolLabel(t: unknown, code: number | null | undefined): string
   return translateOr(t, symbolKey(code), "—");
 }
 
+/** Название модели прогноза по producer'у SmartMet (для подписей «на основе модели …»). */
+export function modelLabel(producer: string | null | undefined): string {
+  const p = producer?.trim().toLowerCase();
+  if (!p) return "SmartMet";
+  if (p.startsWith("gfs")) return "GFS (NOAA)";
+  if (p.startsWith("ecmwf")) return "ECMWF";
+  return p.toUpperCase();
+}
+
 export const WIND_DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
 export type WindDirection = (typeof WIND_DIRECTIONS)[number];
 

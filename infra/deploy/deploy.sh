@@ -40,10 +40,15 @@ log() { printf '[deploy %s %s] %s\n' "$ENV_NAME" "$(date -u +%H:%M:%S)" "$*" | t
 env_value() { sed -n "s/^$1=//p" "$DIR/.env" | tail -1 | sed -e 's/^"\(.*\)"$/\1/' -e "s/^'\(.*\)'\$/\1/"; }
 
 # docker compose для версии: dc_at <каталог релиза> <тег образов> <аргументы compose…>
+# SmartMet на этом же хосте (runbook §14): если в версии есть compose.smartmet.yml и на хосте есть сеть
+# smartmet, web и worker подключаются к ней.
 dc_at() {
   at_rel=$1
   at_tag=$2
   shift 2
+  if [ -f "$at_rel/infra/compose/compose.smartmet.yml" ] && docker network inspect smartmet >/dev/null 2>&1; then
+    set -- -f "$at_rel/infra/compose/compose.smartmet.yml" "$@"
+  fi
   IMAGE_TAG=$at_tag docker compose -p "$PROJECT" --env-file "$DIR/.env" \
     -f "$at_rel/infra/compose/compose.prod.yml" -f "$at_rel/infra/compose/compose.edge.yml" "$@"
 }

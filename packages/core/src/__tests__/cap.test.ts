@@ -264,6 +264,20 @@ describe("parseCapFeed", () => {
     expect(parsed.inline).toHaveLength(1);
     expect(parseCapAlert(parsed.inline[0] as string).identifier).toBe("tj.meteo.2026.0005");
   });
+
+  it("Atom SmartAlert: пропускает запись «нет предупреждений» со ссылкой на саму ленту", () => {
+    const empty = `<?xml version="1.0" encoding="UTF-8"?><feed xmlns="http://www.w3.org/2005/Atom">
+      <entry><id>http://smartalert/capfeed.php</id><title>There are no active watches, warnings or advisories</title>
+      <link href="http://smartalert/capfeed.php"/></entry></feed>`;
+    expect(parseCapFeed(empty, "http://smartalert/capfeed.php").links).toEqual([]);
+    const withAlert = empty.replace(
+      "</feed>",
+      `<entry><id>a</id><link rel="related" type="application/cap+xml" href="http://smartalert/data/publishedCap/2026-10-29/TJ_ALERT_1.xml"/></entry></feed>`,
+    );
+    expect(parseCapFeed(withAlert, "http://smartalert/capfeed.php").links).toEqual([
+      "http://smartalert/data/publishedCap/2026-10-29/TJ_ALERT_1.xml",
+    ]);
+  });
   it("одиночный CAP, RSS и HTML‑листинг", () => {
     const single = parseCapFeed(fixture("wind-alert.xml"));
     expect(single.kind).toBe("alert");

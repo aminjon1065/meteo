@@ -463,8 +463,9 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 | Переменная | Значение |
 |---|---|
-| `SMARTMET_URL` | адрес сервера с плагином timeseries, например `https://smartmet.meteo.tj` (по умолчанию песочница `https://opendata.fmi.fi`) |
-| `SMARTMET_PRODUCER` | producer модели на сервере Агентства (уточнить у администратора SmartMet); для opendata — `ecmwf` |
+| `SMARTMET_URL` | адрес сервера с плагином timeseries: собственный SmartMet на сервере портала — `http://smartmet:8080` (§14); по умолчанию песочница `https://opendata.fmi.fi` |
+| `SMARTMET_PRODUCER` | producer модели: для собственного SmartMet — `gfs`; для opendata — `ecmwf` |
+| `SMARTMET_WMS_URL` | SmartMet с плагином WMS для слоёв погоды на карте (web) — `http://smartmet:8080`; пусто — слоя нет |
 | `SMARTMET_API_KEY` | если сервер требует ключ (передаётся запросом) |
 | `SMARTMET_HOURLY_STEPS` / `SMARTMET_DAILY_DAYS` | горизонт почасового (72) и суточного (10) прогноза |
 
@@ -488,7 +489,7 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 | Переменная | Значение |
 |---|---|
-| `CAP_FEED_URL` | Atom/RSS‑фид редактора (`https://alert.meteo.tj/cap/feed.atom`), HTTP‑каталог с `*.xml` или `file:///…` (фикстуры `infra/data/cap` для проверки); без значения задача пропускается, дашборд показывает «источник не настроен» |
+| `CAP_FEED_URL` | лента SmartMet Alert на сервере портала — `http://smartalert/capfeed.php` (§14); либо Atom/RSS‑фид редактора, HTTP‑каталог с `*.xml` или `file:///…` (фикстуры `infra/data/cap` для проверки); без значения задача пропускается, дашборд показывает «источник не настроен» |
 | `CAP_TIMEOUT_MS` | таймаут запроса (15000) |
 
 Проверка: `curl -fsS "$CAP_FEED_URL" | head -20`; затем ручной запуск `cap-sync` с `force` и `/admin/cap` →
@@ -779,3 +780,126 @@ sh infra/deploy/harden-host.sh                    # администратор �
    ```
 
 3. Пароль restic (`RESTIC_PASSWORD` из `.env` production) — в менеджер паролей; офсайт‑репозиторий — раздел 3.
+
+## 14. SmartMet Server и SmartMet Alert
+
+По ТЗ (модуль 2) SmartMet Server и SmartMet Alert устанавливаются в инфраструктуре Заказчика средствами FMI.
+Отдельный сервер AlmaLinux/Rocky Linux под SmartMet не выделен, поэтому SmartMet работает на сервере портала
+(Ubuntu) в официальных контейнерах FMI. Пакеты обработки данных — штатные RPM FMI (`smartmet-qdtools`,
+`smartmet-data-gfs` из репозитория `smartmet-open`) внутри контейнера Rocky Linux 10. Каталог `/smartmet` устроен
+так же, как при установке скриптом `fmidev/smartmet-install`, поэтому документация FMI к нему применима.
+Решение и отступления от ТЗ — `docs/adr/ADR-010-smartmet-server.md`.
+
+### 14.1. Состав
+
+| Сервис (`/opt/smartmet/compose.yml`) | Образ | Назначение | Адрес |
+|---|---|---|---|
+| `server` | `fmidev/smartmetserver:26.08.01` | SmartMet Server: timeseries, WMS (`/wms`, `/wmts`, `/tiles`) | `http://smartmet:8080` в сети Docker `smartmet`; с хоста `http://127.0.0.1:8180` |
+| `data` | `smartmet-data:local` (сборка `infra/smartmet/data`) | загрузка GFS 0,25° по области 58–82° в. д., 32–46° с. ш., до 240 ч: в 03:15, 09:15, 15:15, 21:15 UTC | — |
+| `alert-web` | `fmidev/smartmetalert:26.10.21` | карта предупреждений и CAP‑лента `capfeed.php` (tg/ru/en) | `http://smartalert` в сети `smartmet`; с хоста `http://127.0.0.1:8181` |
+
+Наружу ничего не публикуется (порты только на `127.0.0.1`).
+
+| Что | Где |
+|---|---|
+| Конфигурация (копия `infra/smartmet` из репозитория) | `/opt/smartmet` |
+| Данные моделей (querydata) | `/smartmet/data/gfs/tajikistan/{surface,pressure}/querydata` |
+| Журналы загрузки | `/smartmet/logs/data/gfs_tajikistan_<час прогона>.log` |
+| Публикации редактора SmartMet Alert | `/smartmet/editor/smartalert/<источник>/publishedCap/<дата>/` |
+| Область, шаги прогноза GFS | `infra/smartmet/cnf/data/gfs.cnf` |
+| Расписание загрузки | `infra/smartmet/cnf/cron/cron.d/gfs.cron` |
+| Источники данных сервера | `infra/smartmet/etc/engines/querydata.conf` |
+| Слои WMS портала | `infra/smartmet/wms/customers/tajikistan/products/*.json` |
+| Карта предупреждений (центр, языки, явления) | `infra/smartmet/alert/capmap-config.js`, `index.html` |
+
+Ресурсы: в работе ~130 МБ памяти; данные ~160 МБ на прогон (хранится 4 приземных и 2 изобарических прогона),
+копии для редактора в `/smartmet/editor/in` (2 прогона).
+
+### 14.2. Установка и обновление
+
+```bash
+# с рабочей станции, из корня репозитория
+rsync -a --delete infra/smartmet/ root@46.202.155.70:/opt/smartmet/
+
+# на сервере
+mkdir -p /smartmet/data /smartmet/logs /smartmet/tmp /smartmet/editor/smartalert
+chown -R 101010:101010 /smartmet
+cd /opt/smartmet && docker compose build data && docker compose up -d
+```
+
+- Новая версия образа FMI: поменять тег в `compose.yml`, затем `docker compose pull && docker compose up -d`.
+- Изменение файла конфигурации: файлы смонтированы по одному, поэтому после `rsync` —
+  `docker compose up -d --force-recreate <сервис>`.
+- Обновление пакетов FMI в контейнере загрузки: `docker compose build --pull --no-cache data && docker compose up -d data`.
+
+### 14.3. Проверки
+
+```bash
+cd /opt/smartmet
+docker compose ps                                   # server — healthy, data и alert-web — Up
+ls -l /smartmet/data/gfs/tajikistan/surface/querydata/
+tail -20 /smartmet/logs/data/gfs_tajikistan_*.log
+
+# прогноз по Душанбе
+curl -fsS "http://127.0.0.1:8180/timeseries?producer=gfs&latlon=38.56,68.78&param=time,origintime,Temperature,WindSpeedMS,Precipitation1h,TotalCloudCover,SmartSymbol&timesteps=4&format=json"
+
+# слои WMS и карта температуры
+curl -fsS "http://127.0.0.1:8180/wms?service=WMS&request=GetCapabilities&version=1.3.0" | grep -o "<Name>tajikistan:[^<]*"
+curl -fsS -o /tmp/t.png "http://127.0.0.1:8180/wms?service=WMS&request=GetMap&version=1.3.0&layers=tajikistan:temperature&styles=&crs=EPSG:3857&bbox=7402746,4369641,8404622,5086374&width=800&height=572&format=image/png&transparent=true"
+
+# CAP‑лента
+curl -fsS http://127.0.0.1:8181/capfeed.php | head -30
+```
+
+Внеочередная загрузка GFS (например, после простоя):
+
+```bash
+docker compose -f /opt/smartmet/compose.yml exec -d data \
+  runuser -u smartmet -- env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+```
+
+Новый прогон сервер подхватывает сам в течение минуты. Если GFS недоступен (NOMADS NOAA), сервер продолжает
+отдавать последний загруженный прогон; поле `origintime` в ответе показывает его время.
+
+### 14.4. Слои WMS
+
+Слои портала — продукты `tajikistan:*`: `temperature`, `precipitation`, `windspeed`, `wind` (стрелки),
+`cloudcover`, `pressure` (изобары). Палитры и классы — ресурсы образа FMI (`/smartmet/share/wms/resources`),
+сглаживание — параметры `subdivide` и `smoother` слоя. Описание параметров — `docs/reference.md` в
+[fmidev/smartmet-plugin-wms](https://github.com/fmidev/smartmet-plugin-wms). Время — параметр `time`
+(ISO 8601, UTC); доступные сроки перечислены в GetCapabilities (`<Dimension name="time">`).
+
+### 14.5. Редактор SmartMet Alert
+
+Редактор CAP‑сообщений (Java, Liberica JRE 8 Full; пакет, адаптированный для Таджикистана, предоставляет FMI)
+устанавливается на рабочей станции Агентства и публикует файлы в `/smartmet/editor/smartalert` на сервере.
+Доступ — SFTP/SSHFS отдельной учётной записью, ограниченной этим каталогом; Samba в интернет не открывается.
+Учётная запись создаётся, когда готовы рабочая станция и пакет FMI. Проверка: файлы `*_ALERT_*.xml` появляются в
+`publishedCap/<дата>/`, а `capfeed.php` их перечисляет.
+
+### 14.6. Подключение портала
+
+Портал берёт прогноз, слои погоды и предупреждения из этого SmartMet, когда его сервисы `web` и `worker`
+подключены к сети Docker `smartmet` и в `.env` окружения заданы переменные из таблицы ниже. Подключение к сети
+делает `infra/compose/compose.smartmet.yml`: `deploy.sh` и `dc` добавляют его сами, если сеть `smartmet` есть на
+хосте (то есть проект `/opt/smartmet` запущен раньше портала). Production и staging подключаются к одной сети и
+пользуются одним SmartMet.
+
+Порядок: запустить SmartMet (§14.2) → дописать переменные в `/opt/meteo/<окружение>/.env` → выкатить версию с
+`compose.smartmet.yml` (или для уже выкаченной — `/opt/meteo/<окружение>/dc up -d web worker`). Проверка:
+`docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' meteo-worker-1` показывает сеть
+`smartmet`; на дашборде админки интеграции SmartMet и CAP — «ok»; `/map?layer=weather` показывает слой погоды.
+Возврат на песочницу FMI — удалить переменные из `.env` и выполнить `dc up -d web worker`.
+
+| Переменная | Значение |
+|---|---|
+| `SMARTMET_URL` | `http://smartmet:8080` |
+| `SMARTMET_PRODUCER` | `gfs` |
+| `SMARTMET_WMS_URL` | `http://smartmet:8080` |
+| `CAP_FEED_URL` | `http://smartalert/capfeed.php` |
+
+### 14.7. Резервное копирование
+
+Конфигурация хранится в репозитории (`infra/smartmet`), данные моделей восстанавливаются следующей загрузкой.
+Сохранять нужно публикации редактора: `/smartmet/editor/smartalert`. В снимки restic сервиса `backup` (раздел 3)
+этот каталог пока не входит: его нужно смонтировать в `backup` и добавить в список путей `infra/backup/run.sh`.
