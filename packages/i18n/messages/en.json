@@ -52,7 +52,8 @@
     "about": "About",
     "data": "Open data",
     "admin": "Administration",
-    "airShort": "Air"
+    "airShort": "Air",
+    "silam": "SmartMet (SILAM)"
   },
   "levels": {
     "0": "No data",
@@ -485,7 +486,8 @@
     "weatherHint": "GFS model (NOAA), 0.25° ≈ 25 km grid; maps are rendered by SmartMet Server.",
     "weatherNoData": "Weather layers are unavailable: SmartMet Server is not responding or has not loaded a forecast yet.",
     "weatherScale": "Scale, {unit}",
-    "unitMmh": "mm/h"
+    "unitMmh": "mm/h",
+    "silamFmi": "FMI maps for Tajikistan"
   },
   "air": {
     "title": "Air quality",
@@ -495,7 +497,8 @@
     "viewAll": "All stations",
     "aboutIndex": "How the index is calculated",
     "summary": "{count, plural, one {# monitoring station} other {# monitoring stations}}, {fresh} reporting in the last 6 hours. The worst level right now is {level}.",
-    "noRegion": "Not assigned to a region"
+    "noRegion": "Not assigned to a region",
+    "silamLink": "SILAM forecast from FMI"
   },
   "station": {
     "current": "Current values",
@@ -2209,5 +2212,107 @@
     "TSP": "TSP — total suspended particles of all sizes",
     "CO2": "CO₂ — carbon dioxide: an indicator of ventilation",
     "TVOC": "TVOC — volatile organic compounds: solvents, fuel"
+  },
+  "silamPage": {
+    "title": "SmartMet (SILAM)",
+    "metaTitle": "SmartMet (SILAM) — air quality forecast",
+    "intro": "Air pollution forecast maps for Tajikistan and neighbouring countries from the SILAM model. The Finnish Meteorological Institute (FMI) computes them every day under the FINTAJ project.",
+    "linkMap": "SILAM layer on the map",
+    "linkStations": "Station measurements",
+    "products": {
+      "AQI": {
+        "label": "AQI",
+        "name": "Air quality index",
+        "hint": "The FMI index for five pollutants; the colour shows the worst of their levels."
+      },
+      "CO": {
+        "label": "CO",
+        "name": "Carbon monoxide",
+        "hint": "Near-surface concentration, µg/m³. Produced by incomplete fuel combustion: traffic, stoves, boiler houses."
+      },
+      "NO2": {
+        "label": "NO₂",
+        "name": "Nitrogen dioxide",
+        "hint": "Near-surface concentration, µg/m³. Main sources are vehicle exhaust, power plants and boiler houses."
+      },
+      "O3": {
+        "label": "O₃",
+        "name": "Ground-level ozone",
+        "hint": "Near-surface concentration, µg/m³. Ozone forms in sunlight from exhaust and other gases, so it is higher in the daytime and in summer."
+      },
+      "PM10": {
+        "label": "PM10",
+        "name": "PM10 particles",
+        "hint": "Particles up to 10 µm near the surface, µg/m³: mostly dust, including dust carried by wind from deserts."
+      },
+      "PM25": {
+        "label": "PM2.5",
+        "name": "PM2.5 particles",
+        "hint": "Fine particles up to 2.5 µm near the surface, µg/m³: smoke, soot, exhaust, fine dust."
+      },
+      "SO2": {
+        "label": "SO₂",
+        "name": "Sulphur dioxide",
+        "hint": "Near-surface concentration, µg/m³. Sources: burning of coal and fuel oil, industry."
+      },
+      "ABL": {
+        "label": "ABL",
+        "name": "Boundary layer height",
+        "hint": "Depth of the lowest layer of the atmosphere where emissions mix, m. The lower it is, the more pollution builds up near the ground."
+      }
+    },
+    "viewer": {
+      "heading": "SILAM maps",
+      "products": "Parameter",
+      "time": "Forecast time",
+      "play": "Animate",
+      "pause": "Pause",
+      "localTime": "{time} Dushanbe time",
+      "utc": "{hour}Z on the map",
+      "hint": "Scroll the mouse wheel over the map: down for later, up for earlier. You can also pick an hour by hovering over the hour strip.",
+      "hintTouch": "Swipe the map left or right to change the hour.",
+      "loading": "Loading…",
+      "frameError": "The frame did not load: FMI did not respond or the forecast run has just changed.",
+      "retry": "Retry",
+      "fullSize": "Full-size frame",
+      "attribution": "© Finnish Meteorological Institute (FMI), SILAM model. FMI images are shown unchanged.",
+      "run": "FMI run of {date}, 00 UTC; maps issued {issued}.",
+      "stale": "FMI has not updated the maps for a while: showing the latest run, of {date}.",
+      "unavailable": "FMI maps are unavailable right now: silam.fmi.fi did not respond. Try again later or open the SILAM layer on the portal map."
+    },
+    "about": {
+      "heading": "What these maps are",
+      "p1": "SILAM (System for Integrated modeLling of Atmospheric coMposition) is an atmospheric composition model developed by the Finnish Meteorological Institute. It computes how substances from traffic, industry, stoves, fires and dust storms are carried by wind, mixed, chemically transformed and deposited.",
+      "p2": "For Tajikistan, FMI computes a 48-hour forecast every day. The run starts at 00 UTC of the previous day, so it takes in information on actual emissions over the past day. New maps appear at about 07:00 Dushanbe time and cover the period up to 05:00 the next day.",
+      "p3": "The model shows background pollution over a large area with a grid of tens of kilometres. It is a calculation, not a measurement: next to a busy street or a plant the air may be worse. For measured data, see the <link>monitoring stations</link> page."
+    },
+    "read": {
+      "heading": "How to read the map",
+      "select": "Choose a parameter with the buttons above the map. Change the time with the mouse wheel over the map (down for later, up for earlier) or by hovering over the hour strip; on a phone, swipe the map left or right; on a keyboard, use the arrow keys. “Animate” plays all 48 hours; frames load one at a time, so on a slow connection the animation runs slower.",
+      "time": "The map title gives the time in UTC: “hour: 06Z” means 06:00 UTC, or 11:00 in Dushanbe. Above the map the portal shows local time.",
+      "colors": "Colour shows the near-surface concentration in micrograms per cubic metre (µg/m³); the scale is below the map. The scale is uneven: each step is roughly twice the previous one, so neighbouring colours differ several-fold.",
+      "aqi": "AQI is the five-level FMI air quality index: the colour at each point is the worst of the pollutant levels. Legend labels are in English; the table below matches them to the portal's levels.",
+      "abl": "ABL is the height of the atmospheric boundary layer in metres. At night and in winter, especially during inversions in valleys, the layer drops to a few tens of metres: emissions hardly disperse and pollution builds up near the ground.",
+      "map": "Dots are towns of Tajikistan (Dushanbe, Khujand, Kulob, Khorugh and others), lines are national borders, the edges show latitude and longitude."
+    },
+    "levels": {
+      "heading": "AQI levels on FMI maps",
+      "intro": "The FMI index is based on hourly concentrations: at each point the level is set by the pollutant with the worst sub-index. Thresholds, µg/m³:",
+      "caption": "FMI air quality index thresholds by pollutant, µg/m³",
+      "level": "Level",
+      "legend": "FMI legend",
+      "note": "By default the portal's operational scale uses the same thresholds (modelled on the FMI/HSY index) — <link>more about the index</link>.",
+      "source": "Thresholds: <link>FMI air quality index</link>."
+    },
+    "portal": {
+      "heading": "SILAM elsewhere on the portal",
+      "map": "The <link>map</link> has a SILAM layer from FMI's global model with a grid of about 20 km, 5 days ahead, in the portal's scale colours; you can zoom in and view it together with stations.",
+      "stations": "Station pages and city weather forecasts show a daily SILAM forecast for that place."
+    },
+    "source": {
+      "heading": "Source and limitations",
+      "p1": "The maps are computed and published by FMI at <link>silam.fmi.fi</link> under the FINTAJ project; the portal shows them unchanged and updates them after FMI does.",
+      "p2": "FMI notes that model products are created for scientific use and their accuracy and completeness are not guaranteed. The official air quality assessment is based on the Agency's monitoring stations; hazardous phenomena are in the <link>Warnings</link> section."
+    }
   }
 }

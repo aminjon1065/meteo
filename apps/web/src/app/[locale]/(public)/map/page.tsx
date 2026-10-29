@@ -117,6 +117,7 @@ export default async function MapPage({
         }}
         stationHrefPrefix={prefix}
         regionsHref={`${localePrefix}/air`}
+        silamFmiHref={`${localePrefix}/air/silam`}
         labels={{
           title: t("title"),
           layers: t("layers"),
@@ -127,6 +128,7 @@ export default async function MapPage({
           regionStations: t("regionStations"),
           regionOpen: t("regionOpen"),
           silam: t("silam"),
+          silamFmi: t("silamFmi"),
           warnings: t("warnings"),
           soon: t("soon"),
           legend: t("legend"),

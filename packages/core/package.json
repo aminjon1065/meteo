@@ -12,6 +12,7 @@
     "./smartmet": "./src/smartmet.ts",
     "./weather-symbols": "./src/weather-symbols.ts",
     "./silam": "./src/silam.ts",
+    "./silam-fmi": "./src/silam-fmi.ts",
     "./cap": "./src/cap.ts",
     "./markdown": "./src/markdown.ts",
     "./image-meta": "./src/image-meta.ts",

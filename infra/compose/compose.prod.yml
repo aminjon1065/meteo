@@ -99,6 +99,8 @@ services:
       SMTP_URL: ${SMTP_URL:-}
       # SmartMet Server с WMS для слоёв погоды на карте (runbook §14); пусто — слои не показываются.
       SMARTMET_WMS_URL: ${SMARTMET_WMS_URL:-}
+      # Карты SILAM от FMI для /air/silam (пусто — silam.fmi.fi/roux/TAJ, off — выключить).
+      SILAM_FMI_URL: ${SILAM_FMI_URL:-}
     volumes:
       - uploads:/app/uploads
       - silam:/app/silam:ro

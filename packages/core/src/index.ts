@@ -15,6 +15,7 @@ export * from "./markdown";
 export * from "./qc";
 export * from "./resilience";
 export * from "./silam";
+export * from "./silam-fmi";
 export * from "./slug";
 export * from "./smartmet";
 export * from "./station-feed";

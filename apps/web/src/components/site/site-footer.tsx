@@ -20,6 +20,7 @@ export async function SiteFooter() {
   const address = pick(branding.address, locale);
   const hasContacts = Boolean(branding.email || branding.phone || address || branding.website);
   const sections = [
+    { href: "/air/silam", label: tn("silam") },
     { href: "/air/index", label: t("aboutIndex") },
     { href: "/health", label: tn("health") },
     { href: "/air/bulletins", label: t("ecoBulletins") },

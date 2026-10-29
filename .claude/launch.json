@@ -8,6 +8,12 @@
       "port": 3000
     },
     {
+      "name": "web-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@meteo/web", "exec", "next", "start", "-p", "3005"],
+      "port": 3005
+    },
+    {
       "name": "worker",
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@meteo/worker", "dev"],

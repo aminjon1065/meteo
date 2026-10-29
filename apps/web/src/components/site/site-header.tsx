@@ -31,6 +31,7 @@ export async function getMoreNavItems(): Promise<NavItem[]> {
     { href: "/warnings", label: t("warnings") },
     { href: "/news", label: t("news") },
     { href: "/health", label: t("health") },
+    { href: "/air/silam", label: t("silam") },
     { href: "/air/index", label: tf("aboutIndex") },
     { href: "/air/bulletins", label: tf("ecoBulletins") },
     { href: "/data", label: t("data") },

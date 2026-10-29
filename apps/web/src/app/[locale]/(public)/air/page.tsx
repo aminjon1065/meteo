@@ -63,6 +63,9 @@ export default async function AirPage({ params }: { params: Promise<{ locale: st
           <Link href="/air/index" className="text-sm font-semibold text-brand hover:underline">
             {t("aboutIndex")} →
           </Link>
+          <Link href="/air/silam" className="text-sm font-semibold text-brand hover:underline">
+            {t("silamLink")} →
+          </Link>
         </div>
       </PageHeader>
 

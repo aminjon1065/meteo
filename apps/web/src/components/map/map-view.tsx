@@ -65,6 +65,8 @@ export interface MapViewProps {
   stationHrefPrefix: string;
   /** Ссылка из попапа области на список станций (с локалью). */
   regionsHref: string;
+  /** Страница карт SILAM от FMI для Таджикистана (с локалью). */
+  silamFmiHref: string;
   labels: {
     title: string;
     layers: string;
@@ -75,6 +77,8 @@ export interface MapViewProps {
     regionStations: string;
     regionOpen: string;
     silam: string;
+    /** «Карты FMI для Таджикистана» — ссылка на /air/silam под слоем SILAM. */
+    silamFmi: string;
     warnings: string;
     soon: string;
     legend: string;
@@ -139,6 +143,7 @@ export function MapView({
   statusLabels,
   stationHrefPrefix,
   regionsHref,
+  silamFmiHref,
   labels,
   legend,
   legendChips,
@@ -453,6 +458,9 @@ export function MapView({
       {!silamAvailable ? (
         <p className="text-xs leading-snug text-muted-foreground">{labels.noData}</p>
       ) : null}
+      <a href={silamFmiHref} className="-mt-1 pl-6 text-xs font-medium text-brand hover:underline">
+        {labels.silamFmi} →
+      </a>
       <div className="flex items-center gap-2">
         <Checkbox
           id={`${idp}-warnings`}
