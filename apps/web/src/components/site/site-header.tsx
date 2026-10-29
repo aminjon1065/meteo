@@ -7,14 +7,33 @@ import { getBrandingCached } from "@/lib/settings";
 import { CitySelect } from "./city-select";
 import { LanguageSwitcher } from "./language-switcher";
 import { Logo } from "./logo";
-import { MainNav, type NavItem } from "./main-nav";
+import { MainNav, type NavEntry, type NavItem } from "./main-nav";
 import { MobileNav } from "./mobile-nav";
 import { ThemeToggle } from "./theme-toggle";
 
 /**
- * Разделы верхней навигации (docs/03 §3). «SmartMet (SILAM)» — по просьбе Заказчика (29.10.2026).
- * Первые четыре идут в нижнюю панель на телефоне, остальные — в лист «Ещё».
+ * Верхнее меню на компьютере (docs/03 §3): «Мониторинг» объединяет качество воздуха и погоду в одном
+ * выпадающем списке, «SmartMet (SILAM)» — отдельная кнопка по просьбе Заказчика (29.10.2026).
  */
+export async function getHeaderNav(): Promise<NavEntry[]> {
+  const t = await getTranslations("nav");
+  return [
+    { href: "/", label: t("home") },
+    {
+      label: t("monitoring"),
+      items: [
+        { href: "/air", label: t("air") },
+        { href: "/weather", label: t("weather") },
+      ],
+    },
+    { href: "/map", label: t("map") },
+    { href: "/air/silam", label: t("silam") },
+    { href: "/warnings", label: t("warnings") },
+    { href: "/news", label: t("news") },
+  ];
+}
+
+/** Нижняя панель на телефоне: четыре главных раздела со значками, остальное — в листе «Ещё». */
 export async function getNavItems(): Promise<NavItem[]> {
   const t = await getTranslations("nav");
   return [
@@ -22,9 +41,6 @@ export async function getNavItems(): Promise<NavItem[]> {
     { href: "/air", label: t("airShort") },
     { href: "/weather", label: t("weather") },
     { href: "/map", label: t("map") },
-    { href: "/air/silam", label: t("silam") },
-    { href: "/warnings", label: t("warnings") },
-    { href: "/news", label: t("news") },
   ];
 }
 
@@ -45,8 +61,9 @@ export async function getMoreNavItems(): Promise<NavItem[]> {
 }
 
 export async function SiteHeader() {
-  const [tc, items, more, locale, branding, cityState] = await Promise.all([
+  const [tc, header, items, more, locale, branding, cityState] = await Promise.all([
     getTranslations("common"),
+    getHeaderNav(),
     getNavItems(),
     getMoreNavItems(),
     getLocale() as Promise<Locale>,
@@ -84,7 +101,7 @@ export async function SiteHeader() {
               selected={cityState.city?.slug ?? null}
             />
           ) : null}
-          <MainNav items={items} className="ml-auto hidden lg:flex" />
+          <MainNav items={header} className="ml-auto hidden lg:flex" />
           <div className="ml-auto flex items-center gap-1 lg:ml-0">
             <LanguageSwitcher variant="inline" />
             {/* До 380 px переключатель темы остаётся в листе «Ещё» нижней навигации */}
@@ -94,7 +111,7 @@ export async function SiteHeader() {
           </div>
         </div>
       </header>
-      <MobileNav primary={items.slice(0, 4)} more={more} />
+      <MobileNav primary={items} more={more} />
     </>
   );
 }

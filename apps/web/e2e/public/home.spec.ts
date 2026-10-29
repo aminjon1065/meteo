@@ -17,13 +17,18 @@ for (const locale of locales) {
     await expect(page.getByRole("heading", { level: 1 })).toContainText(t(locale, "home.airNow"));
     await expect(page.getByTestId("status-level")).toBeVisible();
     const nav = page.getByRole("navigation", { name: t(locale, "common.mainNav") });
-    // exact: по‑таджикски «Ҳаво» (воздух) — подстрока «Обу ҳаво» (погода).
+    // «Мониторинг» — выпадающий список: качество воздуха и погода.
+    await nav.getByRole("button", { name: t(locale, "nav.monitoring") }).click();
+    const menu = page.getByRole("menu");
+    // exact: по‑таджикски «Ҳаво» — подстрока «Сифати ҳаво» и «Обу ҳаво».
     await expect(
-      nav.getByRole("link", { name: t(locale, "nav.airShort"), exact: true }),
+      menu.getByRole("menuitem", { name: t(locale, "nav.air"), exact: true }),
     ).toBeVisible();
     await expect(
-      nav.getByRole("link", { name: t(locale, "nav.weather"), exact: true }),
+      menu.getByRole("menuitem", { name: t(locale, "nav.weather"), exact: true }),
     ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(nav.getByRole("link", { name: t(locale, "nav.silam") })).toBeVisible();
     // Карточки: погода по городам из фикстуры, действующее CAP-предупреждение, новость.
     await expect(page.getByText(t(locale, "home.forecastToday"))).toBeVisible();
     await expect(page.getByText(E2E.capHeadline[locale]).first()).toBeVisible();
