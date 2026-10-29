@@ -6,6 +6,8 @@ import * as echarts from "echarts/core";
 import { CanvasRenderer } from "echarts/renderers";
 import { useTheme } from "next-themes";
 import { useEffect, useRef } from "react";
+import { dateFormatter } from "@/lib/date-format";
+import { numberFormatter } from "@/lib/number-format";
 
 echarts.use([
   LineChart,
@@ -61,24 +63,19 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
     const precipColor = styles.getPropertyValue("--brand-primary").trim() || "#164a7c";
     const fontFamily = getComputedStyle(document.body).fontFamily;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    const fmt = new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Dushanbe",
+    // Не Intl: в браузере нет его данных для tg, подписи были бы английскими.
+    const fmt = dateFormatter(locale, {
       weekday: "short",
       day: "numeric",
       month: "short",
       hour: "2-digit",
       minute: "2-digit",
     });
-    const dayFmt = new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Dushanbe",
-      weekday: "short",
-      day: "numeric",
-    });
-    const hourFmt = new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Dushanbe",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const dayFmt = dateFormatter(locale, { weekday: "short", day: "numeric" });
+    const hourFmt = dateFormatter(locale, { hour: "2-digit", minute: "2-digit" });
+    // Числа тоже не через Intl/ECharts: у них «19.8» и «0.5» вместо таджикских «19,8» и «0,5».
+    const numFmt = numberFormatter(locale, { maximumFractionDigits: 1 });
+    const axisNumber = (value: number) => numFmt.format(value);
     // Полуночи (местные) — вертикальные разделители суток.
     const midnights: number[] = [];
     for (const p of points) {
@@ -109,7 +106,7 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
             const lines = list.map((p) => {
               const v = p.data[1];
               const unit = p.seriesName === labels.temperature ? " °C" : " mm";
-              return `${p.seriesName}: <b>${v === null ? "—" : v}</b>${unit}`;
+              return `${p.seriesName}: <b>${v === null ? "—" : numFmt.format(v)}</b>${unit}`;
             });
             return `${fmt.format(new Date(ts))}<br/>${lines.join("<br/>")}`;
           },
@@ -136,7 +133,7 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
             name: "°C",
             min: tMin,
             max: tMax,
-            axisLabel: { color: muted, fontSize: 11 },
+            axisLabel: { color: muted, fontSize: 11, formatter: axisNumber },
             nameTextStyle: { color: muted, fontSize: 10 },
             splitLine: { lineStyle: { color: border, type: "dashed" } },
           },
@@ -145,7 +142,7 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
             name: "mm",
             min: 0,
             max: Math.ceil(maxPrecip * 2),
-            axisLabel: { color: muted, fontSize: 11 },
+            axisLabel: { color: muted, fontSize: 11, formatter: axisNumber },
             nameTextStyle: { color: muted, fontSize: 10 },
             splitLine: { show: false },
           },

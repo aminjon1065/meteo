@@ -13,11 +13,12 @@ import {
 } from "@meteo/ui/components/alert-dialog";
 import { Button } from "@meteo/ui/components/button";
 import { CopyIcon, FileIcon, Trash2Icon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useTransition } from "react";
 import { toast } from "sonner";
 import type { MediaResult } from "@/app/[locale]/admin/(app)/media/actions";
 import { useRouter } from "@/i18n/navigation";
+import { dateFormatter } from "@/lib/date-format";
 
 export interface MediaItem {
   id: number;
@@ -46,7 +47,9 @@ export function MediaGrid({
 }) {
   const t = useTranslations("media");
   const tc = useTranslations("common");
-  const format = useFormatter();
+  const locale = useLocale();
+  // Не useFormatter: он форматирует через Intl, а в браузере нет его данных для tg.
+  const dateFmt = dateFormatter(locale, { dateStyle: "medium" });
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -90,9 +93,7 @@ export function MediaGrid({
               {m.mime} · {formatSize(m.size)}
               {m.width && m.height ? ` · ${m.width}×${m.height}` : ""}
             </p>
-            <p className="text-muted-foreground">
-              {format.dateTime(new Date(m.createdAt), { dateStyle: "medium" })}
-            </p>
+            <p className="text-muted-foreground">{dateFmt.format(new Date(m.createdAt))}</p>
             <div className="mt-1 flex items-center gap-1">
               <Button type="button" size="sm" variant="outline" onClick={() => copy(m.url)}>
                 <CopyIcon aria-hidden="true" />

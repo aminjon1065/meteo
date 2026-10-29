@@ -15,6 +15,8 @@ import {
 import { cn } from "@meteo/ui/lib/utils";
 import { ChevronLeftIcon, ChevronRightIcon, LayersIcon, PauseIcon, PlayIcon } from "lucide-react";
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
+import { dateFormatter } from "@/lib/date-format";
+import { numberFormatter } from "@/lib/number-format";
 import type { BoundariesLayer, SilamOverlay, WeatherOverlay } from "./station-map";
 import { StationMapLazy } from "./station-map.lazy";
 import {
@@ -56,6 +58,11 @@ type Forecast = "silam" | "weather";
 
 export interface MapViewProps {
   locale: Locale;
+  /**
+   * Момент отрисовки на сервере (мс): по нему выбирается срок при открытии, чтобы сервер и
+   * браузер показали один и тот же кадр и одну подпись времени.
+   */
+  now: number;
   catalog: SilamCatalog;
   /** Слои погоды SmartMet (WMS). */
   weather: WeatherCatalog;
@@ -136,6 +143,7 @@ function nearestIndex(times: string[], at: number): number {
  */
 export function MapView({
   locale,
+  now,
   catalog,
   weather,
   warnings,
@@ -188,7 +196,7 @@ export function MapView({
   /** Сроки активного слоя — по ним ходит ползунок. */
   const times = weatherOn ? weather.times : silamTimes;
   const [index, setIndex] = useState(() =>
-    nearestIndex(active === "weather" ? weather.times : silamTimes, Date.now()),
+    nearestIndex(active === "weather" ? weather.times : silamTimes, now),
   );
   const [playing, setPlaying] = useState(false);
   const preloaded = useRef(new Set<string>());
@@ -244,10 +252,10 @@ export function MapView({
           maxzoom: WEATHER_MAX_ZOOM,
         }
       : null;
+  // dateFormatter, а не Intl: в браузере нет данных Intl для tg, и подпись стала бы английской.
   const timeFmt = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
-        timeZone: "Asia/Dushanbe",
+      dateFormatter(locale, {
         weekday: "short",
         day: "numeric",
         month: "short",
@@ -258,7 +266,7 @@ export function MapView({
   );
   const runFmt = useMemo(
     () =>
-      new Intl.DateTimeFormat(locale, {
+      dateFormatter(locale, {
         timeZone: "UTC",
         day: "numeric",
         month: "short",
@@ -268,13 +276,13 @@ export function MapView({
     [locale],
   );
 
-  // Время и даты форматирует Intl: в Node и браузере ICU разный (например, у tg), поэтому у этих
-  // подписей suppressHydrationWarning — после первого обновления остаётся формат браузера.
+  const maxFmt = useMemo(() => numberFormatter(locale, { maximumFractionDigits: 1 }), [locale]);
+
   const timeLabel = shownTime ? timeFmt.format(new Date(shownTime)) : "—";
   const silamMeta = [
     silamFrame?.max !== null && silamFrame?.max !== undefined && pollutant
       ? labels.maxInDomain
-          .replace("{value}", String(Math.round(silamFrame.max * 10) / 10))
+          .replace("{value}", maxFmt.format(silamFrame.max))
           .replace("{unit}", pollutant.unit)
       : null,
     catalog.run
@@ -373,15 +381,13 @@ export function MapView({
       {kind === "silam" ? pollutantSelect() : paramSelect()}
       <div className="flex items-center gap-1">
         {playback}
-        <span className="ml-1 flex-1 text-xs tabular-nums" suppressHydrationWarning>
-          {timeLabel}
-        </span>
+        <span className="ml-1 flex-1 text-xs tabular-nums">{timeLabel}</span>
       </div>
       {slider()}
       {kind === "weather" ? (
         <WeatherLegend def={weatherDef} locale={locale} caption={weatherScale} />
       ) : null}
-      <p className="text-[11px] leading-snug text-muted-foreground" suppressHydrationWarning>
+      <p className="text-[11px] leading-snug text-muted-foreground">
         {kind === "silam" ? silamMeta : weatherMeta}
       </p>
       <p className="text-[11px] leading-snug text-muted-foreground">
@@ -580,12 +586,7 @@ export function MapView({
           >
             <div className="flex items-center gap-2">
               {weatherOn ? paramSelect("w-auto shrink-0") : pollutantSelect("w-auto shrink-0")}
-              <span
-                className="ml-auto truncate text-xs font-medium tabular-nums"
-                suppressHydrationWarning
-              >
-                {timeLabel}
-              </span>
+              <span className="ml-auto truncate text-xs font-medium tabular-nums">{timeLabel}</span>
             </div>
             <div className="flex items-center gap-1">
               {playback}
@@ -595,10 +596,7 @@ export function MapView({
               <WeatherLegend def={weatherDef} locale={locale} caption={weatherScale} />
             ) : null}
             {(weatherOn ? weatherMeta : silamMeta) ? (
-              <p
-                className="truncate text-[11px] leading-snug text-muted-foreground"
-                suppressHydrationWarning
-              >
+              <p className="truncate text-[11px] leading-snug text-muted-foreground">
                 {weatherOn ? weatherMeta : silamMeta}
               </p>
             ) : null}

@@ -17,6 +17,8 @@ import { CanvasRenderer } from "echarts/renderers";
 import { DownloadIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { calendarNames, dateFormatter } from "@/lib/date-format";
+import { numberFormatter } from "@/lib/number-format";
 
 echarts.use([
   LineChart,
@@ -82,6 +84,8 @@ interface SeriesResponse {
 
 type LevelKey = 1 | 2 | 3 | 4 | 5 | 6;
 
+type ChartLocale = NonNullable<NonNullable<Parameters<typeof echarts.init>[2]>["locale"]>;
+
 /** Токены темы для холста: полосы уровней — тинты, линия — синий Агентства, оси — приглушённые. */
 function readTokens() {
   const styles = getComputedStyle(document.documentElement);
@@ -146,7 +150,13 @@ export function MeasurementChart({
 
   useEffect(() => {
     if (!containerRef.current) return;
-    const chart = echarts.init(containerRef.current, undefined, { renderer: "canvas" });
+    // Месяцы и дни недели на оси времени: у ECharts свои словари, по умолчанию английские
+    // (недостающие строки ECharts берёт из своего английского).
+    const chartLocale = { time: calendarNames(locale) } as unknown as ChartLocale;
+    const chart = echarts.init(containerRef.current, undefined, {
+      renderer: "canvas",
+      locale: chartLocale,
+    });
     chartRef.current = chart;
     const observer = new ResizeObserver(() => chart.resize());
     observer.observe(containerRef.current);
@@ -155,7 +165,7 @@ export function MeasurementChart({
       chart.dispose();
       chartRef.current = null;
     };
-  }, []);
+  }, [locale]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: смена темы меняет CSS‑токены, которые эффект читает из DOM
   useEffect(() => {
@@ -170,12 +180,14 @@ export function MeasurementChart({
     const yMax = pollutantBands.length
       ? Math.ceil(Math.max(maxValue * 1.15, thirdBandTop * 1.1))
       : undefined;
-    const fmt = new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Dushanbe",
+    // Не Intl: в браузере нет его данных для tg, дата в подсказке была бы английской.
+    const fmt = dateFormatter(locale, {
       dateStyle: "medium",
       timeStyle: data?.aggregation === "hour" ? "short" : undefined,
     });
-    const numFmt = new Intl.NumberFormat(locale, { maximumFractionDigits: pollutant.decimals });
+    // Числа тоже не через Intl/ECharts: в браузере у tg было бы «1,000» и «0.5».
+    const numFmt = numberFormatter(locale, { maximumFractionDigits: pollutant.decimals });
+    const axisFmt = numberFormatter(locale);
     const fontFamily = getComputedStyle(document.body).fontFamily;
 
     chart.setOption(
@@ -206,7 +218,11 @@ export function MeasurementChart({
         yAxis: {
           type: "value",
           max: yMax,
-          axisLabel: { color: tokens.muted, fontSize: 11 },
+          axisLabel: {
+            color: tokens.muted,
+            fontSize: 11,
+            formatter: (value: number) => axisFmt.format(value),
+          },
           splitLine: { lineStyle: { color: tokens.border, type: "dashed" } },
         },
         dataZoom:

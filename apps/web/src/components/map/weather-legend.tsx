@@ -1,5 +1,6 @@
 import type { Locale } from "@meteo/i18n";
 import { cn } from "@meteo/ui/lib/utils";
+import { numberFormatter } from "@/lib/number-format";
 import type { WeatherParamDef } from "./weather-layers";
 
 /** Позиция подписи под шкалой: у краёв подпись не выходит за пределы панели. */
@@ -24,7 +25,8 @@ export function WeatherLegend({
   caption: string;
   className?: string;
 }) {
-  const fmt = new Intl.NumberFormat(locale, { maximumFractionDigits: 1 });
+  // Не Intl: в браузере нет его данных для tg, подписи шкалы стали бы английскими после гидратации.
+  const fmt = numberFormatter(locale, { maximumFractionDigits: 1 });
   const n = def.legend.length;
   const first = def.legend[0]?.lo;
   const last = def.legend[n - 1]?.lo;
@@ -33,7 +35,6 @@ export function WeatherLegend({
       <figcaption className="text-[11px] leading-none text-muted-foreground">{caption}</figcaption>
       <div
         role="img"
-        suppressHydrationWarning
         aria-label={`${caption}: ${first !== undefined && first !== null ? fmt.format(first) : ""} … ${last !== undefined && last !== null ? fmt.format(last) : ""}+`}
         className="flex h-2.5 overflow-hidden rounded-sm ring-1 ring-foreground/10"
       >
@@ -49,12 +50,7 @@ export function WeatherLegend({
           const i = def.legend.findIndex((c) => c.lo === t);
           if (i < 0) return null;
           return (
-            <span
-              key={t}
-              className="absolute top-0"
-              style={tickStyle((i / n) * 100)}
-              suppressHydrationWarning
-            >
+            <span key={t} className="absolute top-0" style={tickStyle((i / n) * 100)}>
               {fmt.format(t)}
             </span>
           );

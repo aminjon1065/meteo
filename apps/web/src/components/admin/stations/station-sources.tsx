@@ -29,11 +29,12 @@ import { Switch } from "@meteo/ui/components/switch";
 import { Textarea } from "@meteo/ui/components/textarea";
 import { cn } from "@meteo/ui/lib/utils";
 import { PlayIcon, PlusIcon, Trash2Icon } from "lucide-react";
-import { useFormatter, useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import { useState, useTransition } from "react";
 import { toast } from "sonner";
 import type { StationSourceResult } from "@/app/[locale]/admin/(app)/stations/actions";
 import { useRouter } from "@/i18n/navigation";
+import { dateFormatter, formatRelativeTime } from "@/lib/date-format";
 import { translateOr } from "@/lib/i18n-utils";
 import {
   isUrlSourceKind,
@@ -137,15 +138,17 @@ export function StationSources({
 }: StationSourcesProps) {
   const t = useTranslations("stations.sources");
   const tc = useTranslations("common");
-  const format = useFormatter();
+  const locale = useLocale();
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [form, setForm] = useState<FormState | null>(null);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
-  const rel = (d: Date | null) => (d ? format.relativeTime(d) : "—");
+  // Не useFormatter: он форматирует через Intl, а в браузере нет его данных для tg.
+  // «N секунд назад» сервер и браузер считают в разные моменты — у этих <dd> suppressHydrationWarning.
+  const rel = (d: Date | null) => (d ? formatRelativeTime(locale, d) : "—");
   const dt = (d: Date | null) =>
-    d ? format.dateTime(d, { dateStyle: "short", timeStyle: "short" }) : "—";
+    d ? dateFormatter(locale, { dateStyle: "short", timeStyle: "short" }).format(d) : "—";
   const errorText = (field: string): string | undefined => {
     const message = errors[field]?.[0];
     if (!message) return undefined;
@@ -312,19 +315,19 @@ export function StationSources({
                   <dl className="grid gap-x-4 gap-y-1 text-xs text-muted-foreground sm:grid-cols-3">
                     <div>
                       <dt className="inline">{t("lastRun")}: </dt>
-                      <dd className="inline" title={dt(s.lastRunAt)}>
+                      <dd className="inline" title={dt(s.lastRunAt)} suppressHydrationWarning>
                         {rel(s.lastRunAt)}
                       </dd>
                     </div>
                     <div>
                       <dt className="inline">{t("lastSuccess")}: </dt>
-                      <dd className="inline" title={dt(s.lastSuccessAt)}>
+                      <dd className="inline" title={dt(s.lastSuccessAt)} suppressHydrationWarning>
                         {rel(s.lastSuccessAt)}
                       </dd>
                     </div>
                     <div>
                       <dt className="inline">{t("lastData")}: </dt>
-                      <dd className="inline" title={dt(s.lastDataAt)}>
+                      <dd className="inline" title={dt(s.lastDataAt)} suppressHydrationWarning>
                         {rel(s.lastDataAt)}
                       </dd>
                     </div>

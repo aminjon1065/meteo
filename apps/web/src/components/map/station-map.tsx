@@ -8,6 +8,7 @@ import type { Point } from "geojson";
 import * as maplibregl from "maplibre-gl";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
+import { dateFormatter } from "@/lib/date-format";
 import { buildBasemapStyle, ensurePmtilesProtocol, TAJIKISTAN_BOUNDS } from "./basemap";
 
 export interface SilamOverlay {
@@ -349,8 +350,8 @@ export function StationMap({
       syncDiagnostics();
     };
 
-    const periodFmt = new Intl.DateTimeFormat(locale, {
-      timeZone: "Asia/Dushanbe",
+    // Не Intl: в браузере нет его данных для tg, срок в попапе был бы английским.
+    const periodFmt = dateFormatter(locale, {
       day: "numeric",
       month: "short",
       hour: "2-digit",

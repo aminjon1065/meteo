@@ -103,6 +103,7 @@ export default async function MapPage({
     <div className="relative h-[calc(100dvh-4rem-3.75rem-env(safe-area-inset-bottom,0px))] w-full lg:h-[calc(100dvh-4rem)]">
       <MapView
         locale={locale}
+        now={Date.now()}
         initialLayer={
           layer === "silam" || layer === "warnings" || layer === "weather" ? layer : undefined
         }
