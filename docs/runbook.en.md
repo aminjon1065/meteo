@@ -713,7 +713,7 @@ applies. Decision and deviations from the Terms of Reference: `docs/adr/ADR-010-
 | Service (`/opt/smartmet/compose.yml`) | Image | Purpose | Address |
 |---|---|---|---|
 | `server` | `fmidev/smartmetserver:26.08.01` | SmartMet Server: timeseries, WMS (`/wms`, `/wmts`, `/tiles`) | `http://smartmet:8080` on Docker network `smartmet`; from the host `http://127.0.0.1:8180` |
-| `data` | `smartmet-data:local` (built from `infra/smartmet/data`) | GFS 0.25° download for 58–82° E, 32–46° N, up to 240 h, at 03:15, 09:15, 15:15, 21:15 UTC | — |
+| `data` | `smartmet-data:local` (built from `infra/smartmet/data`) | GFS 0.25° download for 58–82° E, 32–46° N, up to 240 h, at 03:15, 09:15, 15:15, 21:15 UTC; schedule — supercronic as the smartmet user (log: `docker compose logs data`) | — |
 | `alert-web` | `fmidev/smartmetalert:26.10.21` | warnings map and CAP feed `capfeed.php` (tg/ru/en) | `http://smartalert` on network `smartmet`; from the host `http://127.0.0.1:8181` |
 
 Nothing is exposed publicly (ports are bound to `127.0.0.1` only).
@@ -773,7 +773,7 @@ Out-of-schedule GFS download (for example after downtime):
 
 ```bash
 docker compose -f /opt/smartmet/compose.yml exec -d data \
-  runuser -u smartmet -- env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+  env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
 ```
 
 The server picks up a new run within a minute. If GFS (NOAA NOMADS) is unavailable, the server keeps serving the

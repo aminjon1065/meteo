@@ -795,7 +795,7 @@ sh infra/deploy/harden-host.sh                    # администратор �
 | Сервис (`/opt/smartmet/compose.yml`) | Образ | Назначение | Адрес |
 |---|---|---|---|
 | `server` | `fmidev/smartmetserver:26.08.01` | SmartMet Server: timeseries, WMS (`/wms`, `/wmts`, `/tiles`) | `http://smartmet:8080` в сети Docker `smartmet`; с хоста `http://127.0.0.1:8180` |
-| `data` | `smartmet-data:local` (сборка `infra/smartmet/data`) | загрузка GFS 0,25° по области 58–82° в. д., 32–46° с. ш., до 240 ч: в 03:15, 09:15, 15:15, 21:15 UTC | — |
+| `data` | `smartmet-data:local` (сборка `infra/smartmet/data`) | загрузка GFS 0,25° по области 58–82° в. д., 32–46° с. ш., до 240 ч: в 03:15, 09:15, 15:15, 21:15 UTC; расписание — supercronic от пользователя smartmet (журнал — `docker compose logs data`) | — |
 | `alert-web` | `fmidev/smartmetalert:26.10.21` | карта предупреждений и CAP‑лента `capfeed.php` (tg/ru/en) | `http://smartalert` в сети `smartmet`; с хоста `http://127.0.0.1:8181` |
 
 Наружу ничего не публикуется (порты только на `127.0.0.1`).
@@ -855,7 +855,7 @@ curl -fsS http://127.0.0.1:8181/capfeed.php | head -30
 
 ```bash
 docker compose -f /opt/smartmet/compose.yml exec -d data \
-  runuser -u smartmet -- env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
+  env TERM=dumb /smartmet/run/data/gfs/bin/get_gfs.sh
 ```
 
 Новый прогон сервер подхватывает сам в течение минуты. Если GFS недоступен (NOMADS NOAA), сервер продолжает

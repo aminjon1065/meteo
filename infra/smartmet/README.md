@@ -7,7 +7,7 @@
 | Каталог | Что внутри |
 |---|---|
 | `compose.yml` | сервисы `server`, `data`, `alert-web`, сеть `smartmet` |
-| `data/` | образ загрузки данных (репозиторий `smartmet-open`, `smartmet-qdtools`, `smartmet-data-gfs`, cron FMI) |
+| `data/` | образ загрузки данных (репозиторий `smartmet-open`, `smartmet-qdtools`, `smartmet-data-gfs`); расписание — supercronic от пользователя smartmet по файлам `cnf/cron` |
 | `cnf/` | `/smartmet/cnf`: область и шаги GFS, расписание |
 | `etc/` | файлы `/etc/smartmet`, заменяющие файлы образа: движки, плагины, источники данных |
 | `wms/customers/tajikistan/` | слои WMS для портала (`tajikistan:temperature` и др.) |

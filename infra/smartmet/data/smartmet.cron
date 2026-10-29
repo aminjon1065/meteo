@@ -1,9 +1,0 @@
-# SmartMet run-parts — как /etc/cron.d/smartmet.cron из smartmet-base-international
-PATH=/usr/bin:/bin:/usr/local/bin:/smartmet/bin
-*/10 * * * * smartmet run-parts /smartmet/cnf/cron/cron.10min
-01 * * * * smartmet run-parts /smartmet/cnf/cron/cron.hourly
-00 0 * * * smartmet run-parts /smartmet/cnf/cron/cron.daily
-02 2 * * 0 smartmet run-parts /smartmet/cnf/cron/cron.weekly
-02 3 1 * * smartmet run-parts /smartmet/cnf/cron/cron.monthly
-# Задания из /smartmet/cnf/cron/cron.d → /etc/cron.d/smart-*
-* * * * * root mkcron > /dev/null 2>&1

@@ -16,7 +16,8 @@ havo.tj указали на плагины smartmet-plugin-wms и smartmet-plugi
 SmartMet разворачивается на сервере портала отдельным compose‑проектом `/opt/smartmet` (`infra/smartmet`):
 - `server` — официальный образ `fmidev/smartmetserver` (timeseries, WMS/WMTS/OGC API Tiles);
 - `data` — Rocky Linux 10 с репозиторием FMI `smartmet-open` и штатными пакетами `smartmet-qdtools`,
-  `smartmet-data-gfs`, диспетчер cron и утилиты `utcrun`/`cleaner`/`mkcron` из `smartmet-base-international`;
+  `smartmet-data-gfs`, утилиты `utcrun`/`cleaner` из `smartmet-base-international`; расписание — supercronic от
+  пользователя smartmet (без root) по тем же файлам `/smartmet/cnf/cron`, корневая ФС только для чтения;
 - `alert-web` — официальный образ `fmidev/smartmetalert` (smartalert-web) с настройками для Таджикистана.
 Каталог `/smartmet` повторяет штатную раскладку FMI. Наружу сервисы не публикуются; портал обращается к ним по сети
 Docker `smartmet`.
