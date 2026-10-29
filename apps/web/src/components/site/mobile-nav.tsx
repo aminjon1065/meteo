@@ -20,7 +20,7 @@ import { useTranslations } from "next-intl";
 import { useState } from "react";
 import { Link, usePathname } from "@/i18n/navigation";
 import { LanguageSwitcher } from "./language-switcher";
-import { isActivePath, type NavItem } from "./main-nav";
+import { activeNavHref, type NavItem } from "./main-nav";
 import { ThemeToggle } from "./theme-toggle";
 
 const ICONS: Record<string, LucideIcon> = {
@@ -38,7 +38,13 @@ export function MobileNav({ primary, more }: { primary: NavItem[]; more: NavItem
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const t = useTranslations("common");
-  const moreActive = more.some((item) => isActivePath(pathname, item.href));
+  // Один подсвеченный пункт на всё меню: самый точный по адресу среди нижней панели и листа «Ещё».
+  const current = activeNavHref(
+    pathname,
+    [...primary, ...more].map((i) => i.href),
+  );
+  const moreActive =
+    !primary.some((i) => i.href === current) && more.some((i) => i.href === current);
   const itemClass = (active: boolean) =>
     cn(
       "flex min-w-0 flex-col items-center gap-0.5 rounded-lg px-1 pt-2 pb-1.5 text-[0.7rem] leading-tight font-medium",
@@ -52,7 +58,7 @@ export function MobileNav({ primary, more }: { primary: NavItem[]; more: NavItem
     >
       {primary.map((item) => {
         const Icon = ICONS[item.href] ?? HouseIcon;
-        const active = isActivePath(pathname, item.href);
+        const active = item.href === current;
         return (
           <Link
             key={item.href}
@@ -87,10 +93,10 @@ export function MobileNav({ primary, more }: { primary: NavItem[]; more: NavItem
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                aria-current={isActivePath(pathname, item.href) ? "page" : undefined}
+                aria-current={item.href === current ? "page" : undefined}
                 className={cn(
                   "rounded-lg px-3 py-2.5 text-base font-medium hover:bg-muted",
-                  isActivePath(pathname, item.href) && "bg-muted",
+                  item.href === current && "bg-muted",
                 )}
               >
                 {item.label}

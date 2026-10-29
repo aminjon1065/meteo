@@ -11,7 +11,10 @@ import { MainNav, type NavItem } from "./main-nav";
 import { MobileNav } from "./mobile-nav";
 import { ThemeToggle } from "./theme-toggle";
 
-/** Шесть разделов верхней навигации (docs/03 §3). */
+/**
+ * Разделы верхней навигации (docs/03 §3). «SmartMet (SILAM)» — по просьбе Заказчика (29.10.2026).
+ * Первые четыре идут в нижнюю панель на телефоне, остальные — в лист «Ещё».
+ */
 export async function getNavItems(): Promise<NavItem[]> {
   const t = await getTranslations("nav");
   return [
@@ -19,6 +22,7 @@ export async function getNavItems(): Promise<NavItem[]> {
     { href: "/air", label: t("airShort") },
     { href: "/weather", label: t("weather") },
     { href: "/map", label: t("map") },
+    { href: "/air/silam", label: t("silam") },
     { href: "/warnings", label: t("warnings") },
     { href: "/news", label: t("news") },
   ];
@@ -60,14 +64,15 @@ export async function SiteHeader() {
         >
           {tc("skipToContent")}
         </a>
-        <div className="container-page flex h-16 items-center gap-3 lg:gap-6">
+        <div className="container-page flex h-16 items-center gap-3 lg:gap-4 xl:gap-6">
           <Link
             href="/"
             className="flex shrink-0 items-center gap-2.5 font-heading text-[1.05rem] font-bold"
             aria-label={siteName}
           >
             <Logo className="size-[30px]" />
-            <span className="hidden sm:inline">{siteName}</span>
+            {/* 1024–1279 px: в строке семь разделов меню — название скрыто, логотип ведёт на главную */}
+            <span className="hidden sm:inline lg:hidden xl:inline">{siteName}</span>
           </Link>
           {cityState.cities.length > 0 ? (
             <CitySelect
