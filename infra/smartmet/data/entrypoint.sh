@@ -15,7 +15,8 @@ fi
 
 CRON=/smartmet/cnf/cron
 CRONTAB=/tmp/smartmet.crontab
-parts() { echo "for s in $CRON/$1/*; do [ -f \"\$s\" ] && [ -x \"\$s\" ] && \"\$s\"; done"; }
+# if, а не &&: пустой каталог (нет скриптов) — не ошибка задания.
+parts() { echo "for s in $CRON/$1/*; do if [ -f \"\$s\" ] && [ -x \"\$s\" ]; then \"\$s\"; fi; done"; }
 {
   echo "*/10 * * * * $(parts cron.10min)"
   echo "1 * * * * $(parts cron.hourly)"
