@@ -1919,7 +1919,7 @@
     "backToData": "← Open data",
     "baseUrl": "Base URL",
     "auth": "Authentication",
-    "authHint": "Not required for reads (limit 120 requests per minute per IP). Station data intake: Authorization: Bearer <station key> header, separate limit of 60 requests per minute per station.",
+    "authHint": "Not required for reads (limit 120 requests per minute per IP). Station data intake: Authorization: Bearer '<station key>' header, separate limit of 60 requests per minute per station.",
     "cors": "CORS",
     "corsHint": "Requests from any website are allowed (Access-Control-Allow-Origin: *).",
     "contents": "Contents",
@@ -2062,7 +2062,7 @@
     "responsesTitle": "Responses",
     "requestBody": "Request body",
     "security": {
-      "stationApiKey": "Station API key from the station card in the admin panel; sent as Authorization: Bearer <key>. Only the key hash is stored in the database."
+      "stationApiKey": "Station API key from the station card in the admin panel; sent as Authorization: Bearer '<key>'. Only the key hash is stored in the database."
     }
   },
   "ecoBulletin": {
