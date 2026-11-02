@@ -17,8 +17,8 @@ const { chromium } = require("@playwright/test");
 const BASE = process.argv[2] ?? "http://localhost:3000";
 const OUT = resolve(WEB, "public/map-types");
 const TYPES = ["scheme", "gray", "relief", "satellite"];
-/** Душанбе и Варзобское ущелье: город, реки, горы — различия подложек видны сразу. */
-const VIEW = { center: [68.8, 38.615], zoom: 10.8 };
+/** Восток Душанбе и предгорья: лесопарк, дороги, склоны — различия подложек видны сразу. */
+const VIEW = { center: [68.83, 38.57], zoom: 10.3 };
 /** Миниатюра 96×64 в меню; снимается с плотностью 2× (файл 192×128) для чётких экранов. */
 const SIZE = { width: 96, height: 64 };
 

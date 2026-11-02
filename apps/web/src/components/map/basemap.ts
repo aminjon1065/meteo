@@ -34,56 +34,69 @@ function absolute(path: string): string {
 }
 
 /**
- * Подложка Protomaps в цветах дизайн‑системы: холодный светлый фон в обеих темах, чтобы цветные
- * слои (станции, SILAM, предупреждения, границы) читались. В тёмной теме — приглушённый
- * серо‑синий вариант «grayscale», а не чёрная карта (docs/03-design-system.md §5).
+ * «Схема» — классическая цветная карта в пастельных тонах: тёплая суша, голубая вода, зелёная
+ * растительность, песочные пустоши, белые ледники, жёлтые магистрали. Насыщенность ниже, чем у
+ * цветов уровней качества воздуха, поэтому станции и прогноз поверх читаются; нейтральный вариант
+ * без цвета — «Серая». Карта светлая в обеих темах, в тёмной — чуть приглушена
+ * (docs/03-design-system.md §5).
  */
 function flavorFor(theme: "light" | "dark"): { flavor: Flavor; sprite: string } {
-  if (theme === "dark") {
-    const base = namedFlavor("grayscale");
-    return {
-      sprite: "grayscale",
-      flavor: {
-        ...base,
-        background: "#d8dee8",
-        earth: "#e3e8f0",
-        park_a: "#dbe6dc",
-        park_b: "#d3e0d4",
-        water: "#b9c9dc",
-        buildings: "#d4dbe6",
-        major: "#f4f6f9",
-        highway: "#f6f8fb",
-        country_label: "#3b4a63",
-        city_label: "#2e3d55",
-        state_label: "#4e5f78",
-      },
-    };
-  }
   const base = namedFlavor("light");
-  return {
-    sprite: "light",
-    flavor: {
-      ...base,
-      background: "#e9eef5",
-      earth: "#eef2f7",
-      water: "#cfdcec",
-      park_a: "#dfeadf",
-      park_b: "#d5e3d6",
-      country_label: "#3b4a63",
-      city_label: "#142238",
-      // Растительность — едва заметными оттенками фона: насыщенные зелёный и жёлтый спорили бы с
-      // цветами уровней качества воздуха (станции и SILAM поверх подложки).
-      landcover: {
-        grassland: "#e7eee7",
-        barren: "#f1efea",
-        urban_area: "#e5e8ed",
-        farmland: "#e8eee6",
-        glacier: "#f8fafc",
-        scrub: "#ecefe6",
-        forest: "#dfe9e1",
-      },
+  const flavor: Flavor = {
+    ...base,
+    background: "#e9e4da",
+    earth: "#f4f1ea",
+    water: "#a8cbe6",
+    park_a: "#d5e8cf",
+    park_b: "#c4e0bc",
+    wood_a: "#d2e6cc",
+    wood_b: "#bddbb4",
+    scrub_a: "#dfe8cd",
+    scrub_b: "#cbdfb6",
+    glacier: "#fbfcfd",
+    sand: "#efe5cc",
+    beach: "#f1e6c6",
+    buildings: "#e2dcd2",
+    industrial: "#e6e1d9",
+    aerodrome: "#e4e2dd",
+    major: "#ffffff",
+    major_casing_early: "#ddd4c4",
+    major_casing_late: "#ddd4c4",
+    highway: "#f7d590",
+    highway_casing_early: "#dfb766",
+    highway_casing_late: "#dfb766",
+    country_label: "#3b4a63",
+    city_label: "#142238",
+    landcover: {
+      grassland: "#dcebd2",
+      barren: "#efe6d3",
+      urban_area: "#e5e0d8",
+      farmland: "#e2ecce",
+      glacier: "#fbfcfd",
+      scrub: "#e3e9cd",
+      forest: "#c7dfc0",
     },
   };
+  return { sprite: "light", flavor: theme === "dark" ? dimFlavor(flavor, 0.14) : flavor };
+}
+
+/** Тёмная тема: цвета схемы сдвинуты к серо‑синему, чтобы светлая карта не слепила. */
+function dimFlavor(flavor: Flavor, amount: number): Flavor {
+  const target = [0x8a, 0x95, 0xa6];
+  const dim = (value: unknown): unknown => {
+    if (typeof value === "string" && /^#[0-9a-f]{6}$/i.test(value)) {
+      const rgb = [1, 3, 5].map((i) => Number.parseInt(value.slice(i, i + 2), 16));
+      return `#${rgb
+        .map((c, i) => Math.round(c + ((target[i] ?? c) - c) * amount))
+        .map((c) => c.toString(16).padStart(2, "0"))
+        .join("")}`;
+    }
+    if (value && typeof value === "object") {
+      return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, dim(v)]));
+    }
+    return value;
+  };
+  return dim(flavor) as Flavor;
 }
 
 /** Серая подложка: нейтральная, без цветных заливок — цвета данных читаются лучше всего. */

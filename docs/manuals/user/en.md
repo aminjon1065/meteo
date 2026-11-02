@@ -113,7 +113,7 @@ The map is the portal's home page (`/`; the old address `/map` leads there too).
 
 **Weather · Forecast** (when SmartMet Server maps are connected) — air temperature, precipitation, wind or cloud cover with a time slider and a value scale.
 
-**Map type** — a button with a map thumbnail (bottom left on a computer, top right under the location button on a phone): "Map", "Grey", "Terrain" (hill shading from the Copernicus digital elevation model) and "Satellite" (a cloud‑free Sentinel‑2 image for 2021). The choice is remembered in the browser. All base maps are built from open data and stored on the portal's server.
+**Map type** — a button with a map thumbnail (bottom left on a computer, top right under the location button on a phone): "Map" (a regular colour map: vegetation, water, roads), "Grey" (the same map without colour, so station and forecast colours stand out most), "Terrain" (hill shading from the Copernicus digital elevation model) and "Satellite" (a cloud‑free Sentinel‑2 image for 2021). The choice is remembered in the browser. All base maps are built from open data and stored on the portal's server.
 
 The outlines of the regions, Dushanbe and the RRP are always shown, and dashed district boundaries appear when zoomed in. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. Active warnings are polygons coloured by danger level; click a polygon to read its headline and validity period.
 
