@@ -421,34 +421,51 @@
   },
   "map": {
     "title": "Map",
-    "subtitle": "Monitoring stations, weather and SILAM forecasts, warnings",
-    "layers": "Layers",
-    "cities": "Weather in cities",
     "stations": "Stations",
-    "regions": "Region boundaries",
-    "regionsFill": "Levels by region",
-    "regionsHint": "Districts appear when zoomed in; the fill colour is the worst index level among the region’s stations.",
     "regionStations": "Stations",
     "regionOpen": "Station list",
     "silam": "SILAM forecast",
     "warnings": "Warnings",
-    "legend": "Legend",
-    "soon": "soon",
     "open": "Open",
-    "noTiles": "Map tiles are missing: run infra/data/fetch-map-assets.sh",
-    "warningsNone": "No active warnings",
-    "warningsCount": "{count, plural, one {# active} other {# active}}",
     "warningsOpen": "All warnings",
-    "warningsLegend": "Warnings",
     "webglUnsupported": "The map is unavailable in this browser (WebGL is not supported). Use the station list instead.",
-    "weather": "Weather — GFS forecast",
     "weatherParam": "Parameter",
     "weatherRun": "GFS run {time} UTC",
-    "weatherHint": "GFS model (NOAA), 0.25° ≈ 25 km grid; maps are rendered by SmartMet Server.",
-    "weatherNoData": "Weather layers are unavailable: SmartMet Server is not responding or has not loaded a forecast yet.",
     "weatherScale": "Scale, {unit}",
     "unitMmh": "mm/h",
-    "silamFmi": "FMI maps for Tajikistan"
+    "silamFmi": "FMI maps for Tajikistan",
+    "topic": "What to show on the map",
+    "topics": {
+      "air": "Air quality",
+      "weather": "Weather"
+    },
+    "view": "Time",
+    "views": {
+      "now": "Now",
+      "forecast": "Forecast"
+    },
+    "weatherForecast": "Weather forecast",
+    "stationMore": "Station details",
+    "warningsActive": "{count, plural, one {# active warning} other {# active warnings}}",
+    "card": {
+      "airNow": "Air quality now",
+      "weatherNow": "Weather now",
+      "updated": "Updated {time}",
+      "lastData": "Latest data: {time}",
+      "upTo": "up to {value}",
+      "noStations": "There are no air monitoring stations in this city yet.",
+      "nearest": "No stations in this city yet. The nearest is {station}, {distance} km away.",
+      "noFresh": "No recent data. Latest data: {time}.",
+      "noFreshEver": "The city's stations have not reported data yet.",
+      "airMore": "All stations and pollutants"
+    },
+    "basemap": {
+      "title": "Map type",
+      "scheme": "Map",
+      "gray": "Grey",
+      "relief": "Terrain",
+      "satellite": "Satellite"
+    }
   },
   "air": {
     "title": "Air quality",
@@ -2006,6 +2023,10 @@
       "regions": {
         "summary": "Administrative boundaries: regions",
         "description": "Regions, Dushanbe and the RRP with simplified polygons, centroids, station counts and the worst current index level (0 — no data). Cached for 10 minutes, ETag."
+      },
+      "regionsOutline": {
+        "summary": "Country outline",
+        "description": "Outline of Tajikistan as a single GeoJSON object (MultiPolygon): union of the simplified regions, exterior boundaries only, enclaves as separate polygons. The home map dims everything outside the outline. Cached for a day, ETag; without loaded boundaries — geometry: null."
       },
       "districts": {
         "summary": "Administrative boundaries: districts",

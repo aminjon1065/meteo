@@ -23,6 +23,7 @@ import {
   NewsResponseSchema,
   newsQuery,
   newsRssQuery,
+  RegionsOutlineResponseSchema,
   RegionsResponseSchema,
   SilamLayersResponseSchema,
   SilamPointResponseSchema,
@@ -356,6 +357,15 @@ export function listEndpoints(t: Translate): ApiEndpoint[] {
       [ok(RegionsResponseSchema)],
       "/api/v1/regions",
       "600 s",
+    ),
+    ep(
+      "regionsOutline",
+      "/api/v1/regions/outline",
+      "geo",
+      [],
+      [ok(RegionsOutlineResponseSchema)],
+      "/api/v1/regions/outline",
+      "86400 s",
     ),
     ep(
       "districts",

@@ -4,12 +4,18 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { AQ_LEVEL_STYLES } from "@meteo/core";
 import { type Locale, pick } from "@meteo/i18n";
 import { cn } from "@meteo/ui/lib/utils";
-import type { Point } from "geojson";
+import type { Feature, FeatureCollection, MultiPolygon, Point } from "geojson";
 import * as maplibregl from "maplibre-gl";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState } from "react";
 import { dateFormatter } from "@/lib/date-format";
-import { buildBasemapStyle, ensurePmtilesProtocol, TAJIKISTAN_BOUNDS } from "./basemap";
+import {
+  type Basemap,
+  buildBasemapStyle,
+  ensurePmtilesProtocol,
+  TAJIKISTAN_BOUNDS,
+} from "./basemap";
+import { invertOutline } from "./outline-mask";
 
 export interface SilamOverlay {
   /** URL PNG‑слоя (/silam/…) */
@@ -67,8 +73,37 @@ export interface CityMarker {
   featured: boolean;
 }
 
+/** Свойства станции на главной карте: подписи уже локализованы на сервере (map-screen.tsx). */
+export interface StationFeatureProps {
+  slug: string;
+  name: string;
+  /** Уровень с учётом устаревания: 0 — нет свежих данных. */
+  level: number;
+  /** Подпись уровня («Умеренное»). */
+  label: string;
+  /** Определяющее вещество и значение («PM2.5 35 мкг/м³»); null — нет свежих данных. */
+  value: string | null;
+  /** «Обновлено 09:00» или «Последние данные: …»; null — станция не передавала данные. */
+  time: string | null;
+}
+
 export interface StationMapProps {
   locale: Locale;
+  /**
+   * Станции с готовыми подписями (главная). Без него карта сама берёт /api/v1/stations.
+   * Станции без свежих данных идут отдельным слоем — бледной точкой с зума EMPTY_STATIONS_MIN_ZOOM.
+   */
+  stationsData?: FeatureCollection<Point, StationFeatureProps> | null;
+  /** Слои станций видимы (на главной скрыты в теме «Погода» и в прогнозе). */
+  stationsVisible?: boolean;
+  /** Контур страны (/api/v1/regions/outline): всё вне его приглушается. */
+  outlineUrl?: string | null;
+  /** home — главная: без полноэкранного режима и масштабной линейки, на телефоне без кнопок зума. */
+  controls?: "full" | "home";
+  /** Высота карточки поверх карты снизу на телефоне (px): страна вписывается над ней. */
+  insetBottom?: number;
+  /** Тип подложки (basemap.ts); по умолчанию — схема. */
+  basemap?: Basemap;
   /** Растровый слой SILAM поверх подложки (null — выключен). */
   overlay?: SilamOverlay | null;
   /** Слой погоды SmartMet (null — выключен). */
@@ -131,6 +166,19 @@ const OVERLAY_ORDER = [
 const DISTRICTS_MIN_ZOOM = 8;
 const DISTRICTS_PREFETCH_ZOOM = 7;
 
+/** Станции без свежих данных на главной видны с этого масштаба: на масштабе страны они только шум. */
+const EMPTY_STATIONS_MIN_ZOOM = 8;
+/** Слои станций — для переключения видимости одним вызовом. */
+const STATION_LAYERS = [
+  "stations-clusters-halo",
+  "stations-clusters",
+  "stations-cluster-count",
+  "stations-points",
+  "stations-empty",
+] as const;
+
+const EMPTY_COLLECTION: FeatureCollection = { type: "FeatureCollection", features: [] };
+
 const HOVERED: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "hover"], false];
 
 function levelColorExpression(property: string): maplibregl.ExpressionSpecification {
@@ -167,8 +215,13 @@ function regionFillColor(fill: boolean): maplibregl.ExpressionSpecification | st
   return fill ? levelColorExpression("level") : "#334155";
 }
 
-function boundaryLineColor(): string {
-  return "#3b4a63";
+/** Контуры: тёмно‑синие на светлых подложках, светлые на снимке. */
+function boundaryLineColor(basemap: Basemap): string {
+  return basemap === "satellite" ? "#f8fafc" : "#3b4a63";
+}
+
+function countryLineColor(basemap: Basemap): string {
+  return basemap === "satellite" ? "#ffffff" : "#2b3a52";
 }
 
 function parseJson(value: unknown): unknown {
@@ -286,6 +339,12 @@ export function StationMap({
   cityOpenLabel,
   insetLeft,
   unsupportedLabel,
+  stationsData,
+  stationsVisible = true,
+  outlineUrl,
+  controls = "full",
+  insetBottom,
+  basemap = "scheme",
 }: StationMapProps) {
   const containerRef = useRef<MapDiagnosticsElement>(null);
   const [unsupported, setUnsupported] = useState(false);
@@ -298,6 +357,22 @@ export function StationMap({
   warningsRef.current = warningsUrl ?? null;
   const boundariesRef = useRef<BoundariesLayer | null>(boundaries ?? null);
   boundariesRef.current = boundaries ?? null;
+  const stationsDataRef = useRef(stationsData ?? null);
+  stationsDataRef.current = stationsData ?? null;
+  const stationsVisibleRef = useRef(stationsVisible);
+  stationsVisibleRef.current = stationsVisible;
+  const basemapRef = useRef<Basemap>(basemap);
+  basemapRef.current = basemap;
+  const outlineUrlRef = useRef(outlineUrl ?? null);
+  outlineUrlRef.current = outlineUrl ?? null;
+  /** Контур и маска после первой загрузки: при смене темы стиль пересоздаётся, данные — нет. */
+  const outlineCacheRef = useRef<{
+    url: string;
+    outline: FeatureCollection;
+    mask: FeatureCollection;
+  } | null>(null);
+  const applyStationsVisibilityRef = useRef<(() => void) | null>(null);
+  const applyStationsDataRef = useRef<(() => void) | null>(null);
   const applyRef = useRef<(() => void) | null>(null);
   const applyWeatherRef = useRef<(() => void) | null>(null);
   const applyWarningsRef = useRef<(() => void) | null>(null);
@@ -318,20 +393,29 @@ export function StationMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     ensurePmtilesProtocol();
-    const pad = compact ? 20 : 40;
-    // Панель слоёв (MapView) видна с md — 768 px.
-    const inset = insetLeft && window.matchMedia("(min-width: 768px)").matches ? insetLeft : 0;
+    // Колонка и карточки главной (MapView) раскладываются по-разному с md — 768 px.
+    const wide = window.matchMedia("(min-width: 768px)").matches;
+    const pad = compact ? 20 : wide ? 40 : 16;
+    const inset = insetLeft && wide ? insetLeft : 0;
+    const insetB = insetBottom && !wide ? insetBottom : 0;
+    // На телефоне сверху переключатели темы и срока.
+    const insetT = controls === "home" && !wide ? 52 : 0;
     let map: maplibregl.Map;
     try {
       map = new maplibregl.Map({
         container: containerRef.current,
-        style: buildBasemapStyle(theme, locale),
+        style: buildBasemapStyle(theme, locale, basemap),
         ...(center
           ? { center, zoom: zoom ?? 10 }
           : {
               bounds: TAJIKISTAN_BOUNDS,
               fitBoundsOptions: {
-                padding: { top: pad, bottom: pad, right: pad, left: pad + inset },
+                padding: {
+                  top: pad + insetT,
+                  bottom: pad + insetB,
+                  right: pad,
+                  left: pad + inset,
+                },
               },
             }),
         attributionControl: { compact: true },
@@ -347,8 +431,18 @@ export function StationMap({
     mapRef.current = map;
     const container = containerRef.current;
     container.__maplibreMap = map;
-    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
-    if (!compact) {
+    if (controls === "home") {
+      // Телефон: зум жестами, кнопки только мешали бы; линейка и полный экран на главной не нужны.
+      if (wide)
+        map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(
+        new maplibregl.GeolocateControl({ positionOptions: { enableHighAccuracy: true } }),
+        "top-right",
+      );
+    } else {
+      map.addControl(new maplibregl.NavigationControl({ showCompass: false }), "top-right");
+    }
+    if (!compact && controls !== "home") {
       map.addControl(new maplibregl.ScaleControl({ unit: "metric" }), "bottom-left");
       map.addControl(new maplibregl.FullscreenControl(), "top-right");
       map.addControl(
@@ -378,7 +472,20 @@ export function StationMap({
       if (isVisible("regions-line")) layers.push("regions");
       if (isVisible("regions-fill") && boundariesRef.current?.fill) layers.push("regions-fill");
       if (isVisible("districts-line")) layers.push("districts");
+      if (isVisible("country-mask")) layers.push("outline");
       container.dataset.mapLayers = layers.join(" ");
+    };
+
+    /**
+     * Маска сильнее, когда включён растровый прогноз или снимок: их прямоугольник выходит за границу
+     * страны, и за ней цветные поля только отвлекали бы.
+     */
+    const syncMaskOpacity = () => {
+      if (!map.getLayer("country-mask")) return;
+      const raster = Boolean(
+        overlayRef.current || weatherRef.current || basemapRef.current === "satellite",
+      );
+      map.setPaintProperty("country-mask", "fill-opacity", raster ? 0.88 : 0.72);
     };
 
     const applyOverlay = () => {
@@ -387,6 +494,7 @@ export function StationMap({
       if (!o) {
         if (map.getLayer("silam-raster"))
           map.setLayoutProperty("silam-raster", "visibility", "none");
+        syncMaskOpacity();
         syncDiagnostics();
         return;
       }
@@ -416,6 +524,7 @@ export function StationMap({
         existing.updateImage({ url: o.url, coordinates });
         map.setLayoutProperty("silam-raster", "visibility", "visible");
       }
+      syncMaskOpacity();
       syncDiagnostics();
     };
 
@@ -466,6 +575,7 @@ export function StationMap({
       const w = weatherRef.current;
       setWeatherLayer("weather-raster", w?.tiles, w);
       setWeatherLayer("weather-arrows", w?.arrows, w);
+      syncMaskOpacity();
       syncDiagnostics();
     };
 
@@ -520,7 +630,9 @@ export function StationMap({
     map.on("click", "warnings-fill", (e: maplibregl.MapLayerMouseEvent) => {
       // Клик по станции обрабатывает слой станций.
       const onStation = map.queryRenderedFeatures(e.point, {
-        layers: ["stations-points", "stations-clusters"].filter((l) => map.getLayer(l)),
+        layers: ["stations-points", "stations-clusters", "stations-empty"].filter((l) =>
+          isVisible(l),
+        ),
       });
       if (onStation.length > 0) return;
       const feature = e.features?.[0];
@@ -576,7 +688,7 @@ export function StationMap({
             source: "regions",
             layout: { "line-join": "round", "line-cap": "round" },
             paint: {
-              "line-color": boundaryLineColor(),
+              "line-color": boundaryLineColor(basemapRef.current),
               "line-width": ["case", HOVERED, 2.6, 1.3],
               "line-opacity": 0.9,
             },
@@ -601,7 +713,7 @@ export function StationMap({
             minzoom: DISTRICTS_MIN_ZOOM,
             layout: { "line-join": "round" },
             paint: {
-              "line-color": boundaryLineColor(),
+              "line-color": boundaryLineColor(basemapRef.current),
               "line-width": 0.8,
               "line-opacity": 0.7,
               "line-dasharray": [3, 2],
@@ -652,8 +764,8 @@ export function StationMap({
     };
     const stationLayersAt = (point: maplibregl.PointLike) =>
       map.queryRenderedFeatures(point, {
-        layers: ["stations-points", "stations-clusters", "warnings-fill"].filter((l) =>
-          map.getLayer(l),
+        layers: ["stations-points", "stations-clusters", "stations-empty", "warnings-fill"].filter(
+          (l) => isVisible(l),
         ),
       });
     map.on("mousemove", "regions-fill", (e: maplibregl.MapLayerMouseEvent) => {
@@ -698,63 +810,219 @@ export function StationMap({
         .addTo(map);
     });
 
+    /** Контур страны и маска вне его: над подписями подложки (соседние страны бледнеют), под станциями. */
+    const applyOutline = () => {
+      const url = outlineUrlRef.current;
+      if (!url) {
+        for (const id of ["country-mask", "country-line"]) {
+          if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
+        }
+        syncDiagnostics();
+        return;
+      }
+      if (map.getSource("country-mask")) {
+        for (const id of ["country-mask", "country-line"]) {
+          if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "visible");
+        }
+        syncDiagnostics();
+        return;
+      }
+      const cached = outlineCacheRef.current?.url === url ? outlineCacheRef.current : null;
+      map.addSource("country-mask", { type: "geojson", data: cached?.mask ?? EMPTY_COLLECTION });
+      map.addSource("country-outline", {
+        type: "geojson",
+        data: cached?.outline ?? EMPTY_COLLECTION,
+      });
+      map.addLayer({
+        id: "country-mask",
+        type: "fill",
+        source: "country-mask",
+        paint: { "fill-color": "#eef2f6", "fill-opacity": 0.72 },
+      });
+      map.addLayer({
+        id: "country-line",
+        type: "line",
+        source: "country-outline",
+        layout: { "line-join": "round", "line-cap": "round" },
+        paint: {
+          "line-color": countryLineColor(basemapRef.current),
+          "line-width": 1.8,
+          "line-opacity": 0.9,
+        },
+      });
+      syncMaskOpacity();
+      syncDiagnostics();
+      if (cached) return;
+      fetch(url)
+        .then((r) => (r.ok ? (r.json() as Promise<Feature<MultiPolygon | null>>) : null))
+        .then((outline) => {
+          if (!outline?.geometry) return;
+          const entry = {
+            url,
+            outline: { type: "FeatureCollection", features: [outline] } as FeatureCollection,
+            mask: {
+              type: "FeatureCollection",
+              features: [invertOutline(outline.geometry)],
+            } as FeatureCollection,
+          };
+          outlineCacheRef.current = entry;
+          (map.getSource("country-mask") as maplibregl.GeoJSONSource | undefined)?.setData(
+            entry.mask,
+          );
+          (map.getSource("country-outline") as maplibregl.GeoJSONSource | undefined)?.setData(
+            entry.outline,
+          );
+        })
+        .catch(() => {
+          // Без контура карта просто не приглушает соседей.
+        });
+    };
+
+    /** Станции с данными (кластеризуются) и без свежих данных (отдельно, бледнее) — главная. */
+    const splitStations = (data: FeatureCollection<Point, StationFeatureProps>) => ({
+      fresh: { ...data, features: data.features.filter((f) => f.properties.level > 0) },
+      empty: { ...data, features: data.features.filter((f) => f.properties.level === 0) },
+    });
+
+    const applyStationsVisibility = () => {
+      const visibility = stationsVisibleRef.current ? "visible" : "none";
+      for (const id of STATION_LAYERS) {
+        if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", visibility);
+      }
+      if (!stationsVisibleRef.current) stationPopup?.remove();
+      syncDiagnostics();
+    };
+
+    const applyStationsData = () => {
+      const data = stationsDataRef.current;
+      if (!data) return;
+      const { fresh, empty } = splitStations(data);
+      (map.getSource("stations") as maplibregl.GeoJSONSource | undefined)?.setData(fresh);
+      (map.getSource("stations-empty") as maplibregl.GeoJSONSource | undefined)?.setData(empty);
+    };
+
     const addStations = () => {
       styleReadyRef.current = true;
       applyOverlay();
       applyWeather();
       applyWarnings();
       applyBoundaries();
+      applyOutline();
       if (map.getSource("stations")) {
-        syncDiagnostics();
+        applyStationsVisibility();
         return;
       }
-      map.addSource("stations", {
-        type: "geojson",
-        data: "/api/v1/stations",
-        cluster: true,
-        clusterRadius: 48,
-        clusterMaxZoom: 12,
-        clusterProperties: { worst: ["max", ["get", "level"]] },
-      });
-      map.addLayer({
-        id: "stations-clusters",
-        type: "circle",
-        source: "stations",
-        filter: ["has", "point_count"],
-        paint: {
-          "circle-color": levelColorExpression("worst"),
-          "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 50, 30],
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
-          "circle-opacity": 0.9,
-        },
-      });
-      map.addLayer({
-        id: "stations-cluster-count",
-        type: "symbol",
-        source: "stations",
-        filter: ["has", "point_count"],
-        layout: {
-          "text-field": ["get", "point_count_abbreviated"],
-          "text-size": 13,
-          "text-font": ["Noto Sans Medium"],
-        },
-        paint: { "text-color": "#ffffff" },
-      });
-      map.addLayer({
-        id: "stations-points",
-        type: "circle",
-        source: "stations",
-        filter: ["!", ["has", "point_count"]],
-        paint: {
-          "circle-color": levelColorExpression("level"),
-          "circle-radius": 9,
-          "circle-stroke-width": 2,
-          "circle-stroke-color": "#ffffff",
-          "circle-opacity": ["case", ["==", ["get", "status"], "suspended"], 0.55, 1],
-        },
-      });
-      syncDiagnostics();
+      const data = stationsDataRef.current;
+      if (data) {
+        // Главная: кластер — круг цвета худшего уровня с ореолом, без числа (число читалось бы как
+        // значение индекса); станции без данных — бледные кольца с приближением.
+        const { fresh, empty } = splitStations(data);
+        map.addSource("stations", {
+          type: "geojson",
+          data: fresh,
+          cluster: true,
+          clusterRadius: 40,
+          clusterMaxZoom: 11,
+          clusterProperties: { worst: ["max", ["get", "level"]] },
+        });
+        map.addSource("stations-empty", { type: "geojson", data: empty });
+        map.addLayer({
+          id: "stations-empty",
+          type: "circle",
+          source: "stations-empty",
+          minzoom: EMPTY_STATIONS_MIN_ZOOM,
+          paint: {
+            "circle-color": "#ffffff",
+            "circle-radius": 5,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": AQ_LEVEL_STYLES[0].color,
+            "circle-opacity": 0.9,
+          },
+        });
+        map.addLayer({
+          id: "stations-clusters-halo",
+          type: "circle",
+          source: "stations",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": levelColorExpression("worst"),
+            "circle-radius": ["step", ["get", "point_count"], 21, 5, 25, 20, 30],
+            "circle-opacity": 0.28,
+          },
+        });
+        map.addLayer({
+          id: "stations-clusters",
+          type: "circle",
+          source: "stations",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": levelColorExpression("worst"),
+            "circle-radius": ["step", ["get", "point_count"], 13, 5, 16, 20, 20],
+            "circle-stroke-width": 2.5,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
+        map.addLayer({
+          id: "stations-points",
+          type: "circle",
+          source: "stations",
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": levelColorExpression("level"),
+            "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 8, 12, 11],
+            "circle-stroke-width": 2.5,
+            "circle-stroke-color": "#ffffff",
+          },
+        });
+      } else {
+        map.addSource("stations", {
+          type: "geojson",
+          data: "/api/v1/stations",
+          cluster: true,
+          clusterRadius: 48,
+          clusterMaxZoom: 12,
+          clusterProperties: { worst: ["max", ["get", "level"]] },
+        });
+        map.addLayer({
+          id: "stations-clusters",
+          type: "circle",
+          source: "stations",
+          filter: ["has", "point_count"],
+          paint: {
+            "circle-color": levelColorExpression("worst"),
+            "circle-radius": ["step", ["get", "point_count"], 18, 10, 24, 50, 30],
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+            "circle-opacity": 0.9,
+          },
+        });
+        map.addLayer({
+          id: "stations-cluster-count",
+          type: "symbol",
+          source: "stations",
+          filter: ["has", "point_count"],
+          layout: {
+            "text-field": ["get", "point_count_abbreviated"],
+            "text-size": 13,
+            "text-font": ["Noto Sans Medium"],
+          },
+          paint: { "text-color": "#ffffff" },
+        });
+        map.addLayer({
+          id: "stations-points",
+          type: "circle",
+          source: "stations",
+          filter: ["!", ["has", "point_count"]],
+          paint: {
+            "circle-color": levelColorExpression("level"),
+            "circle-radius": 9,
+            "circle-stroke-width": 2,
+            "circle-stroke-color": "#ffffff",
+            "circle-opacity": ["case", ["==", ["get", "status"], "suspended"], 0.55, 1],
+          },
+        });
+      }
+      applyStationsVisibility();
     };
     map.on("click", "stations-clusters", async (e: maplibregl.MapLayerMouseEvent) => {
       const feature = e.features?.[0];
@@ -768,25 +1036,44 @@ export function StationMap({
         zoom: expansionZoom,
       });
     });
-    map.on("click", "stations-points", (e: maplibregl.MapLayerMouseEvent) => {
+    let stationPopup: maplibregl.Popup | null = null;
+    const onStationClick = (e: maplibregl.MapLayerMouseEvent) => {
       const feature = e.features?.[0];
       if (!feature) return;
       const p = feature.properties ?? {};
-      const name = pick(parseJson(p.name) as Record<string, string>, locale);
-      const region = pick(parseJson(p.region) as Record<string, string> | null, locale);
-      const status = statusLabels[p.status as string] ?? String(p.status ?? "");
       const href = `${stationHrefPrefix}/${p.slug}`;
       const coords = (feature.geometry as Point).coordinates as [number, number];
-      new maplibregl.Popup({ offset: 12, closeButton: false, maxWidth: "260px" })
-        .setLngLat(coords)
-        .setHTML(
+      let html: string;
+      if (typeof p.label === "string") {
+        // Главная: уровень словом и цветом, значение и время уже подготовлены сервером.
+        const level = Number(p.level ?? 0) as keyof typeof AQ_LEVEL_STYLES;
+        const color = (AQ_LEVEL_STYLES[level] ?? AQ_LEVEL_STYLES[0]).color;
+        const line = (v: unknown, cls: string) =>
+          typeof v === "string" && v ? `<div class="${cls}">${escapeHtml(v)}</div>` : "";
+        html =
+          `<div class="font-sans text-sm" data-popup="station"><div class="font-semibold leading-snug">${escapeHtml(String(p.name ?? ""))}</div>` +
+          `<div class="mt-1 flex items-center gap-1.5"><span class="inline-block size-2.5 shrink-0 rounded-full" style="background:${escapeHtml(color)}"></span><span class="font-medium">${escapeHtml(p.label)}</span></div>` +
+          line(p.value, "num text-xs") +
+          line(p.time, "text-xs text-muted-foreground") +
+          `<a class="mt-1.5 inline-block text-xs font-semibold text-brand underline underline-offset-2" href="${escapeHtml(href)}">${escapeHtml(openLabel)}</a></div>`;
+      } else {
+        const name = pick(parseJson(p.name) as Record<string, string>, locale);
+        const region = pick(parseJson(p.region) as Record<string, string> | null, locale);
+        const status = statusLabels[p.status as string] ?? String(p.status ?? "");
+        html =
           `<div class="font-sans text-sm"><div class="font-semibold">${escapeHtml(name)}</div>` +
-            `<div class="text-xs text-muted-foreground">${escapeHtml(region)}${region ? " · " : ""}${escapeHtml(status)}</div>` +
-            `<a class="mt-1 inline-block text-xs font-medium underline" href="${href}">${escapeHtml(openLabel)}</a></div>`,
-        )
+          `<div class="text-xs text-muted-foreground">${escapeHtml(region)}${region ? " · " : ""}${escapeHtml(status)}</div>` +
+          `<a class="mt-1 inline-block text-xs font-medium underline" href="${href}">${escapeHtml(openLabel)}</a></div>`;
+      }
+      stationPopup?.remove();
+      stationPopup = new maplibregl.Popup({ offset: 12, closeButton: false, maxWidth: "260px" })
+        .setLngLat(coords)
+        .setHTML(html)
         .addTo(map);
-    });
-    for (const layer of ["stations-clusters", "stations-points"]) {
+    };
+    map.on("click", "stations-points", onStationClick);
+    map.on("click", "stations-empty", onStationClick);
+    for (const layer of ["stations-clusters", "stations-points", "stations-empty"]) {
       map.on("mouseenter", layer, () => {
         hoverLabel.remove();
         map.getCanvas().style.cursor = "pointer";
@@ -801,6 +1088,8 @@ export function StationMap({
     applyWeatherRef.current = applyWeather;
     applyWarningsRef.current = applyWarnings;
     applyBoundariesRef.current = applyBoundaries;
+    applyStationsVisibilityRef.current = applyStationsVisibility;
+    applyStationsDataRef.current = applyStationsData;
     syncDiagnosticsRef.current = syncDiagnostics;
 
     return () => {
@@ -817,9 +1106,9 @@ export function StationMap({
     const map = mapRef.current;
     if (!map) return;
     styleReadyRef.current = false;
-    map.setStyle(buildBasemapStyle(theme, locale), { diff: false });
+    map.setStyle(buildBasemapStyle(theme, locale, basemap), { diff: false });
     // Оверлеи вернёт обработчик style.load (addStations).
-  }, [theme, locale]);
+  }, [theme, locale, basemap]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: overlay — триггер; актуальное значение читается из overlayRef
   useEffect(() => {
@@ -849,6 +1138,16 @@ export function StationMap({
     if (!map || !applyBoundariesRef.current) return;
     if (styleReadyRef.current) applyBoundariesRef.current();
   }, [boundaries?.visible, boundaries?.fill, boundaries?.regionsUrl, boundaries?.districtsUrl]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: stationsVisible — триггер; значение читается из stationsVisibleRef
+  useEffect(() => {
+    if (mapRef.current && styleReadyRef.current) applyStationsVisibilityRef.current?.();
+  }, [stationsVisible]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: stationsData — триггер; значение читается из stationsDataRef
+  useEffect(() => {
+    if (mapRef.current && styleReadyRef.current) applyStationsDataRef.current?.();
+  }, [stationsData]);
 
   useEffect(() => {
     const map = mapRef.current;
@@ -921,6 +1220,7 @@ export function StationMap({
       className={className}
       aria-label={ariaLabel ?? "Stations map"}
       data-map-layers=""
+      data-basemap={basemap}
     />
   );
 }

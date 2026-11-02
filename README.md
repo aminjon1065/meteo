@@ -93,6 +93,8 @@ PDF печатается через Chromium Playwright (`pnpm --filter @meteo/w
 
 Карта работает полностью на своих ресурсах: векторные тайлы `infra/data/tiles/tajikistan.pmtiles` отдаются маршрутом `/tiles/*` с поддержкой Range‑запросов (в продакшене — тем же каталогом через Caddy), шрифты и спрайты стиля Protomaps лежат в `apps/web/public/basemaps`, worker MapLibre копируется в `apps/web/public/maplibre` при `pnpm dev`/`pnpm build`. Переменные: `TILES_DIR` (каталог тайлов), `IMPORTS_DIR` (временные файлы импорта CSV).
 
+Тип карты на главной выбирает посетитель: «Схема» и «Серая» — из тех же векторных тайлов, «Рельеф» (затенение по Copernicus DEM GLO-30, Mapterhorn) и «Спутник» (безоблачный композит Sentinel-2 2021, ESA WorldCover, CC BY 4.0) — из файлов `terrain.pmtiles` и `satellite.pmtiles`, которые собирает `./infra/data/fetch-basemap-layers.sh` (нужны Node и Docker; без файлов варианты просто не предлагаются, docs/runbook.md §1.5).
+
 ## Соглашения
 
 - Все пользовательские строки — через next-intl на трёх языках; CI проверяет полноту ключей.

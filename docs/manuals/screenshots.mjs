@@ -800,9 +800,10 @@ async function capturePublic(browser) {
   await step("map", async () => {
     await page.goto(url("/"));
     await waitCanvas(page, "[data-deferred='map']");
-    const silamToggle = page.getByRole("checkbox", { name: t("map.silam") }).first();
-    if (await silamToggle.isVisible().catch(() => false)) {
-      await silamToggle.click();
+    // Главная открывается на «Воздух · Сейчас»; для снимка карты включаем прогноз SILAM.
+    const forecast = page.getByRole("radio", { name: t("map.views.forecast") }).first();
+    if (await forecast.isVisible().catch(() => false)) {
+      await forecast.check();
       await sleep(2500);
     }
     await shot(page, "user-map");

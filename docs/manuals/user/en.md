@@ -38,9 +38,14 @@ The "About the index" page (`/air/index`) lists the current thresholds per pollu
 
 ## 3. Home page
 
-![Figure 3. Home page — the map: weather in cities, stations, layer panel](../img/user-home.png)
+![Figure 3. Home page — the map: air quality now and the card of the selected city](../img/user-home.png)
 
-The home page is a full‑screen map of Tajikistan (modelled on data.meteo.uz). Major cities show the SmartMet weather symbol and the current temperature; click a city to see the weather description, the day's maximum and minimum and a link to the detailed forecast. Other cities appear as you zoom in. The city selected in the header is outlined; when you pick another city the map flies to it. Coloured dots are air‑monitoring stations. The SILAM, SmartMet weather and warnings layers are switched on in the layer panel (see section 6); all other sections are in the ☰ menu.
+The home page is a full‑screen map of Tajikistan (modelled on data.meteo.uz); neighbouring countries are dimmed so that the eye stays on Tajikistan. Two switches sit at the top left:
+
+- **Air quality · Weather** — what to show: air‑monitoring stations or the weather in cities. Only one is shown at a time so that markers do not overlap.
+- **Now · Forecast** — current data or a forecast with a time slider (the switch appears once a forecast is loaded).
+
+Below the switches (at the bottom of the screen on a phone) is the card of the city selected in the header. In "Air quality" mode it shows the air‑quality level as a word and a colour, the dominant pollutant, the update time and the level scale, which is also the legend of the map colours; in "Weather" mode — the weather symbol, temperature, the day's maximum and minimum and a link to the detailed forecast. When you pick another city the card changes and the map flies to it. If severe‑weather warnings are in force, a chip with their number appears above the map — it leads to the "Warnings" section, and the warning areas are shaded on the map. All other sections are in the ☰ menu.
 
 ## 4. Stations and charts
 
@@ -92,18 +97,25 @@ The same file is available at `…/api/v1/stations/<slug>/measurements?range=7d&
 
 ## 6. Map
 
-The map is the portal's home page (`/`; the old address `/map` leads there too). It shows weather in cities, stations, the SILAM air‑quality forecast and severe‑weather warnings on one map of Tajikistan. The map works without external services; zoom with the mouse wheel, the "+/−" buttons or gestures; the "my location" button centres the map (with the browser's permission).
+The map is the portal's home page (`/`; the old address `/map` leads there too). It works without external services; zoom with the mouse wheel, the "+/−" buttons (gestures on a phone); the "my location" button centres the map (with the browser's permission). The choice on the map is reflected in the page address, so the link can be shared: `/?layer=silam` opens the air‑quality forecast, `/?layer=weather` — the weather.
 
-![Figure 6. Map: stations, SILAM layer with time slider, warnings, legend](../img/user-map.png)
+![Figure 6. Map: SILAM forecast with the time slider](../img/user-map.png)
 
-Layer panel:
+**Air quality · Now** (opens by default):
 
-- **Weather in cities** — weather symbol and current temperature at SmartMet forecast points (on by default); click a city for the weather description, the day's maximum and minimum and a link to the detailed forecast.
-- **Stations** — points coloured by level; click a station to see its index and open its page. When zoomed out, nearby stations merge into clusters with a count.
-- **Region boundaries** — outlines of the regions, Dushanbe and the RRP (on by default); when zoomed in, thin dashed district boundaries appear. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. The **"Levels by region"** checkbox fills each region with the colour of the worst current index level among its stations (grey fill — no data). The same outlines are shown on the map in the "Air quality" section.
-- **SILAM forecast** — a coloured grid of concentrations for the selected pollutant (drop‑down `PM2.5 · µg/m³` etc.). The time slider and the "‹ ›" buttons step through the forecast by hour for 5 days ahead; "▶" starts the animation. Below the slider — the country maximum and the model run time; cell colours follow the public scale by hourly concentration.
-- **Warnings** — polygons of active warnings coloured by danger level with a counter of active ones; the "All warnings" link opens the section.
-- **Legend** — the five index levels.
+- Coloured dots are stations with their current index level. Click a station to see a card with its name, the level as a word, the dominant pollutant and its value, the update time and a link to the station page.
+- When zoomed out, nearby stations merge into a circle coloured by the worst level, with a halo; click it to zoom in.
+- Stations without recent data appear as pale rings when zoomed in; at country scale they are hidden.
+
+**Air quality · Forecast** — the SILAM model forecast: a coloured grid of public‑scale levels for the selected pollutant (`PM2.5`, `PM10`, etc.). The slider and the "‹ ›" buttons step through the forecast by hour for 5 days ahead; "▶" starts the animation. Below the slider — the level scale, the model run time and the country maximum; the "FMI maps for Tajikistan" link opens the ready‑made FMI maps ("SmartMet (SILAM)" section).
+
+**Weather · Now** — the weather symbol and the current temperature in cities (SmartMet forecast points); click a city for the weather description, the day's maximum and minimum and a link to the detailed forecast. Other places appear as you zoom in.
+
+**Weather · Forecast** (when SmartMet Server maps are connected) — air temperature, precipitation, wind or cloud cover with a time slider and a value scale.
+
+**Map type** — a button with a map thumbnail (bottom left on a computer, top right under the location button on a phone): "Map", "Grey", "Terrain" (hill shading from the Copernicus digital elevation model) and "Satellite" (a cloud‑free Sentinel‑2 image for 2021). The choice is remembered in the browser. All base maps are built from open data and stored on the portal's server.
+
+The outlines of the regions, Dushanbe and the RRP are always shown, and dashed district boundaries appear when zoomed in. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. Active warnings are polygons coloured by danger level; click a polygon to read its headline and validity period.
 
 If the browser does not support WebGL (very old computers, hardware acceleration disabled), a message is shown instead of the map — use the station list.
 

@@ -454,6 +454,16 @@ export const RegionsResponseSchema = z
     "Administrative regions (oblasts, Dushanbe, RRP) as simplified GeoJSON (ST_SimplifyPreserveTopology 0.002°) with station counts and the current index level",
   );
 
+export const RegionsOutlineResponseSchema = z
+  .object({
+    type: z.literal("Feature"),
+    properties: z.object({}),
+    geometry: MultiPolygonSchema.nullable().describe("null — boundaries are not loaded yet"),
+  })
+  .describe(
+    "Outline of Tajikistan: union of the simplified regions (same 0.002° tolerance), exterior rings only; enclaves are separate polygons",
+  );
+
 export const DistrictsResponseSchema = z
   .object({
     type: z.literal("FeatureCollection"),

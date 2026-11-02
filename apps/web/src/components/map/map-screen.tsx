@@ -3,14 +3,20 @@ import { getLatestSilamRun, getSilamLayers } from "@meteo/db";
 import { pollutants } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { getFormatter, getTranslations } from "next-intl/server";
-import { LevelLegend } from "@/components/air/level-legend";
-import { getSelectedCitySlug, pickCity } from "@/lib/city";
+import { resolveCity } from "@/lib/city";
+import {
+  type CityAir,
+  loadStationSummaries,
+  type StationSummary,
+  summarizeCityAir,
+} from "@/lib/city-air";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
 import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
 import { type LocationOverview, loadWeatherOverview, symbolLabel } from "@/lib/weather";
 import { loadWeatherCatalog } from "@/lib/weather-catalog";
-import { MapView, type SilamCatalog } from "./map-view";
+import { CityAirCard, CityWeatherCard, LevelGauge, shortTime } from "./home-cards";
+import { type HomeStation, MapView, type SilamCatalog } from "./map-view";
 import type { CityMarker } from "./station-map";
 
 /** Каталог слоёв последнего прогона SILAM, сгруппированный по веществам (в порядке справочника). */
@@ -58,38 +64,78 @@ async function loadSilamCatalog(): Promise<SilamCatalog> {
 }
 
 /**
- * Карта на весь экран под шапкой — главная страница портала (по образцу data.meteo.uz):
- * погода в городах SmartMet, станции, границы, прогнозы погоды и SILAM, предупреждения CAP.
- * `layer` — слой, включённый при открытии (ссылки вида `/?layer=silam`).
+ * Карта на весь экран под шапкой — главная страница портала (по просьбе Заказчика, как у
+ * гидрометслужб соседних стран): одна тема за раз — «Воздух» (станции) или «Погода» (города), у
+ * каждой «Сейчас» и «Прогноз» (SILAM / карты SmartMet); карточка города из шапки отвечает на
+ * главный вопрос, предупреждения появляются, только когда действуют.
+ * `layer` — что открыть (ссылки вида `/?layer=silam`).
  */
 export async function MapScreen({ locale, layer }: { locale: Locale; layer?: string }) {
-  const [t, tsl, ts, tw, twx, tsym, format, catalog, weather, warningList, overview, selectedSlug] =
-    await Promise.all([
-      getTranslations("map"),
-      getTranslations("silam"),
-      getTranslations("stations"),
-      getTranslations("warnings"),
-      getTranslations("weather"),
-      getTranslations("weatherSymbols"),
-      getFormatter(),
-      loadSilamCatalog(),
-      loadWeatherCatalog(),
-      loadLocalizedWarnings(locale, { horizonDays: 1 }).catch(() => [] as LocalizedWarning[]),
-      loadWeatherOverview().catch(() => [] as LocationOverview[]),
-      getSelectedCitySlug(),
-    ]);
+  const [
+    t,
+    tc,
+    tsl,
+    twx,
+    tsym,
+    tl,
+    format,
+    catalog,
+    weather,
+    warningList,
+    overview,
+    cityState,
+    aqData,
+  ] = await Promise.all([
+    getTranslations("map"),
+    getTranslations("map.card"),
+    getTranslations("silam"),
+    getTranslations("weather"),
+    getTranslations("weatherSymbols"),
+    getTranslations("levels"),
+    getFormatter(),
+    loadSilamCatalog(),
+    loadWeatherCatalog(),
+    loadLocalizedWarnings(locale, { horizonDays: 1 }).catch(() => [] as LocalizedWarning[]),
+    loadWeatherOverview().catch(() => [] as LocationOverview[]),
+    resolveCity(),
+    loadStationSummaries().catch(() => null),
+  ]);
   const localePrefix = locale === "tg" ? "" : `/${locale}`;
-  const prefix = `${localePrefix}/air/stations`;
+
+  // Предупреждения: только действующие; цвет плашки — по самому серьёзному.
+  const active = warningList.filter((w) => w.active);
+  const worst = CAP_SEVERITIES.find((s) => active.some((w) => w.severity === s));
   const warnings = {
-    count: warningList.filter((w) => w.active).length,
+    count: active.length,
     url: `/api/v1/alerts?format=geojson&active=1&lang=${locale}`,
     href: `${localePrefix}/warnings`,
-    legend: CAP_SEVERITIES.filter((s) => s !== "Unknown").map((s) => ({
-      severity: s,
-      label: tw(`severity.${s}` as "severity.Severe"),
-      color: CAP_SEVERITY_STYLES[s].color,
-    })),
+    color: worst ? CAP_SEVERITY_STYLES[worst].color : null,
   };
+
+  // Станции для карты: выведенные и приостановленные не показываются — у них нет данных.
+  const stations: HomeStation[] = (aqData?.stations ?? [])
+    .filter((s: StationSummary) => s.status === "active")
+    .map((s) => {
+      const fresh = s.idx && !s.idx.stale;
+      const value =
+        fresh && s.dominant && s.dominantValue !== null
+          ? `${s.dominant.shortName} ${format.number(s.dominantValue, { maximumFractionDigits: s.dominant.decimals })} ${s.dominant.unit}`
+          : null;
+      return {
+        slug: s.slug,
+        name: name(s.name, locale),
+        lon: s.lon,
+        lat: s.lat,
+        level: s.level,
+        label: tl(`${s.level}` as "0"),
+        value,
+        time: s.idx
+          ? fresh
+            ? tc("updated", { time: shortTime(format, s.idx.time) })
+            : tc("lastData", { time: shortTime(format, s.idx.time) })
+          : null,
+      };
+    });
 
   const deg = (v: number | null | undefined) =>
     v === null || v === undefined ? null : `${format.number(v, { maximumFractionDigits: 0 })}°`;
@@ -118,68 +164,85 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
       },
     ];
   });
-  const selectedCity = pickCity(
-    overview.map((o) => o.location),
-    selectedSlug,
-  )?.slug;
+
+  const city = cityState.city;
+  const cityName = city ? name(city.name, locale) || city.slug : "";
+  let cityAir: CityAir | null = null;
+  if (city && aqData) {
+    cityAir = summarizeCityAir(
+      { lon: city.geom.x, lat: city.geom.y },
+      aqData.stations,
+      aqData.aq.pollutantsById,
+      cityState.cities.map((c) => ({ lon: c.geom.x, lat: c.geom.y })),
+    );
+  }
+  const scaleLevels = aqData?.aq.scale?.levels.map((l) => l.level);
+  const cityWeather = overview.find((o) => o.location.slug === city?.slug) ?? null;
+
+  const initial =
+    layer === "silam"
+      ? ({ topic: "air", view: "forecast" } as const)
+      : layer === "weather"
+        ? ({ topic: "weather", view: "now" } as const)
+        : ({ topic: "air", view: "now" } as const);
 
   return (
     <div className="relative h-[calc(100dvh-4rem-1px)] w-full">
       <MapView
         locale={locale}
         now={Date.now()}
-        initialLayer={
-          layer === "silam" || layer === "warnings" || layer === "weather" ? layer : undefined
-        }
+        initial={initial}
         catalog={catalog}
         weather={weather}
         warnings={warnings}
+        stations={stations}
         cities={cities}
-        selectedCity={selectedCity ?? null}
-        openLabel={t("open")}
-        statusLabels={{
-          active: ts("status.active"),
-          suspended: ts("status.suspended"),
-          decommissioned: ts("status.decommissioned"),
-        }}
-        stationHrefPrefix={prefix}
+        selectedCity={city?.slug ?? null}
+        stationHrefPrefix={`${localePrefix}/air/stations`}
         regionsHref={`${localePrefix}/air`}
         silamFmiHref={`${localePrefix}/air/silam`}
+        cards={{
+          air: city ? (
+            <CityAirCard
+              cityName={cityName}
+              air={cityAir}
+              scaleLevels={scaleLevels}
+              locale={locale}
+            />
+          ) : null,
+          weather: city ? (
+            <CityWeatherCard cityName={cityName} overview={cityWeather} locale={locale} />
+          ) : null,
+        }}
+        forecastLegend={<LevelGauge levels={scaleLevels} />}
         labels={{
           title: t("title"),
-          layers: t("layers"),
-          cities: t("cities"),
+          topic: t("topic"),
+          air: t("topics.air"),
+          weather: t("topics.weather"),
+          view: t("view"),
+          now: t("views.now"),
+          forecast: t("views.forecast"),
+          airForecast: twx("airForecast"),
+          weatherForecast: t("weatherForecast"),
+          open: t("stationMore"),
           cityOpen: twx("openForecast"),
-          stations: t("stations"),
-          regions: t("regions"),
-          regionsFill: t("regionsFill"),
-          regionsHint: t("regionsHint"),
           regionStations: t("regionStations"),
           regionOpen: t("regionOpen"),
-          silam: t("silam"),
           silamFmi: t("silamFmi"),
-          warnings: t("warnings"),
-          soon: t("soon"),
-          legend: t("legend"),
           pollutant: tsl("pollutant"),
           time: tsl("time"),
           run: tsl("run", { time: "{time}" }),
-          noData: tsl("noData"),
           play: tsl("play"),
           pause: tsl("pause"),
           prev: tsl("prev"),
           next: tsl("next"),
-          hint: tsl("hint"),
           maxInDomain: tsl("maxInDomain", { value: "{value}", unit: "{unit}" }),
-          warningsNone: t("warningsNone"),
-          warningsCount: t("warningsCount", { count: warnings.count }),
+          warningsActive: t("warningsActive", { count: warnings.count }),
           warningsOpen: t("warningsOpen"),
           unsupported: t("webglUnsupported"),
-          weather: t("weather"),
           weatherParam: t("weatherParam"),
           weatherRun: t("weatherRun", { time: "{time}" }),
-          weatherHint: t("weatherHint"),
-          weatherNoData: t("weatherNoData"),
           weatherScale: t("weatherScale", { unit: "{unit}" }),
           weatherParams: {
             temperature: twx("temperature"),
@@ -188,9 +251,14 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
             cloudcover: twx("cloud"),
           },
           weatherUnits: { celsius: "°C", mmh: t("unitMmh"), ms: twx("ms"), percent: "%" },
+          basemap: {
+            title: t("basemap.title"),
+            scheme: t("basemap.scheme"),
+            gray: t("basemap.gray"),
+            relief: t("basemap.relief"),
+            satellite: t("basemap.satellite"),
+          },
         }}
-        legend={<LevelLegend className="gap-x-3 gap-y-1" />}
-        legendChips={<LevelLegend variant="chips" className="gap-1.5" />}
       />
     </div>
   );

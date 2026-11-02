@@ -5,7 +5,7 @@ import { type E2eLocale, HTML_LANG, prefix, t } from "../helpers/messages";
 const locales: E2eLocale[] = ["tg", "ru", "en"];
 
 for (const locale of locales) {
-  test(`главная на языке ${locale}: карта с погодой в городах, меню ☰, без нарушений CSP`, async ({
+  test(`главная на языке ${locale}: карта «Воздух · Погода», карточка города, меню ☰, без нарушений CSP`, async ({
     page,
   }) => {
     const violations = trackCspViolations(page);
@@ -16,7 +16,15 @@ for (const locale of locales) {
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(t(locale, "map.title"));
     await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
     await expect(page.locator("footer")).toHaveCount(0);
-    // Погода в городах из фикстуры: Душанбе выбран по умолчанию и выделен, Худжанд — рядом.
+    // По умолчанию — качество воздуха: станции и карточка выбранного города.
+    await expect(page.getByRole("radio", { name: t(locale, "map.topics.air") })).toBeChecked();
+    await expect(page.getByTestId("city-air")).toBeVisible();
+    await expect(page.locator("[data-map-layers]").first()).toHaveAttribute(
+      "data-map-layers",
+      /\bstations\b/,
+    );
+    // Тема «Погода»: погода в городах из фикстуры, Душанбе выбран по умолчанию и выделен.
+    await page.getByRole("radio", { name: t(locale, "map.topics.weather") }).check();
     await expect(page.locator('[data-city="dushanbe"]')).toHaveAttribute("aria-current", "true");
     await expect(page.locator('[data-city="khujand"]')).toBeVisible();
     await expect(page.locator("[data-map-layers]").first()).toHaveAttribute(
@@ -74,8 +82,10 @@ test("переключатель языка ведёт на /ru и /en", async (
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("en", "map.title"));
 });
 
-test("выбор города в шапке запоминается в cookie и выделяет город на карте", async ({ page }) => {
-  await page.goto("/ru");
+test("выбор города в шапке запоминается в cookie, выделяет город на карте и меняет карточку", async ({
+  page,
+}) => {
+  await page.goto("/ru?layer=weather");
   const khujand = page.locator('[data-city="khujand"]');
   await expect(khujand).toBeVisible({ timeout: 30_000 });
   await expect(khujand).not.toHaveAttribute("aria-current", "true");
@@ -86,6 +96,9 @@ test("выбор города в шапке запоминается в cookie �
   await page.getByRole("menuitem", { name: "Худжанд" }).click();
   await expect(khujand).toHaveAttribute("aria-current", "true");
   await expect(page.locator('[data-city="dushanbe"]')).not.toHaveAttribute("aria-current", "true");
+  await expect(
+    page.getByTestId("city-weather-card").getByRole("heading", { name: "Худжанд" }),
+  ).toBeVisible();
   const cookie = (await page.context().cookies()).find((c) => c.name === "meteo-city");
   expect(cookie?.value).toBe("khujand");
   await page.reload();

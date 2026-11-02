@@ -128,6 +128,26 @@ docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
   sh -c 'cp /src/tajikistan.pmtiles /t/ && ls -la /t'
 ```
 
+Подложки «Рельеф» и «Спутник» (переключатель «Тип карты» на главной) — необязательные файлы в том же томе.
+Без них посетителю предлагаются только «Схема» и «Серая»; карта сама проверяет наличие файлов (`HEAD /tiles/…`),
+перезапуск не нужен. Собираются из открытых данных скриптом (нужны интернет, Node 22 и Docker):
+
+```bash
+./infra/data/fetch-basemap-layers.sh   # terrain.pmtiles (~120 МБ) и satellite.pmtiles (~120 МБ) в infra/data/tiles
+docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
+  sh -c 'cp /src/terrain.pmtiles /src/satellite.pmtiles /src/*.json /t/ && ls -la /t'
+```
+
+| Файл | Источник | Лицензия и подпись на карте |
+|---|---|---|
+| `terrain.pmtiles` | тайлы высот [Mapterhorn](https://mapterhorn.com) по Copernicus DEM GLO-30 (30 м), z0–10, копируются байт в байт (`build-terrain.mjs`) | лицензия Copernicus (свободная, с указанием источника): «Copernicus DEM GLO-30 © DLR, Airbus (ESA), Mapterhorn» |
+| `satellite.pmtiles` | безоблачный композит Sentinel-2 за 2021 год проекта [ESA WorldCover](https://esa-worldcover.org) (AWS Open Data); GDAL в Docker читает по сети только обзорный уровень 40 м (~1,7 ГБ трафика) и пишет WebP до z12 (≈ 30 м/пиксель) | CC BY 4.0: «ESA WorldCover 2021 / Contains modified Copernicus Sentinel data (2021)» |
+
+Скрипт можно запускать на своей машине и копировать готовые файлы на сервер (`scp` в каталог, затем в том, как выше).
+Цвета снимка настраиваются `SAT_SCALE_MAX` и `SAT_GAMMA` без повторной загрузки (склейка кэшируется в `MAP_TMP`).
+Снимки EOX Sentinel-2 cloudless, Esri, Google и Яндекс не используются: их лицензии запрещают хранить и раздавать
+тайлы или требуют внешнего сервиса (ТЗ: без внешних сервисов в критическом пути, п. 10.2 договора).
+
 Тома `silam` (слои прогноза) и `uploads` (файлы CMS) заполняются приложением; `backups` — сервисом backup.
 Владельцы каталогов внутри томов задаются образами (пользователь `app`), менять права вручную не нужно.
 
@@ -377,6 +397,7 @@ API входа — `/api/auth/*`):
 | Индекс «нет данных» при наличии измерений | админка → очередь QC; `select max(time) from station_index` | значения с флагом suspect/invalid не участвуют — решить в QC; измерения старше 6 ч считаются устаревшими; пересчёт — `index-compute` каждые 10 мин (ручной запуск — раздел 7) |
 | Worker «не отвечает» на дашборде | `dc ps worker`, `dc logs --since 30m worker`, Redis: `dc exec redis redis-cli ping` | `dc restart worker`; при падении Redis — `dc restart redis worker`; при переполнении памяти Redis (`maxmemory 256mb`, `noeviction`) — `dc exec redis redis-cli info memory` |
 | Карта без подписей / серая | `curl -I https://<домен>/tiles/tajikistan.pmtiles` (206/200), `curl -I https://<домен>/basemaps/fonts/…` | том `tiles` пуст (раздел 1.5) или образ web собран без `basemaps` (раздел 1.4) |
+| В «Типе карты» нет «Рельефа» или «Спутника» | `curl -I https://<домен>/tiles/terrain.pmtiles`, `…/satellite.pmtiles` (200) | файлов нет в томе `tiles` — `fetch-basemap-layers.sh` и копирование (раздел 1.5) |
 | 502 от Caddy | `dc ps web`, `dc logs --since 10m web` | web перезапускается или упал: `dc restart web`; проверить `.env` (`BETTER_AUTH_SECRET` ≥ 32 символов, `DATABASE_URL`) |
 | 429 у интеграции/СМИ | заголовки `X-RateLimit-*` | поднять `RATE_LIMIT_API_PER_MINUTE` (`dc up -d web`) или договориться о кэшировании на стороне клиента |
 | Импорт архива | `docs/import-history.md` | `--dry-run` → отчёт → импорт; индекс пересчитывается скриптом (раздел 11) |
@@ -704,7 +725,8 @@ sh infra/deploy/harden-host.sh                    # администратор �
 
 `/opt/meteo/<окружение>/.env` (владелец `deploy`, права 600) — как в 1.3, плюс `EDGE_ALIAS` (имя в сети `edge`,
 таблица выше) и `IMAGE_REPO`; `IMAGE_TAG` не задаётся — его ведёт выкатка. Тайлы карты кладутся в тома
-`meteo_tiles` и `meteo-staging_tiles` (как в 1.5; на сервере достаточно `SKIP_ASSETS=1 ./infra/data/fetch-map-assets.sh`).
+`meteo_tiles` и `meteo-staging_tiles` (как в 1.5; на сервере достаточно `SKIP_ASSETS=1 ./infra/data/fetch-map-assets.sh`,
+подложки «Рельеф» и «Спутник» — `./infra/data/fetch-basemap-layers.sh` или готовые файлы с машины разработчика).
 
 | Что | Где |
 |---|---|
