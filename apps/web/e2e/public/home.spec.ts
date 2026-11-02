@@ -1,3 +1,4 @@
+import { gzipSync } from "node:zlib";
 import { expect, test } from "@playwright/test";
 import { trackCspViolations } from "../helpers/console";
 import { type E2eLocale, HTML_LANG, prefix, t } from "../helpers/messages";
@@ -64,6 +65,27 @@ for (const locale of locales) {
     expect(violations()).toEqual([]);
   });
 }
+
+test("стартовый JS главной — без MapLibre и в бюджете", async ({ request }) => {
+  // MapLibre (≈300 КБ gzip) грузится лениво, после первой отрисовки (station-map.lazy.tsx). Если
+  // его модуль импортировать из кода, который рендерится сразу (так было с basemap-picker →
+  // basemap.ts), он уходит в стартовые чанки: на медленной сети LCP и TBT главной растут.
+  const html = await (await request.get("/ru")).text();
+  const scripts = [...new Set(html.match(/\/_next\/static\/chunks\/[^"'\s]+\.js/g) ?? [])];
+  expect(scripts.length).toBeGreaterThan(0);
+  let gzipBytes = 0;
+  for (const src of scripts) {
+    const body = await (await request.get(src)).body();
+    expect(body.includes("maplibregl-canvas-container"), `MapLibre в стартовом чанке ${src}`).toBe(
+      false,
+    );
+    gzipBytes += gzipSync(body).length;
+  }
+  // Сейчас ≈ 330 КБ (база Next.js и React ≈ 290 КБ на любой странице); MapLibre добавил бы ещё 300.
+  expect(gzipBytes, `стартовый JS главной, gzip: ${Math.round(gzipBytes / 1024)} КБ`).toBeLessThan(
+    360 * 1024,
+  );
+});
 
 test("переключатель языка ведёт на /ru и /en", async ({ page }) => {
   await page.goto("/");

@@ -15,7 +15,7 @@ import {
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { dateFormatter } from "@/lib/date-format";
 import { numberFormatter } from "@/lib/number-format";
-import type { Basemap } from "./basemap";
+import type { Basemap } from "./basemap-options";
 import { BasemapPicker, useBasemap } from "./basemap-picker";
 import type {
   BoundariesLayer,

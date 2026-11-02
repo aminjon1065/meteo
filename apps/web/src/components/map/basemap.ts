@@ -2,6 +2,7 @@ import { type Flavor, layers, namedFlavor } from "@protomaps/basemaps";
 import type { LayerSpecification } from "maplibre-gl";
 import * as maplibregl from "maplibre-gl";
 import { Protocol } from "pmtiles";
+import { type Basemap, SATELLITE_URL, TERRAIN_URL } from "./basemap-options";
 
 export const TAJIKISTAN_BOUNDS: [[number, number], [number, number]] = [
   [67.3, 36.6],
@@ -10,25 +11,7 @@ export const TAJIKISTAN_BOUNDS: [[number, number], [number, number]] = [
 export const DUSHANBE: [number, number] = [68.787, 38.5598];
 export const TILES_URL = "/tiles/tajikistan.pmtiles";
 
-/**
- * Типы подложки, которые выбирает посетитель (только открытые данные на нашем сервере, ADR-003):
- * схема и серая — векторные тайлы OSM/Protomaps; рельеф — затенение по Copernicus DEM GLO-30
- * (Mapterhorn, infra/data/fetch-basemap-layers.sh); спутник — безоблачный композит Sentinel-2
- * 2021 проекта ESA WorldCover (CC BY 4.0).
- */
-export const BASEMAPS = ["scheme", "gray", "relief", "satellite"] as const;
-export type Basemap = (typeof BASEMAPS)[number];
-export const TERRAIN_URL = "/tiles/terrain.pmtiles";
-export const SATELLITE_URL = "/tiles/satellite.pmtiles";
-/** Подложки с отдельным файлом тайлов: без файла на сервере вариант не предлагается. */
-export const BASEMAP_FILES: Partial<Record<Basemap, string>> = {
-  relief: TERRAIN_URL,
-  satellite: SATELLITE_URL,
-};
-
-export function isBasemap(value: unknown): value is Basemap {
-  return typeof value === "string" && (BASEMAPS as readonly string[]).includes(value);
-}
+export * from "./basemap-options";
 
 let runtimeReady = false;
 

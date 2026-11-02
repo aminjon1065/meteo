@@ -12,7 +12,7 @@ import {
 import { cn } from "@meteo/ui/lib/utils";
 import { LayersIcon } from "lucide-react";
 import { useEffect, useState } from "react";
-import { BASEMAP_FILES, BASEMAPS, type Basemap, isBasemap } from "./basemap";
+import { BASEMAP_FILES, BASEMAPS, type Basemap, isBasemap } from "./basemap-options";
 
 /** Выбор подложки запоминается в браузере (на всех вкладках и визитах). */
 const STORAGE_KEY = "meteo-basemap";
