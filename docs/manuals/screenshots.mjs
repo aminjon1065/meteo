@@ -761,7 +761,7 @@ async function capturePublic(browser) {
   });
 
   await step("language", async () => {
-    // Переключатель языка — ссылки «TJ · RU · EN» в шапке (и выбор города рядом с логотипом).
+    // Переключатель языка — ссылки «TJ · RU · EN» в шапке (меню ☰ и выбор города — слева).
     await page
       .getByRole("navigation", { name: t("common.language") })
       .first()
@@ -798,7 +798,7 @@ async function capturePublic(browser) {
   });
 
   await step("map", async () => {
-    await page.goto(url("/map"));
+    await page.goto(url("/"));
     await waitCanvas(page, "[data-deferred='map']");
     const silamToggle = page.getByRole("checkbox", { name: t("map.silam") }).first();
     if (await silamToggle.isVisible().catch(() => false)) {

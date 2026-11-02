@@ -242,7 +242,7 @@ export default async function WeatherLocationPage({
             <p className="text-caption text-muted-foreground">{t("airForecastHint")}</p>
             {silam.run ? (
               <Link
-                href={{ pathname: "/map", query: { layer: "silam" } }}
+                href={{ pathname: "/", query: { layer: "silam" } }}
                 className="text-sm font-semibold text-brand hover:underline"
               >
                 {t("openLayer")} →

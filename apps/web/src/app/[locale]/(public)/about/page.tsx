@@ -23,7 +23,7 @@ export async function generateMetadata({
 const SOURCES = [
   { key: "stations", icon: RadioIcon, href: "/air" },
   { key: "smartmet", icon: CloudSunIcon, href: "/weather" },
-  { key: "silam", icon: WindIcon, href: "/map" },
+  { key: "silam", icon: WindIcon, href: "/?layer=silam" },
   { key: "cap", icon: SirenIcon, href: "/warnings" },
 ] as const;
 

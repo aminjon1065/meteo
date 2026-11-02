@@ -1,7 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { activeNavHref, isActivePath } from "@/components/site/nav-active";
 
-const MENU = ["/", "/air", "/weather", "/map", "/air/silam", "/warnings", "/news"];
+// Меню ☰ (site-header.tsx): «Карта» — главная.
+const MENU = [
+  "/warnings",
+  "/weather",
+  "/air/silam",
+  "/air",
+  "/",
+  "/news",
+  "/health",
+  "/data",
+  "/about",
+];
 
 describe("подсветка пунктов меню", () => {
   it("«Главная» только на корне, остальные — по префиксу", () => {
@@ -14,7 +25,8 @@ describe("подсветка пунктов меню", () => {
   it("на вложенном разделе подсвечивается он, а не родительский", () => {
     expect(activeNavHref("/air/silam", MENU)).toBe("/air/silam");
     expect(activeNavHref("/air/stations/dushanbe", MENU)).toBe("/air");
-    expect(activeNavHref("/map", MENU)).toBe("/map");
-    expect(activeNavHref("/about", MENU)).toBeNull();
+    expect(activeNavHref("/", MENU)).toBe("/");
+    expect(activeNavHref("/weather/dushanbe", MENU)).toBe("/weather");
+    expect(activeNavHref("/subscribe", MENU)).toBeNull();
   });
 });

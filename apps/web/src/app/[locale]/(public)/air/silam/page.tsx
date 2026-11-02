@@ -178,7 +178,7 @@ export default async function SilamPage({
     <div className="container-page flex flex-col gap-9 py-8">
       <PageHeader title={t("title")} intro={t("intro")}>
         <div className="flex flex-wrap items-center gap-x-5 gap-y-2 text-sm font-semibold">
-          <Link href="/map?layer=silam" className="text-brand hover:underline">
+          <Link href="/?layer=silam" className="text-brand hover:underline">
             {t("linkMap")} →
           </Link>
           <Link href="/air" className="text-brand hover:underline">
@@ -218,10 +218,7 @@ export default async function SilamPage({
           data-testid="silam-fmi-unavailable"
         >
           <p className="max-w-2xl">{t("viewer.unavailable")}</p>
-          <Link
-            href="/map?layer=silam"
-            className="text-sm font-semibold text-brand hover:underline"
-          >
+          <Link href="/?layer=silam" className="text-sm font-semibold text-brand hover:underline">
             {t("linkMap")} →
           </Link>
         </div>
@@ -303,7 +300,7 @@ export default async function SilamPage({
       <div className="grid gap-9 lg:grid-cols-2 lg:gap-x-12">
         <Section title={t("portal.heading")} id="silam-portal">
           <div className="flex max-w-3xl flex-col gap-3 text-pretty">
-            <p>{t.rich("portal.map", { link: internal("/map?layer=silam") })}</p>
+            <p>{t.rich("portal.map", { link: internal("/?layer=silam") })}</p>
             <p>{t("portal.stations")}</p>
           </div>
         </Section>

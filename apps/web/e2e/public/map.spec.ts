@@ -3,13 +3,13 @@ import { trackCspViolations } from "../helpers/console";
 import { t } from "../helpers/messages";
 import { E2E } from "../setup/fixtures";
 
-test("/map: карта MapLibre, включение слоя SILAM, выбор вещества и ползунок времени", async ({
+test("карта на главной: карта MapLibre, включение слоя SILAM, выбор вещества и ползунок времени", async ({
   page,
 }) => {
   const violations = trackCspViolations(page);
   // Станции из API — слой включён всегда; подписка до перехода, иначе ответ может прийти раньше.
   const stationsResponse = page.waitForResponse((r) => r.url().includes("/api/v1/stations"));
-  await page.goto("/ru/map");
+  await page.goto("/ru");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("ru", "map.title"));
   await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
   expect((await stationsResponse).status()).toBe(200);
@@ -41,17 +41,26 @@ test("/map: карта MapLibre, включение слоя SILAM, выбор �
   expect(violations()).toEqual([]);
 });
 
+test("старый адрес /map ведёт на главную и сохраняет слой из ?layer=", async ({ page }) => {
+  await page.goto("/ru/map?layer=silam");
+  await expect(page).toHaveURL(/\/ru\?layer=silam$/);
+  await expect(page.getByRole("checkbox", { name: t("ru", "map.silam") })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});
+
 /** Контейнер карты с экземпляром MapLibre для диагностики (MapDiagnosticsElement в station-map.tsx). */
 type MapDiagnosticsElement = HTMLElement & {
   __maplibreMap?: { project(lngLat: [number, number]): { x: number; y: number } };
 };
 
-test("/map: границы регионов включены по умолчанию, выключаются, заливка по уровню и попап области", async ({
+test("карта на главной: границы регионов включены по умолчанию, выключаются, заливка по уровню и попап области", async ({
   page,
 }) => {
   const violations = trackCspViolations(page);
   const regionsResponse = page.waitForResponse((r) => r.url().includes("/api/v1/regions"));
-  await page.goto("/ru/map");
+  await page.goto("/ru");
   await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
   const regions = await regionsResponse;
   expect(regions.status()).toBe(200);
@@ -151,11 +160,11 @@ test("/api/v1/regions и /api/v1/districts: GeoJSON, кэш 10 минут, ETag 
 test.describe("телефон", () => {
   test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
 
-  test("/map: карта на весь экран, слои в шторке, SILAM управляется карточкой внизу", async ({
+  test("карта на главной: карта на весь экран, слои в шторке, SILAM управляется карточкой внизу", async ({
     page,
   }) => {
     const violations = trackCspViolations(page);
-    await page.goto("/ru/map");
+    await page.goto("/ru");
     await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
     // Панели слоёв поверх карты нет: только кнопка «Слои» (число — включённые слои сверх станций).
     await expect(page.locator("aside")).toBeHidden();

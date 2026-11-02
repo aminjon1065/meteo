@@ -8,8 +8,8 @@ Meteoportal is the official website of the Agency for Hydrometeorology of the Re
 
 - **Address**: `https://<portal domain>` (for example `https://portal.meteo.tj`). The portal works on desktops, tablets and phones; no registration is needed.
 - **Languages**: Tajik (primary, addresses without a prefix — `/air`), Russian (`/ru/air`) and English (`/en/air`). The language switch is in the top‑right corner (globe icon).
-- **Theme**: light or dark (moon/sun icon next to the language).
-- **Sections** in the top menu: Home, Air quality, Map, Weather, Warnings, Health, News. In the footer: "About", "About the index", "Open data", "API for developers", "E‑mail alerts".
+- **Theme**: light or dark (moon/sun icon next to the language; on a phone — in the ☰ menu).
+- **Sections** are in the ☰ menu on the left of the header (as on data.meteo.uz): MeteoAlert (SmartMet) — warnings, SmartMet (forecast) — weather, SmartMet (SILAM) — air‑quality forecast, Air monitoring, Map, News, Health, Open data · API, About; below them — "About the index", "Eco-bulletins", "Email alerts". The menu also holds the language, theme and project credits. Every page except the home page has a footer with the same links and contacts.
 - **Time** on the portal is shown in Dushanbe time (UTC+5); the API and CSV use UTC together with local time.
 - **Accessibility**: pollution levels are always labelled with words, not only colour; the interface works with the keyboard and screen readers.
 
@@ -38,17 +38,9 @@ The "About the index" page (`/air/index`) lists the current thresholds per pollu
 
 ## 3. Home page
 
-![Figure 3. Home page: warning and exceedance banners, index of the selected city, map](../img/user-home.png)
+![Figure 3. Home page — the map: weather in cities, stations, layer panel](../img/user-home.png)
 
-From top to bottom:
-
-1. **Warning banner** — active severe‑weather warnings (red, orange or yellow by danger level) with a link to details.
-2. **Active threshold exceedances** — stations where a concentration exceeded a threshold set by the Agency, with the value and start time.
-3. **Air quality now** — index, dominant pollutant, level and short advice for the selected city. City buttons switch the station; "Station page" and "Open map" lead to details.
-4. **Map** of stations coloured by level (see section 6).
-5. **Weather today** — cards of major cities: temperature, wind, precipitation.
-6. **Air quality tomorrow** — SILAM model forecast by city (daily mean level).
-7. **Latest news** of the Agency.
+The home page is a full‑screen map of Tajikistan (modelled on data.meteo.uz). Major cities show the SmartMet weather symbol and the current temperature; click a city to see the weather description, the day's maximum and minimum and a link to the detailed forecast. Other cities appear as you zoom in. The city selected in the header is outlined; when you pick another city the map flies to it. Coloured dots are air‑monitoring stations. The SILAM, SmartMet weather and warnings layers are switched on in the layer panel (see section 6); all other sections are in the ☰ menu.
 
 ## 4. Stations and charts
 
@@ -100,14 +92,15 @@ The same file is available at `…/api/v1/stations/<slug>/measurements?range=7d&
 
 ## 6. Map
 
-The "Map" section (`/map`) shows stations, the SILAM air‑quality forecast and severe‑weather warnings on one map of Tajikistan. The map works without external services; zoom with the mouse wheel, the "+/−" buttons or gestures; the "my location" button centres the map (with the browser's permission).
+The map is the portal's home page (`/`; the old address `/map` leads there too). It shows weather in cities, stations, the SILAM air‑quality forecast and severe‑weather warnings on one map of Tajikistan. The map works without external services; zoom with the mouse wheel, the "+/−" buttons or gestures; the "my location" button centres the map (with the browser's permission).
 
 ![Figure 6. Map: stations, SILAM layer with time slider, warnings, legend](../img/user-map.png)
 
 Layer panel:
 
+- **Weather in cities** — weather symbol and current temperature at SmartMet forecast points (on by default); click a city for the weather description, the day's maximum and minimum and a link to the detailed forecast.
 - **Stations** — points coloured by level; click a station to see its index and open its page. When zoomed out, nearby stations merge into clusters with a count.
-- **Region boundaries** — outlines of the regions, Dushanbe and the RRP (on by default); when zoomed in, thin dashed district boundaries appear. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. The **"Levels by region"** checkbox fills each region with the colour of the worst current index level among its stations (grey fill — no data). The same outlines are shown on the home page map and in the "Air quality" section.
+- **Region boundaries** — outlines of the regions, Dushanbe and the RRP (on by default); when zoomed in, thin dashed district boundaries appear. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. The **"Levels by region"** checkbox fills each region with the colour of the worst current index level among its stations (grey fill — no data). The same outlines are shown on the map in the "Air quality" section.
 - **SILAM forecast** — a coloured grid of concentrations for the selected pollutant (drop‑down `PM2.5 · µg/m³` etc.). The time slider and the "‹ ›" buttons step through the forecast by hour for 5 days ahead; "▶" starts the animation. Below the slider — the country maximum and the model run time; cell colours follow the public scale by hourly concentration.
 - **Warnings** — polygons of active warnings coloured by danger level with a counter of active ones; the "All warnings" link opens the section.
 - **Legend** — the five index levels.
@@ -144,7 +137,7 @@ The "Warnings" section (`/warnings`) — the Agency's severe‑weather warnings 
 - Danger levels: yellow — minor, orange — moderate, red — severe and extreme.
 - An updated warning replaces the previous one, a cancelled one disappears; expired warnings are not shown.
 
-Active warnings are also visible as a banner on the home page, on the map, on the weather pages of the affected area and in the widget.
+Active warnings are also visible on the home page map, on the weather pages of the affected area and in the widget.
 
 ## 9. Health
 
@@ -160,7 +153,7 @@ The "News" section (`/news`) — Agency publications with categories, pinned ("I
 
 ## 11. E‑mail alerts subscription
 
-The "E‑mail alerts" page (`/subscribe`, linked from the footer, the home page and station pages):
+The "E‑mail alerts" page (`/subscribe`, linked from the ☰ menu, the footer and station pages):
 
 ![Figure 12. Subscription form](../img/user-subscribe.png)
 

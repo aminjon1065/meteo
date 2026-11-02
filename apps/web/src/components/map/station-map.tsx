@@ -49,6 +49,24 @@ export interface BoundariesLayer {
   };
 }
 
+/** Маркер погоды в городе: значок SmartSymbol и температура, по клику — попап со ссылкой на прогноз. */
+export interface CityMarker {
+  slug: string;
+  name: string;
+  lon: number;
+  lat: number;
+  /** Температура сейчас («13°»); null — только значок. */
+  temp: string | null;
+  /** Значок для светлой и тёмной темы и его описание; null — только температура. */
+  symbol: { light: string; dark: string; label: string } | null;
+  /** Строки попапа под названием: описание погоды, максимум и минимум за сутки. */
+  details: string[];
+  /** Страница прогноза города (с локалью). */
+  href: string;
+  /** Крупный город — виден на любом масштабе; остальные — с CITY_MINOR_MIN_ZOOM. */
+  featured: boolean;
+}
+
 export interface StationMapProps {
   locale: Locale;
   /** Растровый слой SILAM поверх подложки (null — выключен). */
@@ -62,6 +80,14 @@ export interface StationMapProps {
   warningsOpenLabel?: string;
   /** Границы областей и районов (FR6.3); null — слой не добавляется. */
   boundaries?: BoundariesLayer | null;
+  /** Погода в городах (HTML‑маркеры поверх всех слоёв); null — слой выключен. */
+  cities?: CityMarker[] | null;
+  /** Slug выбранного города: маркер выделен, при смене карта перелетает к нему. */
+  selectedCity?: string | null;
+  /** Текст ссылки в попапе города. */
+  cityOpenLabel?: string;
+  /** Ширина панели поверх карты слева на широком экране (px): страна вписывается правее неё. */
+  insetLeft?: number;
   /** Текст ссылки в попапе. */
   openLabel: string;
   /** Подписи статусов для попапа. */
@@ -161,6 +187,83 @@ function escapeHtml(s: string): string {
   );
 }
 
+/**
+ * Масштаб, с которого видны маркеры некрупных городов: на масштабе страны Гиссар, Вахдат и
+ * Турсунзаде в 20–50 км от Душанбе легли бы на его маркер.
+ */
+const CITY_MINOR_MIN_ZOOM = 8;
+
+/** Высота маркера города с «хвостиком» (px): на неё попап поднимается над точкой. */
+const CITY_MARKER_HEIGHT = 40;
+const CITY_POPUP_OFFSET: maplibregl.Offset = {
+  center: [0, -CITY_MARKER_HEIGHT / 2],
+  top: [0, 4],
+  "top-left": [0, 4],
+  "top-right": [0, 4],
+  bottom: [0, -CITY_MARKER_HEIGHT],
+  "bottom-left": [0, -CITY_MARKER_HEIGHT],
+  "bottom-right": [0, -CITY_MARKER_HEIGHT],
+  left: [8, -CITY_MARKER_HEIGHT / 2],
+  right: [-8, -CITY_MARKER_HEIGHT / 2],
+};
+
+/**
+ * Маркер города — «облачко» над точкой (хвостик указывает на город), чтобы не закрывать станцию
+ * в той же точке. Цвета — из темы (карточка), подложка под ним светлая в обеих темах.
+ */
+function cityMarkerElement(c: CityMarker, selected: boolean): HTMLButtonElement {
+  const el = document.createElement("button");
+  el.type = "button";
+  el.dataset.city = c.slug;
+  const description = [c.temp, c.symbol?.label].filter(Boolean).join(", ");
+  const label = description ? `${c.name}: ${description}` : c.name;
+  el.setAttribute("aria-label", label);
+  el.title = label;
+  if (selected) el.setAttribute("aria-current", "true");
+  // Без scale/translate‑утилит: MapLibre ставит маркер через transform, а свойство scale
+  // масштабировало бы и это смещение — маркер «уезжал» бы из‑под курсора при наведении.
+  el.className = cn(
+    "flex h-8 cursor-pointer items-center gap-0.5 rounded-full border bg-card/95 pr-2.5 pl-1 text-sm font-semibold text-foreground shadow-md transition-shadow hover:bg-card hover:shadow-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring",
+    !c.symbol && "pl-2.5",
+    selected && "border-primary ring-2 ring-primary",
+  );
+  if (c.symbol) {
+    for (const [src, cls] of [
+      [c.symbol.light, "size-7 dark:hidden"],
+      [c.symbol.dark, "hidden size-7 dark:block"],
+    ] as const) {
+      const img = document.createElement("img");
+      img.src = src;
+      img.alt = "";
+      img.setAttribute("aria-hidden", "true");
+      img.className = cls;
+      el.append(img);
+    }
+  }
+  const temp = document.createElement("span");
+  temp.className = "num";
+  temp.textContent = c.temp ?? "";
+  el.append(temp);
+  const tail = document.createElement("span");
+  tail.setAttribute("aria-hidden", "true");
+  tail.className = cn(
+    "absolute -bottom-[5px] left-1/2 size-2.5 -translate-x-1/2 rotate-45 border-r border-b bg-card",
+    selected && "border-primary",
+  );
+  el.append(tail);
+  return el;
+}
+
+function cityPopupHtml(c: CityMarker, openLabel: string): string {
+  return (
+    `<div class="font-sans text-sm" data-popup="city"><div class="font-semibold">${escapeHtml(c.name)}</div>` +
+    c.details
+      .map((d) => `<div class="text-xs text-muted-foreground">${escapeHtml(d)}</div>`)
+      .join("") +
+    `<a class="mt-1 inline-block text-xs font-medium underline" href="${escapeHtml(c.href)}">${escapeHtml(openLabel)}</a></div>`
+  );
+}
+
 /** Карта станций: кластеры, маркеры по уровню, попапы, границы регионов. Данные — /api/v1/*. */
 export function StationMap({
   locale,
@@ -178,6 +281,10 @@ export function StationMap({
   warningsHref,
   warningsOpenLabel,
   boundaries,
+  cities,
+  selectedCity,
+  cityOpenLabel,
+  insetLeft,
   unsupportedLabel,
 }: StationMapProps) {
   const containerRef = useRef<MapDiagnosticsElement>(null);
@@ -195,6 +302,9 @@ export function StationMap({
   const applyWeatherRef = useRef<(() => void) | null>(null);
   const applyWarningsRef = useRef<(() => void) | null>(null);
   const applyBoundariesRef = useRef<(() => void) | null>(null);
+  const syncDiagnosticsRef = useRef<(() => void) | null>(null);
+  /** Маркеры городов на карте (они в DOM, а не в стиле: переживают смену темы и языка). */
+  const citiesShownRef = useRef(false);
   /**
    * Стиль готов принимать addSource/addLayer: true после style.load, false сразу после setStyle.
    * map.isStyleLoaded() для этого не годится — он ложен и пока догружаются тайлы, из‑за чего
@@ -208,6 +318,9 @@ export function StationMap({
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
     ensurePmtilesProtocol();
+    const pad = compact ? 20 : 40;
+    // Панель слоёв (MapView) видна с md — 768 px.
+    const inset = insetLeft && window.matchMedia("(min-width: 768px)").matches ? insetLeft : 0;
     let map: maplibregl.Map;
     try {
       map = new maplibregl.Map({
@@ -215,7 +328,12 @@ export function StationMap({
         style: buildBasemapStyle(theme, locale),
         ...(center
           ? { center, zoom: zoom ?? 10 }
-          : { bounds: TAJIKISTAN_BOUNDS, fitBoundsOptions: { padding: compact ? 20 : 40 } }),
+          : {
+              bounds: TAJIKISTAN_BOUNDS,
+              fitBoundsOptions: {
+                padding: { top: pad, bottom: pad, right: pad, left: pad + inset },
+              },
+            }),
         attributionControl: { compact: true },
         cooperativeGestures: compact,
       });
@@ -252,6 +370,7 @@ export function StationMap({
     /** data-map-layers: видимые логические слои — для диагностики без доступа к WebGL (E2E). */
     const syncDiagnostics = () => {
       const layers: string[] = [];
+      if (citiesShownRef.current) layers.push("cities");
       if (isVisible("stations-points")) layers.push("stations");
       if (isVisible("silam-raster")) layers.push("silam");
       if (isVisible("weather-raster")) layers.push("weather");
@@ -682,6 +801,7 @@ export function StationMap({
     applyWeatherRef.current = applyWeather;
     applyWarningsRef.current = applyWarnings;
     applyBoundariesRef.current = applyBoundaries;
+    syncDiagnosticsRef.current = syncDiagnostics;
 
     return () => {
       hoverLabel.remove();
@@ -729,6 +849,57 @@ export function StationMap({
     if (!map || !applyBoundariesRef.current) return;
     if (styleReadyRef.current) applyBoundariesRef.current();
   }, [boundaries?.visible, boundaries?.fill, boundaries?.regionsUrl, boundaries?.districtsUrl]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !cities?.length) return;
+    const markers = cities.map((c) =>
+      new maplibregl.Marker({
+        element: cityMarkerElement(c, c.slug === selectedCity),
+        anchor: "bottom",
+        // Кончик хвостика (≈7 px ниже маркера) — ровно в точке города.
+        offset: [0, -7],
+      })
+        .setLngLat([c.lon, c.lat])
+        .setPopup(
+          new maplibregl.Popup({
+            offset: CITY_POPUP_OFFSET,
+            closeButton: false,
+            maxWidth: "240px",
+          }).setHTML(cityPopupHtml(c, cityOpenLabel ?? openLabel)),
+        )
+        .addTo(map),
+    );
+    // Некрупные города — с приближением; выбранный в шапке виден всегда.
+    const minor = markers.filter(
+      (_, i) => !cities[i]?.featured && cities[i]?.slug !== selectedCity,
+    );
+    const toggleMinor = () => {
+      const hidden = map.getZoom() < CITY_MINOR_MIN_ZOOM;
+      for (const m of minor) m.getElement().hidden = hidden;
+    };
+    toggleMinor();
+    map.on("zoom", toggleMinor);
+    citiesShownRef.current = true;
+    syncDiagnosticsRef.current?.();
+    return () => {
+      map.off("zoom", toggleMinor);
+      for (const m of markers) m.remove();
+      citiesShownRef.current = false;
+      // При размонтировании карта уже удалена — диагностику обновлять не на чем.
+      if (mapRef.current) syncDiagnosticsRef.current?.();
+    };
+  }, [cities, selectedCity, cityOpenLabel, openLabel]);
+
+  // Смена города в шапке: перелёт к нему. При открытии карта показывает всю страну.
+  const shownCityRef = useRef(selectedCity);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || shownCityRef.current === selectedCity) return;
+    shownCityRef.current = selectedCity;
+    const city = cities?.find((c) => c.slug === selectedCity);
+    if (city) map.flyTo({ center: [city.lon, city.lat], zoom: Math.max(map.getZoom(), 8) });
+  }, [selectedCity, cities]);
 
   if (unsupported) {
     return (

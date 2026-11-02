@@ -888,7 +888,7 @@ docker compose -f /opt/smartmet/compose.yml exec -d data \
 Порядок: запустить SmartMet (§14.2) → дописать переменные в `/opt/meteo/<окружение>/.env` → выкатить версию с
 `compose.smartmet.yml` (или для уже выкаченной — `/opt/meteo/<окружение>/dc up -d web worker`). Проверка:
 `docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' meteo-worker-1` показывает сеть
-`smartmet`; на дашборде админки интеграции SmartMet и CAP — «ok»; `/map?layer=weather` показывает слой погоды.
+`smartmet`; на дашборде админки интеграции SmartMet и CAP — «ok»; `/?layer=weather` показывает слой погоды.
 Возврат на песочницу FMI — удалить переменные из `.env` и выполнить `dc up -d web worker`.
 
 | Переменная | Значение |

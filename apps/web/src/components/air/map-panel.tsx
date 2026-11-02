@@ -43,13 +43,13 @@ export async function MapPanel({
             {tm("stations")}
           </span>
           <Link
-            href={{ pathname: "/map", query: { layer: "silam" } }}
+            href={{ pathname: "/", query: { layer: "silam" } }}
             className={cn(chip, "pointer-events-auto hover:bg-muted")}
           >
             {tm("silam")}
           </Link>
           <Link
-            href={{ pathname: "/map", query: { layer: "warnings" } }}
+            href={{ pathname: "/", query: { layer: "warnings" } }}
             className={cn(chip, "pointer-events-auto hover:bg-muted")}
           >
             {tm("warnings")}

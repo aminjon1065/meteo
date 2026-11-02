@@ -17,7 +17,7 @@ import { ChevronLeftIcon, ChevronRightIcon, LayersIcon, PauseIcon, PlayIcon } fr
 import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { dateFormatter } from "@/lib/date-format";
 import { numberFormatter } from "@/lib/number-format";
-import type { BoundariesLayer, SilamOverlay, WeatherOverlay } from "./station-map";
+import type { BoundariesLayer, CityMarker, SilamOverlay, WeatherOverlay } from "./station-map";
 import { StationMapLazy } from "./station-map.lazy";
 import {
   WEATHER_AREA,
@@ -67,6 +67,10 @@ export interface MapViewProps {
   /** Слои погоды SmartMet (WMS). */
   weather: WeatherCatalog;
   warnings: WarningsLayer;
+  /** Погода в городах (точки прогноза SmartMet) — слой включён при открытии. */
+  cities: CityMarker[];
+  /** Город, выбранный в шапке: его маркер выделен, при смене карта перелетает к нему. */
+  selectedCity: string | null;
   openLabel: string;
   statusLabels: Record<string, string>;
   stationHrefPrefix: string;
@@ -77,6 +81,10 @@ export interface MapViewProps {
   labels: {
     title: string;
     layers: string;
+    /** «Погода в городах». */
+    cities: string;
+    /** Ссылка в попапе города на его прогноз. */
+    cityOpen: string;
     stations: string;
     regions: string;
     regionsFill: string;
@@ -137,9 +145,9 @@ function nearestIndex(times: string[], at: number): number {
 }
 
 /**
- * Карта с панелью слоёв: станции, границы регионов (с опциональной заливкой по уровню индекса),
- * прогноз погоды SmartMet (температура, осадки, ветер, облачность) или растровый прогноз SILAM —
- * с ползунком времени, предупреждения CAP.
+ * Карта с панелью слоёв: погода в городах, станции, границы регионов (с опциональной заливкой по
+ * уровню индекса), прогноз погоды SmartMet (температура, осадки, ветер, облачность) или растровый
+ * прогноз SILAM — с ползунком времени, предупреждения CAP.
  */
 export function MapView({
   locale,
@@ -147,6 +155,8 @@ export function MapView({
   catalog,
   weather,
   warnings,
+  cities,
+  selectedCity,
   openLabel,
   statusLabels,
   stationHrefPrefix,
@@ -170,6 +180,7 @@ export function MapView({
   const silamOn = active === "silam";
   const weatherOn = active === "weather";
   const [warningsOn, setWarningsOn] = useState(warnings.count > 0 || initialLayer === "warnings");
+  const [citiesOn, setCitiesOn] = useState(true);
   const [regionsOn, setRegionsOn] = useState(true);
   const [regionsFill, setRegionsFill] = useState(false);
   const boundaries = useMemo<BoundariesLayer>(
@@ -404,6 +415,18 @@ export function MapView({
   const layerToggles = (idp: string, inline: boolean) => (
     <div className="flex flex-col gap-2">
       <div className="flex items-center gap-2">
+        <Checkbox
+          id={`${idp}-cities`}
+          checked={citiesOn}
+          disabled={cities.length === 0}
+          onCheckedChange={(checked) => setCitiesOn(checked === true)}
+        />
+        <label htmlFor={`${idp}-cities`} className="flex-1">
+          {labels.cities}
+        </label>
+        {cities.length === 0 ? <Badge variant="secondary">{labels.soon}</Badge> : null}
+      </div>
+      <div className="flex items-center gap-2">
         <Checkbox id={`${idp}-stations`} checked disabled />
         <label htmlFor={`${idp}-stations`}>{labels.stations}</label>
       </div>
@@ -509,7 +532,12 @@ export function MapView({
   );
 
   // Слои, включённые сверх станций, — число на кнопке «Слои» на телефоне.
-  const extraLayers = [regionsOn, active !== null, warningsOn].filter(Boolean).length;
+  const extraLayers = [
+    citiesOn && cities.length > 0,
+    regionsOn,
+    active !== null,
+    warningsOn,
+  ].filter(Boolean).length;
   const mobileForecast =
     (silamOn && silamAvailable && pollutant) || (weatherOn && weatherAvailable);
 
@@ -526,8 +554,13 @@ export function MapView({
         warningsUrl={warningsOn ? warnings.url : null}
         warningsHref={warnings.href}
         warningsOpenLabel={labels.warningsOpen}
+        cities={citiesOn ? cities : null}
+        selectedCity={selectedCity}
+        cityOpenLabel={labels.cityOpen}
         boundaries={boundaries}
         unsupportedLabel={labels.unsupported}
+        // Панель слоёв ниже: w-72 (288 px) и отступ left-3 (12 px).
+        insetLeft={300}
       />
 
       {/* Широкий экран: панель слоёв слева сверху. */}

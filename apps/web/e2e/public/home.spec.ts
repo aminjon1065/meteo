@@ -1,101 +1,123 @@
 import { expect, test } from "@playwright/test";
 import { trackCspViolations } from "../helpers/console";
 import { type E2eLocale, HTML_LANG, prefix, t } from "../helpers/messages";
-import { E2E } from "../setup/fixtures";
 
 const locales: E2eLocale[] = ["tg", "ru", "en"];
 
 for (const locale of locales) {
-  test(`главная на языке ${locale}: заголовок, навигация, виджеты, без нарушений CSP`, async ({
+  test(`главная на языке ${locale}: карта с погодой в городах, меню ☰, без нарушений CSP`, async ({
     page,
   }) => {
     const violations = trackCspViolations(page);
     const response = await page.goto(`${prefix(locale)}/`);
     expect(response?.status()).toBe(200);
     await expect(page.locator("html")).toHaveAttribute("lang", HTML_LANG[locale]);
-    // h1 — надзаголовок полосы состояния: «Качество воздуха сейчас · <город>».
-    await expect(page.getByRole("heading", { level: 1 })).toContainText(t(locale, "home.airNow"));
-    await expect(page.getByTestId("status-level")).toBeVisible();
-    const nav = page.getByRole("navigation", { name: t(locale, "common.mainNav") });
-    // «Мониторинг» — выпадающий список: качество воздуха и погода.
-    await nav.getByRole("button", { name: t(locale, "nav.monitoring") }).click();
-    const menu = page.getByRole("menu");
-    // exact: по‑таджикски «Ҳаво» — подстрока «Сифати ҳаво» и «Обу ҳаво».
-    await expect(
-      menu.getByRole("menuitem", { name: t(locale, "nav.air"), exact: true }),
-    ).toBeVisible();
-    await expect(
-      menu.getByRole("menuitem", { name: t(locale, "nav.weather"), exact: true }),
-    ).toBeVisible();
-    await page.keyboard.press("Escape");
-    await expect(nav.getByRole("link", { name: t(locale, "nav.silam") })).toBeVisible();
-    // Карточки: погода по городам из фикстуры, действующее CAP-предупреждение, новость.
-    await expect(page.getByText(t(locale, "home.forecastToday"))).toBeVisible();
-    await expect(page.getByText(E2E.capHeadline[locale]).first()).toBeVisible();
-    await expect(page.getByRole("link", { name: E2E.news.title[locale] })).toBeVisible();
-    // Карта станций (MapLibre) грузится лениво при прокрутке; инициализируется — WebGL и worker не заблокированы политикой.
-    await page.locator('[data-deferred^="map"]').first().scrollIntoViewIfNeeded();
+    // Главная — карта на весь экран (по образцу data.meteo.uz); подвала нет.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(t(locale, "map.title"));
     await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
-    await page.waitForLoadState("networkidle");
+    await expect(page.locator("footer")).toHaveCount(0);
+    // Погода в городах из фикстуры: Душанбе выбран по умолчанию и выделен, Худжанд — рядом.
+    await expect(page.locator('[data-city="dushanbe"]')).toHaveAttribute("aria-current", "true");
+    await expect(page.locator('[data-city="khujand"]')).toBeVisible();
+    await expect(page.locator("[data-map-layers]").first()).toHaveAttribute(
+      "data-map-layers",
+      /\bcities\b/,
+    );
+    // Попап города: название и ссылка на прогноз.
+    await page.locator('[data-city="khujand"]').click();
+    const popup = page.locator(".maplibregl-popup [data-popup='city']");
+    await expect(
+      popup.getByRole("link", { name: t(locale, "weather.openForecast") }),
+    ).toHaveAttribute("href", `${prefix(locale)}/weather/khujand`);
+
+    // Меню ☰: разделы по системам SmartMet; «Карта» (главная) — текущая.
+    await page.getByRole("button", { name: t(locale, "common.menu") }).click();
+    const menu = page.getByRole("dialog", { name: t(locale, "common.menu") });
+    await expect(menu).toBeVisible();
+    const nav = menu.getByRole("navigation", { name: t(locale, "common.mainNav") });
+    for (const [key, path] of [
+      ["nav.meteoAlert", "/warnings"],
+      ["nav.forecast", "/weather"],
+      ["nav.silam", "/air/silam"],
+      ["nav.airMonitoring", "/air"],
+      ["nav.dataApi", "/data"],
+    ] as const) {
+      await expect(nav.getByRole("link", { name: t(locale, key), exact: true })).toHaveAttribute(
+        "href",
+        `${prefix(locale)}${path}`,
+      );
+    }
+    await expect(
+      nav.getByRole("link", { name: t(locale, "nav.map"), exact: true }),
+    ).toHaveAttribute("aria-current", "page");
+    await nav.getByRole("link", { name: t(locale, "nav.meteoAlert"), exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`${prefix(locale)}/warnings$`));
+    await expect(page.locator("footer")).toBeVisible();
     expect(violations()).toEqual([]);
   });
 }
 
 test("переключатель языка ведёт на /ru и /en", async ({ page }) => {
   await page.goto("/");
-  // Переключатель — три ссылки «TJ · RU · EN» в навигации «Язык» (шапка; на телефоне — в листе «Ещё»).
+  // Переключатель — три ссылки «TJ · RU · EN» в навигации «Язык» (шапка; ещё один — в меню ☰).
   const switcher = (locale: E2eLocale) =>
     page.getByRole("navigation", { name: t(locale, "common.language") }).first();
   await switcher("tg")
     .getByRole("link", { name: /Русский/ })
     .click();
   await expect(page).toHaveURL(/\/ru$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(t("ru", "home.airNow"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("ru", "map.title"));
   await switcher("ru")
     .getByRole("link", { name: /English/ })
     .click();
   await expect(page).toHaveURL(/\/en$/);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText(t("en", "home.airNow"));
+  await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("en", "map.title"));
 });
 
-test("выбор города в шапке запоминается в cookie и меняет полосу состояния", async ({ page }) => {
+test("выбор города в шапке запоминается в cookie и выделяет город на карте", async ({ page }) => {
   await page.goto("/ru");
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Душанбе");
-  await page.getByRole("button", { name: /Душанбе/ }).click();
+  const khujand = page.locator('[data-city="khujand"]');
+  await expect(khujand).toBeVisible({ timeout: 30_000 });
+  await expect(khujand).not.toHaveAttribute("aria-current", "true");
+  // Точное имя: у маркеров на карте тоже есть кнопки «Душанбе: …».
+  const citySelect = (city: string) =>
+    page.getByRole("button", { name: `${city} · ${t("ru", "common.city")}`, exact: true });
+  await citySelect("Душанбе").click();
   await page.getByRole("menuitem", { name: "Худжанд" }).click();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Худжанд");
+  await expect(khujand).toHaveAttribute("aria-current", "true");
+  await expect(page.locator('[data-city="dushanbe"]')).not.toHaveAttribute("aria-current", "true");
   const cookie = (await page.context().cookies()).find((c) => c.name === "meteo-city");
   expect(cookie?.value).toBe("khujand");
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Худжанд");
+  await expect(citySelect("Худжанд")).toBeVisible();
+  await expect(khujand).toHaveAttribute("aria-current", "true", { timeout: 30_000 });
 });
 
 test.describe("телефон 375 px", () => {
   test.use({ viewport: { width: 375, height: 812 }, isMobile: true, hasTouch: true });
 
   for (const locale of locales) {
-    test(`главная (${locale}): без горизонтальной прокрутки, слово уровня целиком, нижняя навигация`, async ({
-      page,
-    }) => {
+    test(`главная (${locale}): карта на весь экран без прокрутки, меню ☰`, async ({ page }) => {
       await page.goto(`${prefix(locale)}/`);
-      await expect(page.getByTestId("status-level")).toBeVisible();
-      // Длинные подписи («Удовлетворительное», «Қаноатбахш», «Satisfactory») ужимаются под ширину колонки.
-      const level = page.getByTestId("status-level");
-      expect(await level.evaluate((el) => el.scrollWidth <= el.clientWidth + 1)).toBe(true);
-      // Документ не шире экрана — ни один блок не вылезает за правый край.
-      const widths = await page.evaluate(() => ({
-        doc: document.documentElement.scrollWidth,
-        view: document.documentElement.clientWidth,
+      await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
+      // Документ не шире и не выше экрана: шапка и карта, без подвала и нижней панели.
+      const size = await page.evaluate(() => ({
+        docW: document.documentElement.scrollWidth,
+        viewW: document.documentElement.clientWidth,
+        docH: document.documentElement.scrollHeight,
+        viewH: document.documentElement.clientHeight,
       }));
-      expect(widths.doc).toBeLessThanOrEqual(widths.view);
-      // Нижняя навигация из пяти пунктов вместо бургера; язык — в листе «Ещё».
-      const bottom = page.getByRole("navigation", { name: t(locale, "common.menu") }).first();
-      await expect(bottom).toBeVisible();
-      await expect(bottom.getByRole("link")).toHaveCount(4);
-      await bottom.getByRole("button", { name: t(locale, "common.more") }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+      expect(size.docW).toBeLessThanOrEqual(size.viewW);
+      expect(size.docH).toBeLessThanOrEqual(size.viewH);
+      // Язык — в шапке; остальные разделы, тема — в меню ☰.
       await expect(
-        page.getByRole("dialog").getByRole("link", { name: t(locale, "nav.health") }),
+        page.getByRole("navigation", { name: t(locale, "common.language") }).first(),
+      ).toBeVisible();
+      await page.getByRole("button", { name: t(locale, "common.menu") }).click();
+      const menu = page.getByRole("dialog", { name: t(locale, "common.menu") });
+      await expect(menu.getByRole("link", { name: t(locale, "nav.health") })).toBeVisible();
+      await expect(
+        menu.getByRole("button", { name: t(locale, "common.theme.dark") }),
       ).toBeVisible();
     });
   }

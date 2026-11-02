@@ -307,7 +307,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 ## 8. Health advice
 
-"Health advice" (`/admin/health-advice`) holds the texts the portal shows next to the index: on the home page, station pages, the "Health" section and in widgets.
+"Health advice" (`/admin/health-advice`) holds the texts the portal shows next to the index: on station pages, the "Health" section and in widgets.
 
 ![Figure 24. Advice matrix: level × population group × language](../img/admin-health-advice.png)
 
@@ -332,7 +332,7 @@ Texts must be agreed with medical experts; the portal shows a disclaimer that th
 | Name | how the rule is named in the banner and e‑mails |
 | Condition type | pollutant concentration (threshold in the pollutant unit, "greater than or equal" to the average over the 1 / 8 / 24 h averaging period) or index level (threshold 1–5 on the chosen scale) |
 | Scope | all stations / one station / region |
-| Channels | "Portal" — banner on the home page and station page, data in `/api/v1/exceedances`; "E‑mail" — messages to confirmed subscribers of the station or of all stations |
+| Channels | "Portal" — banner on the station page, data in `/api/v1/exceedances`; "E‑mail" — messages to confirmed subscribers of the station or of all stations |
 | Cooldown between events, min | after an event closes, a new one for the same rule and station does not open earlier than this (0–10080) |
 | Rule enabled | a disabled rule is kept but not evaluated |
 
@@ -352,7 +352,7 @@ How evaluation works: every 10 minutes a background job takes the latest availab
 
 ## 10. CAP warnings
 
-"CAP messages" (`/admin/cap`) — weather warnings from the SmartMet Alert editor in CAP 1.2 format. The portal does not create them: a background job reads the feed every 5 minutes (the IT service sets the address in `CAP_FEED_URL`) and stores the messages; they then appear in the portal's "Warnings" section, on the map, on the home page, in the widget and in the API.
+"CAP messages" (`/admin/cap`) — weather warnings from the SmartMet Alert editor in CAP 1.2 format. The portal does not create them: a background job reads the feed every 5 minutes (the IT service sets the address in `CAP_FEED_URL`) and stores the messages; they then appear in the portal's "Warnings" section, on the home page map, in the widget and in the API.
 
 ![Figure 29. CAP message list with synchronisation status](../img/admin-cap.png)
 
@@ -382,7 +382,7 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 ### 11.1. News
 
-"News" (`/admin/news`): publications for the portal's "News" section, home‑page cards, RSS and API.
+"News" (`/admin/news`): publications for the portal's "News" section, RSS and API.
 
 ![Figure 32. News list with statuses](../img/admin-news.png)
 
@@ -397,7 +397,7 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 | Cover | JPEG, PNG, WebP or GIF image up to 10 MB; uploaded from the form or chosen from media |
 | Status | draft → published → archived. Drafts are not visible on the portal |
 | Publication date | empty — the moment of publishing; a future date — scheduled publication (the item appears at that time) |
-| Pin on the home page | a pinned item is shown first |
+| Pin to the top of the feed | a pinned item is shown first in the "News" section |
 
 "Publish" / "Unpublish" change the status without re‑saving the form. "Open on the portal" leads to the news page. Categories are managed on the "Categories" page (name in three languages, slug, order).
 
@@ -479,7 +479,7 @@ All actions (generate, recompute, gamma, publish, delete, settings) are written 
 
 - **Mail (SMTP)**: shows whether SMTP is configured (`SMTP_URL` is set on the server). "Send test e‑mail" queues a message and shows its status (queued → sent / error with text). The test checks the whole path: queue → SMTP → mailbox. Without `SMTP_URL`, messages are only written to the background‑service log — development mode.
 - **Integration addresses**: SmartMet, SILAM, SmartMet Alert, portal address — read‑only; credentials are hidden. Only the IT service can change them through environment variables (see the runbook).
-- **Display units**: the unit of mass concentrations on station pages, the home page, widgets, API and CSV — "µg/m³ (CO — mg/m³)" by default or "mg/m³ as in the Agency's bulletins". Data is stored in the pollutant unit and converted on output (three more decimals when shown in mg/m³); ppm (CO₂) and ppb (TVOC) are not affected. Applied within a minute.
+- **Display units**: the unit of mass concentrations on station pages, widgets, API and CSV — "µg/m³ (CO — mg/m³)" by default or "mg/m³ as in the Agency's bulletins". Data is stored in the pollutant unit and converted on output (three more decimals when shown in mg/m³); ppm (CO₂) and ppb (TVOC) are not affected. Applied within a minute.
 - **Branding**: portal name, organisation name, e‑mail, phone, address, website, extra footer line — in three languages. Shown in the header, footer and on the "About" page within a minute after saving.
 
 ## 13. Users

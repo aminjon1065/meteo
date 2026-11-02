@@ -5,67 +5,47 @@ import { Link } from "@/i18n/navigation";
 import { resolveCity } from "@/lib/city";
 import { getBrandingCached } from "@/lib/settings";
 import { CitySelect } from "./city-select";
+import { FmiLogo } from "./fmi-logo";
 import { LanguageSwitcher } from "./language-switcher";
 import { Logo } from "./logo";
-import { MainNav, type NavEntry, type NavItem } from "./main-nav";
-import { MobileNav } from "./mobile-nav";
+import { type NavItem, SiteMenu } from "./site-menu";
 import { ThemeToggle } from "./theme-toggle";
 
 /**
- * Верхнее меню на компьютере (docs/03 §3): «Мониторинг» объединяет качество воздуха и погоду в одном
- * выпадающем списке, «SmartMet (SILAM)» — отдельная кнопка по просьбе Заказчика (29.10.2026).
+ * Разделы меню ☰ (по образцу data.meteo.uz, просьба Заказчика 31.10.2026): системы SmartMet —
+ * отдельными пунктами, «Карта» — главная страница.
  */
-export async function getHeaderNav(): Promise<NavEntry[]> {
+export async function getMenuItems(): Promise<NavItem[]> {
   const t = await getTranslations("nav");
   return [
-    { href: "/", label: t("home") },
-    {
-      label: t("monitoring"),
-      items: [
-        { href: "/air", label: t("air") },
-        { href: "/weather", label: t("weather") },
-      ],
-    },
-    { href: "/map", label: t("map") },
+    { href: "/warnings", label: t("meteoAlert") },
+    { href: "/weather", label: t("forecast") },
     { href: "/air/silam", label: t("silam") },
-    { href: "/warnings", label: t("warnings") },
-    { href: "/news", label: t("news") },
-  ];
-}
-
-/** Нижняя панель на телефоне: четыре главных раздела со значками, остальное — в листе «Ещё». */
-export async function getNavItems(): Promise<NavItem[]> {
-  const t = await getTranslations("nav");
-  return [
-    { href: "/", label: t("home") },
-    { href: "/air", label: t("airShort") },
-    { href: "/weather", label: t("weather") },
-    { href: "/map", label: t("map") },
-  ];
-}
-
-/** Остальные разделы — для листа «Ещё» на телефоне. */
-export async function getMoreNavItems(): Promise<NavItem[]> {
-  const [t, tf] = await Promise.all([getTranslations("nav"), getTranslations("footer")]);
-  return [
-    { href: "/warnings", label: t("warnings") },
+    { href: "/air", label: t("airMonitoring") },
+    { href: "/", label: t("map") },
     { href: "/news", label: t("news") },
     { href: "/health", label: t("health") },
-    { href: "/air/silam", label: t("silam") },
-    { href: "/air/index", label: tf("aboutIndex") },
-    { href: "/air/bulletins", label: tf("ecoBulletins") },
-    { href: "/data", label: t("data") },
-    { href: "/subscribe", label: tf("subscribe") },
+    { href: "/data", label: t("dataApi") },
     { href: "/about", label: t("about") },
   ];
 }
 
+/** Справочные разделы — под чертой в том же меню. */
+export async function getMoreMenuItems(): Promise<NavItem[]> {
+  const tf = await getTranslations("footer");
+  return [
+    { href: "/air/index", label: tf("aboutIndex") },
+    { href: "/air/bulletins", label: tf("ecoBulletins") },
+    { href: "/subscribe", label: tf("subscribe") },
+  ];
+}
+
 export async function SiteHeader() {
-  const [tc, header, items, more, locale, branding, cityState] = await Promise.all([
+  const [tc, tf, items, more, locale, branding, cityState] = await Promise.all([
     getTranslations("common"),
-    getHeaderNav(),
-    getNavItems(),
-    getMoreNavItems(),
+    getTranslations("footer"),
+    getMenuItems(),
+    getMoreMenuItems(),
     getLocale() as Promise<Locale>,
     getBrandingCached(),
     resolveCity(),
@@ -73,45 +53,51 @@ export async function SiteHeader() {
   const siteName = pick(branding.siteName, locale) || tc("siteName");
 
   return (
-    <>
-      <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
-        <a
-          href="#content"
-          className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+    <header className="sticky top-0 z-40 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/85">
+      <a
+        href="#content"
+        className="sr-only focus:not-sr-only focus:absolute focus:top-2 focus:left-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-primary-foreground"
+      >
+        {tc("skipToContent")}
+      </a>
+      {/* Во всю ширину, а не по контейнеру: на главной под шапкой карта от края до края. */}
+      <div className="flex h-16 w-full items-center gap-2 pr-[max(1rem,env(safe-area-inset-right,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))] sm:gap-3 lg:gap-4">
+        <SiteMenu
+          items={items}
+          more={more}
+          credit={
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <p>{tf("supportedBy")}</p>
+              <FmiLogo alt={tc("fmiName")} onWhite />
+            </div>
+          }
+        />
+        <Link
+          href="/"
+          className="flex shrink-0 items-center gap-2.5 font-heading text-[1.05rem] font-bold"
+          aria-label={siteName}
         >
-          {tc("skipToContent")}
-        </a>
-        <div className="container-page flex h-16 items-center gap-3 lg:gap-4 xl:gap-6">
-          <Link
-            href="/"
-            className="flex shrink-0 items-center gap-2.5 font-heading text-[1.05rem] font-bold"
-            aria-label={siteName}
-          >
-            <Logo className="size-[30px]" />
-            {/* 1024–1279 px: в строке семь разделов меню — название скрыто, логотип ведёт на главную */}
-            <span className="hidden sm:inline lg:hidden xl:inline">{siteName}</span>
-          </Link>
-          {cityState.cities.length > 0 ? (
-            <CitySelect
-              cities={cityState.cities.map((c) => ({
-                slug: c.slug,
-                name: c.name,
-                region: c.regionCode,
-              }))}
-              selected={cityState.city?.slug ?? null}
-            />
-          ) : null}
-          <MainNav items={header} className="ml-auto hidden lg:flex" />
-          <div className="ml-auto flex items-center gap-1 lg:ml-0">
-            <LanguageSwitcher variant="inline" />
-            {/* До 380 px переключатель темы остаётся в листе «Ещё» нижней навигации */}
-            <span className="hidden min-[380px]:inline-flex">
-              <ThemeToggle />
-            </span>
-          </div>
+          <Logo className="size-[30px]" />
+          <span className="hidden sm:inline">{siteName}</span>
+        </Link>
+        {cityState.cities.length > 0 ? (
+          <CitySelect
+            cities={cityState.cities.map((c) => ({
+              slug: c.slug,
+              name: c.name,
+              region: c.regionCode,
+            }))}
+            selected={cityState.city?.slug ?? null}
+          />
+        ) : null}
+        <div className="ml-auto flex items-center gap-1">
+          <LanguageSwitcher variant="inline" />
+          {/* На телефоне тема — в меню ☰, чтобы шапка помещалась в 360 px. */}
+          <span className="hidden sm:inline-flex">
+            <ThemeToggle />
+          </span>
         </div>
-      </header>
-      <MobileNav primary={items} more={more} />
-    </>
+      </div>
+    </header>
   );
 }

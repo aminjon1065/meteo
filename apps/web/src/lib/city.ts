@@ -22,9 +22,23 @@ export async function getSelectedCitySlug(): Promise<string | null> {
   return value && /^[a-z0-9-]{1,64}$/.test(value) ? value : null;
 }
 
+/** Город из списка по slug из cookie, иначе Душанбе, иначе первый избранный, иначе первый. */
+export function pickCity<T extends Pick<ForecastLocationRow, "slug" | "featured">>(
+  cities: readonly T[],
+  selectedSlug: string | null,
+): T | null {
+  return (
+    cities.find((c) => c.slug === selectedSlug) ??
+    cities.find((c) => c.slug === DEFAULT_CITY_SLUG) ??
+    cities.find((c) => c.featured) ??
+    cities[0] ??
+    null
+  );
+}
+
 /**
  * Выбранный город: из cookie, иначе Душанбе, иначе первый из списка.
- * Возвращает и весь список — шапка и главная читают его одним запросом.
+ * Возвращает и весь список — шапка читает его одним запросом.
  */
 export async function resolveCity(): Promise<{
   city: ForecastLocationRow | null;
@@ -32,11 +46,5 @@ export async function resolveCity(): Promise<{
   selectedSlug: string | null;
 }> {
   const [cities, selectedSlug] = await Promise.all([loadCityChoices(), getSelectedCitySlug()]);
-  const city =
-    cities.find((c) => c.slug === selectedSlug) ??
-    cities.find((c) => c.slug === DEFAULT_CITY_SLUG) ??
-    cities.find((c) => c.featured) ??
-    cities[0] ??
-    null;
-  return { city, cities, selectedSlug };
+  return { city: pickCity(cities, selectedSlug), cities, selectedSlug };
 }

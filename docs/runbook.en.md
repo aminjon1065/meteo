@@ -806,7 +806,7 @@ network and use one SmartMet.
 Order: start SmartMet (§14.2) → add the variables to `/opt/meteo/<environment>/.env` → deploy a version with
 `compose.smartmet.yml` (or, for an already deployed one, `/opt/meteo/<environment>/dc up -d web worker`). Check:
 `docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' meteo-worker-1` lists the `smartmet`
-network; the admin dashboard shows the SmartMet and CAP integrations as "ok"; `/map?layer=weather` shows the weather
+network; the admin dashboard shows the SmartMet and CAP integrations as "ok"; `/?layer=weather` shows the weather
 layer. To go back to the FMI sandbox, remove the variables from `.env` and run `dc up -d web worker`.
 
 | Variable | Value |

@@ -22,11 +22,11 @@ const DATASETS = [
   { key: "measurements", href: "/api/v1/stations/{slug}/measurements?range=7d", page: "/air" },
   { key: "index", href: "/api/v1/index/current", page: "/air/index" },
   { key: "forecast", href: "/api/v1/forecast/dushanbe", page: "/weather" },
-  { key: "silam", href: "/api/v1/silam/dushanbe", page: "/map" },
+  { key: "silam", href: "/api/v1/silam/dushanbe", page: "/?layer=silam" },
   { key: "alerts", href: "/api/v1/alerts?active=1", page: "/warnings" },
   { key: "news", href: "/api/v1/news", page: "/news" },
-  { key: "regions", href: "/api/v1/regions", page: "/map" },
-  { key: "districts", href: "/api/v1/districts", page: "/map" },
+  { key: "regions", href: "/api/v1/regions", page: "/" },
+  { key: "districts", href: "/api/v1/districts", page: "/" },
 ] as const;
 
 /** Открытые данные: наборы списком, форматы, лицензия, виджеты. */
