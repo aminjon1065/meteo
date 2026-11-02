@@ -18,6 +18,7 @@ export * from "./silam";
 export * from "./silam-fmi";
 export * from "./slug";
 export * from "./smartmet";
+export * from "./station-cities";
 export * from "./station-feed";
 export * from "./station-json";
 export * from "./time";

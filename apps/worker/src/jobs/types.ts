@@ -14,6 +14,7 @@ export type JobName =
   | "threshold-eval"
   | "mailer"
   | "station-pull"
+  | "station-cities"
   | "eco-bulletin-draft";
 
 export interface JobDefinition<TData = Record<string, never>> {

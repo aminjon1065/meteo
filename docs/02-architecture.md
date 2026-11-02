@@ -116,7 +116,7 @@ meteo/
 | `districts` | `id`, `region_id`, `code`, `name jsonb`, `geom` |
 | `stations` | `id`, `code` (уникальный), `slug`, `name jsonb`, `kind` (air / meteo / combined), `geom Point`, `elevation_m`, `region_id`, `district_id`, `status` (active / suspended / decommissioned), `commissioned_at`, `decommissioned_at`, `data_source` (manual / import / api / sensor), `sampling` (continuous / discrete), `description jsonb`, `photo`, `api_key_hash` (для автоматической отправки), `created_at`, `updated_at` |
 | `station_pollutants` | `station_id`, `pollutant_id`, `unit`, `active` — что именно измеряет станция |
-| `forecast_locations` | `id`, `slug`, `name jsonb`, `geom Point`, `region_id`, `kind` (city / district / station), `smartmet_place`, `order`, `featured` — точки, для которых забираем прогноз SmartMet и SILAM |
+| `forecast_locations` | `id`, `slug`, `name jsonb`, `geom Point`, `region_id`, `kind` (city / district / station), `smartmet_place`, `order`, `featured` — точки, для которых забираем прогноз SmartMet и SILAM; они же — список городов портала (выбор в шапке, сводка «воздух в городе»). Станция относится к городу в радиусе 15 км (`CITY_RADIUS_KM`, `@meteo/core/station-cities`); станция вне радиуса всех городов автоматически получает точку `kind = station` в своём месте с названием района («Город Гиссар» → «Гиссар», районы — как есть): `ensureStationCities` (`packages/db`) вызывается при сохранении станции в админке, в `import-wwcs` и задачей worker'а `station-cities` (30 мин); выключенные точки учитываются, поэтому заново не создаются |
 | `warning_regions` | `id`, `code` (как в SmartMet Alert), `name jsonb`, `geom` — регионы предупреждений CAP |
 
 ### 5.2. Измерения (TimescaleDB)

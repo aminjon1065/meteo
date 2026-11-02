@@ -27,5 +27,6 @@ export * from "./services/ingest";
 export * from "./services/integrations";
 export * from "./services/news";
 export * from "./services/qc";
+export * from "./services/station-cities";
 export * from "./services/station-index";
 export * from "./services/station-sources";

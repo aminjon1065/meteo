@@ -3,7 +3,7 @@
 import { createHash, randomBytes } from "node:crypto";
 import { slugify } from "@meteo/core";
 import { isEnvSecret, sealSecret, secretKeyFromEnv } from "@meteo/core/secret-box";
-import { eq } from "@meteo/db";
+import { ensureStationCities, eq } from "@meteo/db";
 import {
   type StationSourceMapping,
   stationPollutants,
@@ -72,6 +72,18 @@ async function syncPollutants(stationId: number, list: StationValues["pollutants
   }
 }
 
+/**
+ * Станция вне радиуса городов списка сразу получает свой город (выбор в шапке, сводка на главной).
+ * Ошибка здесь не мешает сохранению станции — город заведёт задача worker'а station-cities.
+ */
+async function syncStationCities() {
+  try {
+    await ensureStationCities(getDb());
+  } catch (error) {
+    console.warn("[stations] города для станций:", (error as Error).message);
+  }
+}
+
 export async function createStation(locale: Locale, raw: unknown): Promise<StationActionResult> {
   const session = await requireAdminSession(locale, "stations.write");
   const parsed = stationInput.safeParse(raw);
@@ -86,6 +98,7 @@ export async function createStation(locale: Locale, raw: unknown): Promise<Stati
       .returning({ id: stations.id });
     if (!row) return { ok: false, message: "insert" };
     await syncPollutants(row.id, values.pollutants);
+    await syncStationCities();
     await recordAudit(session, {
       action: "station.create",
       entity: "stations",
@@ -116,6 +129,7 @@ export async function updateStation(
   try {
     await db.update(stations).set(toRow(values, slug)).where(eq(stations.id, id));
     await syncPollutants(id, values.pollutants);
+    await syncStationCities();
     await recordAudit(session, {
       action: "station.update",
       entity: "stations",

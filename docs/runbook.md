@@ -405,7 +405,7 @@ API входа — `/api/auth/*`):
 ## 7. Ручной запуск фоновых задач
 
 Задачи worker'а (BullMQ, очередь `meteo-jobs`) и расписание: `heartbeat` 1 мин; `mailer` 1 мин; `index-compute` 10 мин;
-`threshold-eval` 10 мин; `station-pull` 10 мин; `qc-batch` 15 мин; `smartmet-sync` 15 мин; `cap-sync` 5 мин; `silam-sync` ежечасно в :20.
+`threshold-eval` 10 мин; `station-pull` 10 мин; `qc-batch` 15 мин; `smartmet-sync` 15 мин; `cap-sync` 5 мин; `station-cities` 30 мин; `silam-sync` ежечасно в :20.
 Задачи с интервалом выполняются также сразу после старта worker'а (`dc restart worker` — простой способ
 «запустить всё сейчас»); `silam-sync` по cron — только по расписанию или вручную.
 
@@ -424,6 +424,7 @@ dc exec worker node -e "const R=require('ioredis'),{Queue}=require('bullmq');con
 | `cap-sync` | `{"force":true}`; `{"url":"file:///…/feed.atom","force":true}` — разовый источник (например, фикстуры `infra/data/cap`) | после смены `CAP_FEED_URL`, для проверки |
 | `station-pull` | `{}`; `{"sourceId":5,"force":true}` — один источник SFTP/FTP/HTTP, даже выключенный, с перечитыванием свежего файла | после настройки источника в карточке станции (кнопка «Проверить сейчас» делает то же) |
 | `index-compute` | `{}` | после массового импорта или правки шкал (панель делает это сама) |
+| `station-cities` | `{}` — станции дальше 15 км от всех городов списка получают свой город (точка прогноза `kind = station` с названием района) | после заведения станций в базе вручную (админка и `import-wwcs` делают это сами); выключенный город (`active = false`) заново не создаётся |
 | `qc-batch`, `threshold-eval`, `mailer` | `{}` | ускорить обработку очереди (`mailer` работает под замком: параллельный запуск пропускается, письмо не уйдёт дважды) |
 
 На машине разработчика то же делает `pnpm --filter @meteo/worker enqueue <задача> '<json>'`. Результат — в

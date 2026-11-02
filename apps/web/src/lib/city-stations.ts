@@ -1,22 +1,6 @@
-/** Станции в этом радиусе от точки прогноза могут считаться станциями города. */
-export const CITY_RADIUS_KM = 15;
+import { CITY_RADIUS_KM, distanceKm, type GeoPoint } from "@meteo/core";
 
-export interface GeoPoint {
-  lon: number;
-  lat: number;
-}
-
-/** Расстояние по большому кругу, км. */
-export function distanceKm(a: GeoPoint, b: GeoPoint) {
-  const r = 6371;
-  const toRad = (d: number) => (d * Math.PI) / 180;
-  const dLat = toRad(b.lat - a.lat);
-  const dLon = toRad(b.lon - a.lon);
-  const h =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * Math.sin(dLon / 2) ** 2;
-  return 2 * r * Math.asin(Math.sqrt(h));
-}
+export { CITY_RADIUS_KM, distanceKm, type GeoPoint };
 
 /**
  * Станции города: в радиусе CITY_RADIUS_KM от его точки и ближе к ней, чем к любому другому городу

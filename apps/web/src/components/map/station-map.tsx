@@ -419,6 +419,9 @@ export function StationMap({
               },
             }),
         attributionControl: { compact: true },
+        // Без анимации появления подписей и тайлов: каждый её кадр перерисовывает весь холст, а на
+        // слабых телефонах (и в Lighthouse с программной графикой) это секунды занятого потока.
+        fadeDuration: 0,
         cooperativeGestures: compact,
       });
     } catch (error) {
@@ -1102,9 +1105,14 @@ export function StationMap({
     };
   }, []);
 
+  // Стиль, с которым карта создана или последний раз перерисована: повторять его не нужно (без этой
+  // проверки стиль сразу после создания карты разбирался бы второй раз).
+  const styleKeyRef = useRef(`${theme}|${locale}|${basemap}`);
   useEffect(() => {
     const map = mapRef.current;
-    if (!map) return;
+    const key = `${theme}|${locale}|${basemap}`;
+    if (!map || styleKeyRef.current === key) return;
+    styleKeyRef.current = key;
     styleReadyRef.current = false;
     map.setStyle(buildBasemapStyle(theme, locale, basemap), { diff: false });
     // Оверлеи вернёт обработчик style.load (addStations).

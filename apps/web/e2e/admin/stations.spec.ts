@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { eq } from "@meteo/db";
-import { stationPollutants, stationSources, stations } from "@meteo/db/schema";
+import { forecastLocations, stationPollutants, stationSources, stations } from "@meteo/db/schema";
 import { expect, test } from "@playwright/test";
 import { closeE2eDb, e2eDb } from "../helpers/db";
 import { t } from "../helpers/messages";
@@ -54,6 +54,49 @@ test("создание станции через форму: валидация,
   await expect(page.getByRole("link", { name: `Новая станция ${code}` })).toBeVisible();
   await page.goto(`/ru/air/stations/${slug}`);
   await expect(page.getByRole("heading", { level: 1 })).toContainText(`Новая станция ${code}`);
+});
+
+test("станция далеко от городов списка сразу получает свой город: в выборе в шапке и в базе", async ({
+  page,
+}) => {
+  const suffix = Date.now().toString().slice(-6);
+  const code = `E2E-FAR-${suffix}`;
+  const name = `Пенджикент E2E ${suffix}`;
+  await page.goto("/ru/admin/stations/new");
+  await page.locator("#code").fill(code);
+  await page.locator("#name-ru").fill(name);
+  // Пенджикент: больше 60 км от ближайшего города списка (Истаравшан, Худжанд).
+  await page.locator("#lat").fill("39.495");
+  await page.locator("#lon").fill("67.61");
+  await page.getByRole("button", { name: t("ru", "common.actions.save") }).click();
+  await expect(page).toHaveURL(/\/ru\/admin\/stations\/\d+$/);
+
+  const db = e2eDb();
+  // Района в фикстурах здесь нет — город называется как станция. (Свой город получает и фикстурный
+  // датчик B сети JSON — он тоже далеко от городов списка.)
+  const city = (
+    await db.select().from(forecastLocations).where(eq(forecastLocations.kind, "station"))
+  ).find((c) => c.name.ru === name);
+  try {
+    expect(city?.name.ru).toBe(name);
+    expect(city?.geom).toEqual({ x: 67.61, y: 39.495 });
+    expect(city?.active).toBe(true);
+
+    await page.goto("/ru");
+    // Меню выбора города открывается после гидратации — кликаем, пока не откроется.
+    const citySelect = page.getByRole("button", {
+      name: `Душанбе · ${t("ru", "common.city")}`,
+      exact: true,
+    });
+    await expect(async () => {
+      await citySelect.click();
+      await expect(page.getByRole("menuitem").first()).toBeVisible({ timeout: 2_000 });
+    }).toPass({ timeout: 20_000 });
+    await expect(page.getByRole("menuitem", { name })).toBeVisible();
+  } finally {
+    await db.delete(stations).where(eq(stations.code, code));
+    if (city) await db.delete(forecastLocations).where(eq(forecastLocations.id, city.id));
+  }
 });
 
 test("дубликат кода станции отклоняется с ошибкой поля", async ({ page }) => {

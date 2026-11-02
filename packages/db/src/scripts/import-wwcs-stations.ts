@@ -24,6 +24,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { createDb } from "../client";
 import { loadRootEnv, requireEnv } from "../env";
 import * as s from "../schema";
+import { ensureStationCities } from "../services/station-cities";
 
 const DEFAULT_URL = "https://wwcs.tj/services/airquality/stations";
 const DEFAULT_HISTORY_URL = "https://wwcs.tj/services/airquality/history?hours={hours}";
@@ -331,6 +332,15 @@ try {
     `[wwcs] создано станций: ${created.length}${created.length ? ` (${created.join(", ")})` : ""}; ` +
       `уже были: ${skipped.length}${updated.length ? `; обновлено: ${updated.join(", ")}` : ""}; ${sourceNote}`,
   );
+  // Станции вне радиуса городов списка сразу получают свой город (выбор в шапке, сводка на главной).
+  if (!dryRun) {
+    const cities = await ensureStationCities(db);
+    if (cities.created.length > 0) {
+      console.info(
+        `[wwcs] новые города для станций: ${cities.created.map((c) => c.name.ru ?? c.slug).join(", ")}`,
+      );
+    }
+  }
 } finally {
   await db.$client.end();
 }

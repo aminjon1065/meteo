@@ -176,7 +176,7 @@ function Segmented<T extends string>({
   tone?: "primary" | "muted";
 }) {
   return (
-    <fieldset className="inline-flex shrink-0 rounded-full border bg-card/95 p-1 shadow-md backdrop-blur">
+    <fieldset className="inline-flex shrink-0 rounded-full border bg-card/95 p-0.5 shadow-md backdrop-blur min-[400px]:p-1">
       <legend className="sr-only">{label}</legend>
       {options.map(([v, text]) => {
         const checked = v === value;
@@ -184,7 +184,7 @@ function Segmented<T extends string>({
           <label
             key={v}
             className={cn(
-              "relative inline-flex h-8 cursor-pointer items-center rounded-full px-2.5 text-[13px] font-semibold whitespace-nowrap transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring md:px-3",
+              "relative inline-flex h-8 cursor-pointer items-center rounded-full px-2 text-xs font-semibold whitespace-nowrap transition-colors has-focus-visible:outline-2 has-focus-visible:outline-offset-2 has-focus-visible:outline-ring min-[400px]:px-2.5 min-[400px]:text-[13px] md:px-3",
               checked
                 ? tone === "primary"
                   ? "bg-primary text-primary-foreground"
@@ -560,7 +560,7 @@ export function MapView({
           во всю высоту — карточка прижата к низу (над атрибуцией OSM), справа сверху остаётся
           кнопка геолокации; на широком экране — 320 px слева, страна вписывается правее. */}
       <div className="pointer-events-none absolute inset-x-3 top-3 bottom-9 z-10 flex flex-col gap-2 md:right-auto md:bottom-3 md:w-[23rem]">
-        <div className="pointer-events-auto flex flex-wrap items-center gap-2 pr-11 md:pr-0">
+        <div className="pointer-events-auto flex flex-wrap items-center gap-1.5 pr-10 min-[400px]:gap-2 md:pr-0">
           <Segmented
             name="map-topic"
             label={labels.topic}

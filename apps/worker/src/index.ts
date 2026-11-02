@@ -92,4 +92,6 @@ await queue.add("silam-sync", {}, { jobId: `silam-sync:boot:${bootId}` });
 await queue.add("cap-sync", {}, { jobId: `cap-sync:boot:${bootId}` });
 // Источники станций (SFTP/FTP/HTTP): первый забор файлов и проверка «долго нет данных».
 await queue.add("station-pull", {}, { jobId: `station-pull:boot:${bootId}` });
+// Города для станций: станции вне радиуса городов списка получают свой город.
+await queue.add("station-cities", {}, { jobId: `station-cities:boot:${bootId}` });
 logger.info({ env: env.NODE_ENV }, "worker started");

@@ -129,6 +129,8 @@ Click "Add station" and fill in the form.
 
 "Save" opens the card of the created station. An error on the "Code" field means the code already exists.
 
+**City for the station.** An active station shown on the portal belongs to a city from the header list if it is no more than 15 km away. If there is no city that close, the portal creates one at the station's location, named after the district ("Panjakent district"; for a town with its own boundaries — just the town name, "Hisor"). The city appears at once in the city selector, on the home page and in the "Weather" section; its weather forecast is loaded within 15 minutes. The same happens for stations created by import — a background job checks every 30 minutes. A disabled city is not created again.
+
 ### 4.2. Station card, API key, decommissioning
 
 ![Figure 9. Existing station card: form, API key and decommissioning](../img/admin-station-edit.png)
