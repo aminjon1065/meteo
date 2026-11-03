@@ -104,6 +104,14 @@ jobs:
       - run: pnpm db:seed
       - name: Migrations are idempotent
         run: pnpm db:migrate && pnpm db:seed
+      - name: DB service tests (CAP supersede, expiry, feed reconcile)
+        run: pnpm --filter @meteo/db test
+        env:
+          TEST_DATABASE_URL: postgres://meteo:meteo@localhost:5432/meteo
+      - name: Alert rules → event → e-mail outbox (cooldown, stale data)
+        run: pnpm --filter @meteo/worker exec vitest run src/__tests__/alerts-eval.test.ts
+        env:
+          ALERTS_TEST_DATABASE_URL: postgres://meteo:meteo@localhost:5432/meteo
       - name: Backup + restore smoke (pg_dump → clean DB)
         run: |
           docker exec "$(docker ps -q --filter ancestor=timescale/timescaledb-ha:pg17 | head -1)" \

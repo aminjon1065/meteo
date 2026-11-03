@@ -55,6 +55,9 @@ import {
 import { distanceKm } from "@/lib/city-air";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
+
+const HEALTH_GROUPS = ["children", "pregnant", "elderly", "respiratory", "cardio"] as const;
 
 export const dynamic = "force-dynamic";
 
@@ -167,8 +170,17 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const data = await loadStation(slug);
   if (!data) return {};
-  const t = await getTranslations({ locale: locale as Locale, namespace: "air" });
-  return { title: `${name(data.station.name, locale)} · ${t("title")}` };
+  const [t, ts] = await Promise.all([
+    getTranslations({ locale: locale as Locale, namespace: "air" }),
+    getTranslations({ locale: locale as Locale, namespace: "seo" }),
+  ]);
+  const station = name(data.station.name, locale);
+  return pageMetadata({
+    locale: locale as Locale,
+    path: `/air/stations/${data.station.slug}`,
+    title: `${station} · ${t("title")}`,
+    description: ts("stationDescription", { station }),
+  });
 }
 
 type RatioRow = {
@@ -214,6 +226,9 @@ export default async function StationPage({
   const level = effectiveLevel(idx);
   const advice = aq.scale ? await loadHealthAdvice(aq.scale.id, level) : [];
   const general = advice.find((a) => a.audience === "general");
+  // Уязвимые группы — в порядке страницы «Здоровье».
+  const groupAdvice = HEALTH_GROUPS.flatMap((g) => advice.filter((a) => a.audience === g));
+  const tHealth = await getTranslations("health");
   const dominant = idx?.dominantPollutantId
     ? aq.pollutantsById.get(idx.dominantPollutantId)
     : undefined;
@@ -366,7 +381,9 @@ export default async function StationPage({
     ratio === null ? (
       <span className="text-muted-foreground">—</span>
     ) : ratio >= 1 ? (
+      // Превышение — не только цветом: стрелка и жирный шрифт (WCAG 1.4.1), для экранных дикторов — текст.
       <span className="font-semibold text-aq-4">
+        <span aria-hidden="true">▲ </span>
         {num(ratio, 2)}
         <span className="sr-only"> · {ti("agency.exceeds")}</span>
       </span>
@@ -433,11 +450,31 @@ export default async function StationPage({
         advice={statusText}
         aside={
           <>
-            {general ? (
+            {general || groupAdvice.length > 0 ? (
               <Panel className="grid gap-1.5">
                 <p className="eyebrow">{t("recommendations")}</p>
-                <p>{name(general.text, locale)}</p>
-                <Link href="/health" className="text-sm font-semibold text-brand hover:underline">
+                {general ? <p>{name(general.text, locale)}</p> : null}
+                {groupAdvice.length > 0 ? (
+                  <details className="text-sm" data-testid="station-group-advice">
+                    <summary className="cursor-pointer font-semibold">
+                      {t("vulnerableGroups")}
+                    </summary>
+                    <dl className="mt-2 grid gap-2">
+                      {groupAdvice.map((a) => (
+                        <div key={a.audience}>
+                          <dt className="eyebrow">
+                            {tHealth(`audience.${a.audience}` as "audience.general")}
+                          </dt>
+                          <dd className="mt-0.5">{name(a.text, locale)}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </details>
+                ) : null}
+                <Link
+                  href={level > 0 ? `/health#level-${level}` : "/health"}
+                  className="text-sm font-semibold text-brand hover:underline"
+                >
                   {t("allGroups")} →
                 </Link>
               </Panel>
@@ -487,6 +524,7 @@ export default async function StationPage({
                   "7d": ti("ranges.7d"),
                   "30d": ti("ranges.30d"),
                   "1y": ti("ranges.1y"),
+                  all: ti("ranges.all"),
                 },
                 pollutant: ti("pollutant"),
                 downloadCsv: ti("downloadCsv"),
@@ -494,6 +532,18 @@ export default async function StationPage({
                 loading: ti("loading"),
                 hourly: ti("hourly"),
                 daily: ti("daily"),
+                monthly: ti("monthly"),
+                aggregation: ti("aggregation"),
+                aggregations: { hour: ti("aggHour"), day: ti("aggDay"), month: ti("aggMonth") },
+                downloadRaw: ti("downloadRaw"),
+                dataTable: ti("dataTable"),
+                columns: {
+                  time: ti("colTime"),
+                  mean: ti("colMean"),
+                  min: ti("colMin"),
+                  max: ti("colMax"),
+                  samples: ti("colSamples"),
+                },
                 levels: levelLabels,
                 hint: t("chartHint", { pollutant: "{pollutant}" }),
                 title: ti("chartTitle"),

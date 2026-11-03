@@ -69,6 +69,11 @@ export const capAlerts = pgTable(
     supersededBy: integer("superseded_by").references((): AnyPgColumn => capAlerts.id, {
       onDelete: "set null",
     }),
+    /**
+     * Снято с публикации без Cancel: сообщение пропало из ленты SmartAlert (capfeed.php отдаёт только
+     * последний выпуск редактора — полный список действующих предупреждений). Вернулось в ленту — null.
+     */
+    withdrawnAt: timestamp("withdrawn_at", { withTimezone: true }),
     /** Откуда загружено: URL файла в фиде/каталоге или путь в режиме file://. */
     sourceUrl: text("source_url"),
     rawXml: text("raw_xml").notNull(),

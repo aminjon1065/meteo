@@ -24,6 +24,13 @@ describe("rateLimitGroupFor / rateLimitKey", () => {
     >;
     expect(rateLimitKey(api, "/api/v1/stations", "1.2.3.4")).toBe("api:1.2.3.4");
   });
+  it("тайлы SmartMet и кадры FMI — группа tiles (проверяют сами маршруты, proxy их не видит)", () => {
+    const wms = rateLimitGroupFor("/wms/202611020600/temperature/20261102T0900/6/43/24.png");
+    expect(wms?.name).toBe("tiles");
+    expect(wms?.rule.limit).toBe(1200);
+    expect(rateLimitGroupFor("/silam-fmi/20261101/pm25/012.png")?.name).toBe("tiles");
+    expect(rateLimitGroupFor("/silam/20261101/pm25.png")).toBeNull();
+  });
 });
 
 describe("rateLimitKey: некорректное percent-кодирование", () => {

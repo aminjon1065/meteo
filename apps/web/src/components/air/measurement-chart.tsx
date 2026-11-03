@@ -18,6 +18,13 @@ import { DownloadIcon } from "lucide-react";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { calendarNames, dateFormatter } from "@/lib/date-format";
+import {
+  type Aggregation,
+  aggregationFor,
+  RANGE_AGGREGATIONS,
+  RANGES,
+  RAW_RANGES,
+} from "@/lib/measurement-ranges";
 import { numberFormatter } from "@/lib/number-format";
 
 echarts.use([
@@ -30,7 +37,7 @@ echarts.use([
   CanvasRenderer,
 ]);
 
-export const CHART_RANGES = ["24h", "7d", "30d", "1y"] as const;
+export const CHART_RANGES = RANGES;
 export type ChartRange = (typeof CHART_RANGES)[number];
 
 export interface ChartPollutant {
@@ -61,6 +68,13 @@ export interface MeasurementChartProps {
     loading: string;
     hourly: string;
     daily: string;
+    monthly: string;
+    /** Подпись группы «Осреднение» и названия вариантов. */
+    aggregation: string;
+    aggregations: Record<Aggregation, string>;
+    downloadRaw: string;
+    dataTable: string;
+    columns: { time: string; mean: string; min: string; max: string; samples: string };
     levels: Record<string, string>;
     /** Подпись под графиком с плейсхолдером {pollutant}. */
     hint?: string;
@@ -69,7 +83,7 @@ export interface MeasurementChartProps {
 }
 
 interface SeriesResponse {
-  aggregation: "hour" | "day";
+  aggregation: Aggregation;
   series: Array<{
     pollutant: ChartPollutant;
     points: Array<{
@@ -107,7 +121,23 @@ function readTokens() {
   };
 }
 
-/** График измерений станции: периоды 24ч/7д/30д/1г, полосы уровней шкалы тинтами, выгрузка CSV. */
+/** Порог числа точек, после которого под графиком появляется ползунок масштаба. */
+const ZOOM_MIN_POINTS = 200;
+
+/** Подпись времени точки в подсказке и таблице: час — с временем, месяц — «Октябрь 2026». */
+function pointFormatter(locale: string, aggregation: Aggregation | undefined) {
+  if (aggregation === "month") return dateFormatter(locale, { month: "long", year: "numeric" });
+  return dateFormatter(locale, {
+    dateStyle: "medium",
+    timeStyle: aggregation === "hour" ? "short" : undefined,
+  });
+}
+
+/**
+ * График измерений станции: периоды 24ч/7д/30д/год/всё время, осреднение по часам/суткам/месяцам
+ * (варианты зависят от периода), полосы уровней шкалы тинтами, таблица значений как текстовая
+ * альтернатива графику, выгрузка CSV (средние с флагом качества или исходные значения).
+ */
 export function MeasurementChart({
   stationSlug,
   pollutants,
@@ -116,9 +146,11 @@ export function MeasurementChart({
   labels,
 }: MeasurementChartProps) {
   const [range, setRange] = useState<ChartRange>("24h");
+  const [aggregation, setAggregation] = useState<Aggregation>(aggregationFor("24h"));
   const [code, setCode] = useState<string>(pollutants[0]?.code ?? "");
   const [data, setData] = useState<SeriesResponse | null>(null);
   const [loading, setLoading] = useState(true);
+  const [tableOpen, setTableOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<echarts.ECharts | null>(null);
   const { resolvedTheme } = useTheme();
@@ -126,13 +158,14 @@ export function MeasurementChart({
     () => pollutants.find((p) => p.code === code) ?? pollutants[0],
     [pollutants, code],
   );
+  const aggregations = RANGE_AGGREGATIONS[range];
 
   useEffect(() => {
     if (!pollutant) return;
     const controller = new AbortController();
     setLoading(true);
     fetch(
-      `/api/v1/stations/${stationSlug}/measurements?range=${range}&pollutant=${pollutant.code}`,
+      `/api/v1/stations/${stationSlug}/measurements?range=${range}&agg=${aggregation}&pollutant=${pollutant.code}`,
       { signal: controller.signal },
     )
       .then((r) =>
@@ -146,7 +179,7 @@ export function MeasurementChart({
         if ((error as { name?: string }).name !== "AbortError") setLoading(false);
       });
     return () => controller.abort();
-  }, [stationSlug, range, pollutant]);
+  }, [stationSlug, range, aggregation, pollutant]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -167,11 +200,13 @@ export function MeasurementChart({
     };
   }, [locale]);
 
+  const points = data?.series[0]?.points ?? [];
+  const zoom = points.length > ZOOM_MIN_POINTS;
+
   // biome-ignore lint/correctness/useExhaustiveDependencies: смена темы меняет CSS‑токены, которые эффект читает из DOM
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart || !pollutant) return;
-    const points = data?.series[0]?.points ?? [];
     const tokens = readTokens();
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     const pollutantBands = bands[pollutant.code] ?? [];
@@ -181,10 +216,7 @@ export function MeasurementChart({
       ? Math.ceil(Math.max(maxValue * 1.15, thirdBandTop * 1.1))
       : undefined;
     // Не Intl: в браузере нет его данных для tg, дата в подсказке была бы английской.
-    const fmt = dateFormatter(locale, {
-      dateStyle: "medium",
-      timeStyle: data?.aggregation === "hour" ? "short" : undefined,
-    });
+    const fmt = pointFormatter(locale, data?.aggregation);
     // Числа тоже не через Intl/ECharts: в браузере у tg было бы «1,000» и «0.5».
     const numFmt = numberFormatter(locale, { maximumFractionDigits: pollutant.decimals });
     const axisFmt = numberFormatter(locale);
@@ -194,7 +226,7 @@ export function MeasurementChart({
       {
         animationDuration: reduced ? 0 : 300,
         textStyle: { fontFamily },
-        grid: { left: 48, right: 12, top: 12, bottom: range === "1y" ? 56 : 30 },
+        grid: { left: 48, right: 12, top: 12, bottom: zoom ? 56 : 30 },
         tooltip: {
           trigger: "axis",
           backgroundColor: tokens.popover,
@@ -225,21 +257,20 @@ export function MeasurementChart({
           },
           splitLine: { lineStyle: { color: tokens.border, type: "dashed" } },
         },
-        dataZoom:
-          range === "1y"
-            ? [
-                {
-                  type: "slider",
-                  height: 20,
-                  bottom: 8,
-                  borderColor: tokens.border,
-                  textStyle: { color: tokens.muted },
-                },
-              ]
-            : [],
+        dataZoom: zoom
+          ? [
+              {
+                type: "slider",
+                height: 20,
+                bottom: 8,
+                borderColor: tokens.border,
+                textStyle: { color: tokens.muted },
+              },
+            ]
+          : [],
         series: [
           {
-            type: data?.aggregation === "day" ? "bar" : "line",
+            type: data?.aggregation === "hour" || !data ? "line" : "bar",
             data: points.map((p) => [new Date(p.t).getTime(), p.v]),
             smooth: 0.2,
             showSymbol: points.length < 60,
@@ -274,17 +305,31 @@ export function MeasurementChart({
       },
       { notMerge: true },
     );
-  }, [data, pollutant, bands, resolvedTheme, locale, labels.levels, range]);
+  }, [data, pollutant, bands, resolvedTheme, locale, labels.levels, zoom]);
 
-  const csvHref = `/api/v1/stations/${stationSlug}/measurements?range=${range}&format=csv`;
-  const empty = !loading && (data?.series[0]?.points.length ?? 0) === 0;
+  const query = `range=${range}&agg=${aggregation}`;
+  const csvHref = `/api/v1/stations/${stationSlug}/measurements?${query}&format=csv`;
+  const rawHref = RAW_RANGES.includes(range)
+    ? `/api/v1/stations/${stationSlug}/measurements?range=${range}&agg=raw&format=csv`
+    : null;
+  const empty = !loading && points.length === 0;
+  const caption =
+    data?.aggregation === "month"
+      ? labels.monthly
+      : data?.aggregation === "day"
+        ? labels.daily
+        : labels.hourly;
 
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-3">
         <Tabs
           value={range}
-          onValueChange={(v) => setRange(v as ChartRange)}
+          onValueChange={(v) => {
+            const next = v as ChartRange;
+            setRange(next);
+            setAggregation(aggregationFor(next));
+          }}
           className="max-w-full overflow-x-auto"
         >
           <TabsList aria-label={labels.title} className="bg-surface-2">
@@ -307,9 +352,18 @@ export function MeasurementChart({
             </NativeSelectOption>
           ))}
         </NativeSelect>
-        <span className="text-caption text-muted-foreground">
-          {data?.aggregation === "day" ? labels.daily : labels.hourly}
-        </span>
+        {aggregations.length > 1 ? (
+          <Tabs value={aggregation} onValueChange={(v) => setAggregation(v as Aggregation)}>
+            <TabsList aria-label={labels.aggregation} className="bg-surface-2">
+              {aggregations.map((a) => (
+                <TabsTrigger key={a} value={a} className="px-2.5 data-active:bg-card">
+                  {labels.aggregations[a]}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </Tabs>
+        ) : null}
+        <span className="text-caption text-muted-foreground">{caption}</span>
         <a
           href={csvHref}
           download
@@ -331,15 +385,103 @@ export function MeasurementChart({
           className="h-full w-full"
           role="img"
           aria-label={
-            pollutant ? `${pollutant.shortName}, ${labels.ranges[range]}` : labels.loading
+            pollutant
+              ? `${pollutant.shortName}, ${labels.ranges[range]}, ${caption}`
+              : labels.loading
           }
         />
       </div>
-      {labels.hint && pollutant ? (
-        <p className="text-caption text-muted-foreground">
-          {labels.hint.replace("{pollutant}", pollutant.shortName)}
-        </p>
+      <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+        {labels.hint && pollutant ? (
+          <p className="text-caption text-muted-foreground">
+            {labels.hint.replace("{pollutant}", pollutant.shortName)}
+          </p>
+        ) : null}
+        {rawHref ? (
+          <a
+            href={rawHref}
+            download
+            className="ml-auto text-caption font-semibold text-brand hover:underline"
+          >
+            {labels.downloadRaw}
+          </a>
+        ) : null}
+      </div>
+      {pollutant && points.length > 0 ? (
+        <details
+          className="text-sm"
+          onToggle={(e) => setTableOpen((e.currentTarget as HTMLDetailsElement).open)}
+        >
+          <summary className="cursor-pointer font-semibold">{labels.dataTable}</summary>
+          {tableOpen ? (
+            <DataTable
+              points={points}
+              unit={pollutant.unit}
+              decimals={pollutant.decimals}
+              locale={locale}
+              aggregation={data?.aggregation}
+              columns={labels.columns}
+            />
+          ) : null}
+        </details>
       ) : null}
+    </div>
+  );
+}
+
+/** Таблица значений ряда — текстовая альтернатива графику (WCAG 1.1.1), новые точки сверху. */
+function DataTable({
+  points,
+  unit,
+  decimals,
+  locale,
+  aggregation,
+  columns,
+}: {
+  points: SeriesResponse["series"][number]["points"];
+  unit: string;
+  decimals: number;
+  locale: string;
+  aggregation: Aggregation | undefined;
+  columns: MeasurementChartProps["labels"]["columns"];
+}) {
+  const fmt = pointFormatter(locale, aggregation);
+  const numFmt = numberFormatter(locale, { maximumFractionDigits: decimals });
+  const n = (v: number | null) => (v === null ? "—" : numFmt.format(v));
+  return (
+    <div className="mt-2 max-h-80 overflow-auto rounded-lg border">
+      <table className="w-full text-left text-sm">
+        <thead className="sticky top-0 bg-surface-2">
+          <tr>
+            <th scope="col" className="px-3 py-1.5 font-semibold">
+              {columns.time}
+            </th>
+            <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+              {columns.mean}, {unit}
+            </th>
+            <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+              {columns.min}
+            </th>
+            <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+              {columns.max}
+            </th>
+            <th scope="col" className="px-3 py-1.5 text-right font-semibold">
+              {columns.samples}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {[...points].reverse().map((p) => (
+            <tr key={p.t} className="border-t">
+              <td className="px-3 py-1">{fmt.format(new Date(p.t))}</td>
+              <td className="num px-3 py-1 text-right">{n(p.v)}</td>
+              <td className="num px-3 py-1 text-right">{n(p.min)}</td>
+              <td className="num px-3 py-1 text-right">{n(p.max)}</td>
+              <td className="num px-3 py-1 text-right">{p.n}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
     </div>
   );
 }

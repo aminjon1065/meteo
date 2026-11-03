@@ -54,11 +54,37 @@ test("главная: «Воздух · Сейчас» по умолчанию, 
     "/ru/air",
   );
 
-  // Действующее CAP-предупреждение: слой на карте и плашка со ссылкой на раздел.
+  // Действующее CAP-предупреждение: слой на карте, плашка со ссылкой на раздел и легенда уровней
+  // (уровень цифрой — «3», высокая опасность).
   await expect(mapEl).toHaveAttribute("data-map-layers", /\bwarnings\b/);
   const chip = page.getByTestId("warnings-chip").filter({ visible: true });
   await expect(chip).toHaveText(/^1 предупреждение$/);
   await expect(chip).toHaveAttribute("href", "/ru/warnings");
+  await expect(chip).toHaveAttribute("data-state", "active");
+  const legend = page.getByTestId("warnings-legend");
+  await expect(legend).toContainText(`3${t("ru", "warnings.severity.Severe")}`);
+
+  // Уровни различимы без цвета (FR1.3): значки-«лица» в шкале карточки и на маркерах станций.
+  await expect(card.getByTestId("level-gauge").locator("[data-aq-icon]").first()).toBeVisible();
+  await expect
+    .poll(() =>
+      mapEl.evaluate((el) => {
+        const map = (
+          el as MapDiagnosticsElement & {
+            __maplibreMap?: { getLayer(id: string): unknown };
+          }
+        ).__maplibreMap;
+        return Boolean(map?.getLayer("stations-faces"));
+      }),
+    )
+    .toBe(true);
+  // Карта и её кнопки подписаны на языке страницы; есть ссылка на список станций без карты.
+  await expect(mapEl).toHaveAttribute("aria-label", t("ru", "map.mapRegion"));
+  await expect(page.getByRole("link", { name: t("ru", "map.stationList") })).toHaveAttribute(
+    "href",
+    "/ru/air",
+  );
+  await expect(page.getByRole("button", { name: t("ru", "map.controls.zoomIn") })).toBeVisible();
 
   // Прогноз: слой SILAM вместо станций, вещество и ползунок времени, адрес ?layer=silam.
   const pngRequest = page.waitForRequest((r) => SILAM_PNG.test(r.url()));
@@ -80,6 +106,27 @@ test("главная: «Воздух · Сейчас» по умолчанию, 
   await expect(mapEl).toHaveAttribute("data-map-layers", /\bstations\b/);
   await page.waitForLoadState("networkidle");
   expect(violations()).toEqual([]);
+});
+
+test("ссылка из раздела предупреждений /?layer=warnings приближает карту к их областям", async ({
+  page,
+}) => {
+  await page.goto("/ru?layer=warnings");
+  const mapEl = page.locator("[data-map-layers]").first();
+  await expect(mapEl).toHaveAttribute("data-map-layers", /\bwarnings\b/, { timeout: 30_000 });
+  // Полигон фикстуры — окрестности Душанбе: карта приближается сильнее масштаба всей страны.
+  await expect
+    .poll(
+      () =>
+        mapEl.evaluate(
+          (el) =>
+            (
+              el as HTMLElement & { __maplibreMap?: { getZoom(): number } }
+            ).__maplibreMap?.getZoom() ?? 0,
+        ),
+      { timeout: 15_000 },
+    )
+    .toBeGreaterThan(8);
 });
 
 test("старый адрес /map ведёт на главную и открывает прогноз из ?layer=silam", async ({ page }) => {

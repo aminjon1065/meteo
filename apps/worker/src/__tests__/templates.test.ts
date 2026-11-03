@@ -89,3 +89,28 @@ describe("renderEmail ecoBulletinDraft", () => {
     expect(clean.text).toContain("превышений ПДК нет");
   });
 });
+
+describe("renderEmail modelStale", () => {
+  const payload = {
+    kind: "stale",
+    origin: "2026-11-01T06:00:00.000Z",
+    at: "2026-11-02T03:00:00.000Z",
+    maxHours: 18,
+    producer: "gfs",
+    dashboardUrl: "https://havo.tj/admin",
+  };
+  it("письмо о «застрявшем» прогоне на трёх языках, со ссылкой на админку", () => {
+    for (const locale of ["tg", "ru", "en"] as const) {
+      const mail = renderEmail("modelStale", locale, payload);
+      expect(mail.subject).toContain("UTC");
+      expect(mail.text).toContain("18");
+      expect(mail.text).toContain("https://havo.tj/admin");
+      expect(mail.subject).not.toMatch(/modelStale\./);
+    }
+  });
+  it("письмо о восстановлении — без инструкции", () => {
+    const mail = renderEmail("modelStale", "ru", { ...payload, kind: "fresh" });
+    expect(mail.subject).toContain("снова");
+    expect(mail.text).not.toContain("runbook");
+  });
+});

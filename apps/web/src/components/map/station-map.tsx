@@ -3,6 +3,7 @@
 import "maplibre-gl/dist/maplibre-gl.css";
 import { AQ_LEVEL_STYLES } from "@meteo/core";
 import { type Locale, pick } from "@meteo/i18n";
+import { AQ_FACES } from "@meteo/ui/components/aq-badge";
 import { cn } from "@meteo/ui/lib/utils";
 import type { Feature, FeatureCollection, MultiPolygon, Point } from "geojson";
 import * as maplibregl from "maplibre-gl";
@@ -113,6 +114,12 @@ export interface StationMapProps {
   /** Ссылка и подпись кнопки в попапе предупреждения. */
   warningsHref?: string;
   warningsOpenLabel?: string;
+  /** Подписи попапа предупреждения: уровни опасности (по CAP severity) и «Ожидается». */
+  warningLabels?: { severity: Record<string, string>; upcoming: string };
+  /** Показать области предупреждений целиком (ссылка /?layer=warnings): один раз после загрузки. */
+  fitWarnings?: boolean;
+  /** Подписи встроенных элементов MapLibre на языке страницы (map-ui-strings.ts). */
+  uiStrings?: Record<string, string>;
   /** Границы областей и районов (FR6.3); null — слой не добавляется. */
   boundaries?: BoundariesLayer | null;
   /** Погода в городах (HTML‑маркеры поверх всех слоёв); null — слой выключен. */
@@ -127,6 +134,12 @@ export interface StationMapProps {
   openLabel: string;
   /** Подписи статусов для попапа. */
   statusLabels: Record<string, string>;
+  /**
+   * Попап станции из /api/v1/stations (раздел «Воздух», страница станции): подписи уровней и
+   * шаблоны времени «Обновлено {time}» / «Последние данные: {time}». Без них — только статус.
+   */
+  levelLabels?: Record<number, string>;
+  timeLabels?: { updated: string; lastData: string };
   /** Префикс ссылки на страницу станции (с локалью). */
   stationHrefPrefix: string;
   className?: string;
@@ -159,8 +172,12 @@ const OVERLAY_ORDER = [
   "districts-line",
   "regions-line",
   "warnings-fill",
+  "warnings-line-upcoming",
   "warnings-line",
 ] as const;
+
+/** Слои предупреждений: заливка, контур действующих (сплошной) и ожидаемых (пунктир). */
+const WARNING_LAYERS = ["warnings-fill", "warnings-line-upcoming", "warnings-line"] as const;
 
 /** Районы рисуются с зума 8; их GeoJSON запрашивается чуть раньше, чтобы контуры не «догоняли» карту. */
 const DISTRICTS_MIN_ZOOM = 8;
@@ -172,14 +189,119 @@ const EMPTY_STATIONS_MIN_ZOOM = 8;
 const STATION_LAYERS = [
   "stations-clusters-halo",
   "stations-clusters",
+  "stations-cluster-faces",
   "stations-cluster-count",
   "stations-points",
+  "stations-faces",
   "stations-empty",
 ] as const;
 
 const EMPTY_COLLECTION: FeatureCollection = { type: "FeatureCollection", features: [] };
 
 const HOVERED: maplibregl.ExpressionSpecification = ["boolean", ["feature-state", "hover"], false];
+
+/** Картинка «лица» уровня поверх круга станции: имя для icon-image. */
+const FACE_IMAGE_PREFIX = "aq-face-";
+/** Сторона картинки «лица» в CSS‑пикселях при icon-size 1 (сетка AQ_FACES — 20×20). */
+const FACE_IMAGE_SIZE = 20;
+
+/**
+ * Регистрирует картинки «лиц» уровней (AQ_FACES из дизайн‑системы) для слоёв станций: на карте
+ * уровень различим не только цветом круга (FR1.3). Стиль после setStyle теряет картинки —
+ * вызывается при каждой загрузке стиля. Черты — цветом текста уровня (контраст ≥ 4.5:1).
+ */
+function ensureFaceImages(map: maplibregl.Map) {
+  const ratio = 2;
+  for (const key of Object.keys(AQ_FACES)) {
+    const level = Number(key) as keyof typeof AQ_FACES;
+    const id = `${FACE_IMAGE_PREFIX}${level}`;
+    if (map.hasImage(id)) continue;
+    const canvas = document.createElement("canvas");
+    canvas.width = canvas.height = FACE_IMAGE_SIZE * ratio;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    const face = AQ_FACES[level];
+    const color = (AQ_LEVEL_STYLES[level] ?? AQ_LEVEL_STYLES[0]).foreground;
+    ctx.scale(ratio, ratio);
+    ctx.fillStyle = color;
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 1.8;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    if (face.eyes) ctx.fill(new Path2D(face.eyes));
+    ctx.stroke(new Path2D(face.stroke));
+    const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    map.addImage(
+      id,
+      { width: canvas.width, height: canvas.height, data: new Uint8Array(data.data.buffer) },
+      { pixelRatio: ratio },
+    );
+  }
+}
+
+/** Значок уровня для HTML попапа: круг цвета уровня с «лицом» (как AqIcon в интерфейсе). */
+function faceSvgHtml(level: number, px = 16): string {
+  const l = (level in AQ_FACES ? level : 0) as keyof typeof AQ_FACES;
+  const face = AQ_FACES[l];
+  const style = AQ_LEVEL_STYLES[l] ?? AQ_LEVEL_STYLES[0];
+  return (
+    `<svg viewBox="0 0 20 20" width="${px}" height="${px}" aria-hidden="true" focusable="false" class="shrink-0" data-aq-icon="${l}">` +
+    `<circle cx="10" cy="10" r="10" fill="${style.color}"/>` +
+    (face.eyes ? `<path d="${face.eyes}" fill="${style.foreground}"/>` : "") +
+    `<path d="${face.stroke}" fill="none" stroke="${style.foreground}" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`
+  );
+}
+
+const SEVERITY_NUMBER: Record<string, string> = {
+  Minor: "1",
+  Moderate: "2",
+  Severe: "3",
+  Extreme: "4",
+};
+
+/**
+ * Знак уровня опасности для попапа: круг цвета с цифрой 1–4 (как SeverityMark). `level` — уровень
+ * цвета из CAP_SEVERITY_STYLES (2 жёлтый, 3 оранжевый, 4 красный): цифра цветом текста уровня.
+ */
+function severityMarkHtml(level: number, severity: string): string {
+  const style = AQ_LEVEL_STYLES[level as keyof typeof AQ_LEVEL_STYLES] ?? AQ_LEVEL_STYLES[0];
+  return `<span class="inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none font-bold" style="background:${style.color};color:${style.foreground}" aria-hidden="true">${SEVERITY_NUMBER[severity] ?? "?"}</span>`;
+}
+
+/** icon-image «лица» по уровню из свойства (level у станции, worst у кластера). */
+function faceImageExpression(property: string): maplibregl.ExpressionSpecification {
+  return ["concat", FACE_IMAGE_PREFIX, ["to-string", ["coalesce", ["get", property], 0]]];
+}
+
+/** Охват координат GeoJSON (Polygon/MultiPolygon и т. п.): [[west, south], [east, north]]. */
+function geojsonBounds(fc: unknown): [[number, number], [number, number]] | null {
+  let w = Number.POSITIVE_INFINITY;
+  let s = Number.POSITIVE_INFINITY;
+  let e = Number.NEGATIVE_INFINITY;
+  let n = Number.NEGATIVE_INFINITY;
+  const walk = (c: unknown) => {
+    if (!Array.isArray(c)) return;
+    if (typeof c[0] === "number" && typeof c[1] === "number") {
+      w = Math.min(w, c[0]);
+      e = Math.max(e, c[0]);
+      s = Math.min(s, c[1]);
+      n = Math.max(n, c[1]);
+      return;
+    }
+    for (const x of c) walk(x);
+  };
+  const features = (fc as FeatureCollection | null)?.features ?? [];
+  for (const f of features) {
+    const g = f.geometry as { coordinates?: unknown } | null;
+    walk(g?.coordinates);
+  }
+  return Number.isFinite(w)
+    ? [
+        [w, s],
+        [e, n],
+      ]
+    : null;
+}
 
 function levelColorExpression(property: string): maplibregl.ExpressionSpecification {
   return [
@@ -322,6 +444,8 @@ export function StationMap({
   locale,
   openLabel,
   statusLabels,
+  levelLabels,
+  timeLabels,
   stationHrefPrefix,
   className,
   compact,
@@ -333,6 +457,9 @@ export function StationMap({
   warningsUrl,
   warningsHref,
   warningsOpenLabel,
+  warningLabels,
+  fitWarnings,
+  uiStrings,
   boundaries,
   cities,
   selectedCity,
@@ -424,6 +551,7 @@ export function StationMap({
         // синхронно читает пиксели каждого кадра — сотни миллисекунд занятого потока.
         fadeDuration: 0,
         cooperativeGestures: compact,
+        ...(uiStrings ? { locale: uiStrings } : {}),
       });
     } catch (error) {
       // Нет WebGL2 (старые устройства, headless без GPU): страница должна жить без карты,
@@ -594,7 +722,7 @@ export function StationMap({
       const url = warningsRef.current;
       const existing = map.getSource("warnings") as maplibregl.GeoJSONSource | undefined;
       if (!url) {
-        for (const id of ["warnings-fill", "warnings-line"]) {
+        for (const id of WARNING_LAYERS) {
           if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "none");
         }
         syncDiagnostics();
@@ -602,27 +730,46 @@ export function StationMap({
       }
       if (existing) {
         existing.setData(url);
-        for (const id of ["warnings-fill", "warnings-line"]) {
+        for (const id of WARNING_LAYERS) {
           if (map.getLayer(id)) map.setLayoutProperty(id, "visibility", "visible");
         }
         syncDiagnostics();
         return;
       }
       map.addSource("warnings", { type: "geojson", data: url });
+      // Действующие — заметная заливка и сплошной контур; ожидаемые (начнутся в ближайшие сутки) —
+      // бледная заливка и пунктир.
+      const isActive: maplibregl.ExpressionSpecification = ["==", ["get", "active"], true];
       map.addLayer(
         {
           id: "warnings-fill",
           type: "fill",
           source: "warnings",
-          paint: { "fill-color": ["get", "color"], "fill-opacity": 0.28 },
+          paint: { "fill-color": ["get", "color"], "fill-opacity": ["case", isActive, 0.28, 0.1] },
         },
         beforeIdFor("warnings-fill"),
+      );
+      map.addLayer(
+        {
+          id: "warnings-line-upcoming",
+          type: "line",
+          source: "warnings",
+          filter: ["!", isActive],
+          paint: {
+            "line-color": ["get", "color"],
+            "line-width": 2,
+            "line-opacity": 0.9,
+            "line-dasharray": [2, 1.5],
+          },
+        },
+        beforeIdFor("warnings-line-upcoming"),
       );
       map.addLayer(
         {
           id: "warnings-line",
           type: "line",
           source: "warnings",
+          filter: isActive,
           paint: { "line-color": ["get", "color"], "line-width": 2, "line-opacity": 0.9 },
         },
         beforeIdFor("warnings-line"),
@@ -645,10 +792,15 @@ export function StationMap({
       const start = p.start ? periodFmt.format(new Date(String(p.start))) : "";
       const end = p.end ? periodFmt.format(new Date(String(p.end))) : "";
       const href = String(p.href ?? warningsHref ?? "/warnings");
+      // Уровень опасности словом и цифрой (не только цветом), ожидаемое — с пометкой.
+      const severity = String(p.severity ?? "Unknown");
+      const severityLabel = warningLabels?.severity[severity] ?? "";
+      const upcoming = p.active === false || p.active === "false";
       new maplibregl.Popup({ offset: 8, closeButton: false, maxWidth: "280px" })
         .setLngLat(e.lngLat)
         .setHTML(
-          `<div class="font-sans text-sm"><div class="flex items-center gap-1.5"><span class="inline-block size-2.5 rounded-full" style="background:${escapeHtml(String(p.color ?? "#999"))}"></span><span class="text-xs text-muted-foreground">${escapeHtml(String(p.event ?? ""))}</span></div>` +
+          `<div class="font-sans text-sm" data-popup="warning"><div class="flex items-center gap-1.5">${severityMarkHtml(Number(p.level ?? 0), severity)}<span class="text-xs font-medium">${escapeHtml(severityLabel)}</span>${upcoming && warningLabels ? `<span class="text-xs text-muted-foreground">· ${escapeHtml(warningLabels.upcoming)}</span>` : ""}</div>` +
+            `<div class="text-xs text-muted-foreground">${escapeHtml(String(p.event ?? ""))}</div>` +
             `<div class="font-semibold">${escapeHtml(String(p.headline ?? ""))}</div>` +
             `<div class="text-xs text-muted-foreground">${escapeHtml(start)}${end ? ` — ${escapeHtml(end)}` : ""}</div>` +
             `<a class="mt-1 inline-block text-xs font-medium underline" href="${escapeHtml(href)}">${escapeHtml(warningsOpenLabel ?? openLabel)}</a></div>`,
@@ -907,6 +1059,7 @@ export function StationMap({
 
     const addStations = () => {
       styleReadyRef.current = true;
+      ensureFaceImages(map);
       applyOverlay();
       applyWeather();
       applyWarnings();
@@ -967,6 +1120,18 @@ export function StationMap({
           },
         });
         map.addLayer({
+          id: "stations-cluster-faces",
+          type: "symbol",
+          source: "stations",
+          filter: ["has", "point_count"],
+          layout: {
+            "icon-image": faceImageExpression("worst"),
+            "icon-size": ["step", ["get", "point_count"], 1, 5, 1.2, 20, 1.5],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+          },
+        });
+        map.addLayer({
           id: "stations-points",
           type: "circle",
           source: "stations",
@@ -976,6 +1141,19 @@ export function StationMap({
             "circle-radius": ["interpolate", ["linear"], ["zoom"], 5, 8, 12, 11],
             "circle-stroke-width": 2.5,
             "circle-stroke-color": "#ffffff",
+          },
+        });
+        // «Лицо» уровня в круге станции: уровень различим без цвета (FR1.3, WCAG 1.4.1).
+        map.addLayer({
+          id: "stations-faces",
+          type: "symbol",
+          source: "stations",
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "icon-image": faceImageExpression("level"),
+            "icon-size": ["interpolate", ["linear"], ["zoom"], 5, 0.8, 12, 1.1],
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
           },
         });
       } else {
@@ -1025,6 +1203,19 @@ export function StationMap({
             "circle-opacity": ["case", ["==", ["get", "status"], "suspended"], 0.55, 1],
           },
         });
+        map.addLayer({
+          id: "stations-faces",
+          type: "symbol",
+          source: "stations",
+          filter: ["!", ["has", "point_count"]],
+          layout: {
+            "icon-image": faceImageExpression("level"),
+            "icon-size": 0.9,
+            "icon-allow-overlap": true,
+            "icon-ignore-placement": true,
+          },
+          paint: { "icon-opacity": ["case", ["==", ["get", "status"], "suspended"], 0.55, 1] },
+        });
       }
       applyStationsVisibility();
     };
@@ -1050,13 +1241,12 @@ export function StationMap({
       let html: string;
       if (typeof p.label === "string") {
         // Главная: уровень словом и цветом, значение и время уже подготовлены сервером.
-        const level = Number(p.level ?? 0) as keyof typeof AQ_LEVEL_STYLES;
-        const color = (AQ_LEVEL_STYLES[level] ?? AQ_LEVEL_STYLES[0]).color;
+        const level = Number(p.level ?? 0);
         const line = (v: unknown, cls: string) =>
           typeof v === "string" && v ? `<div class="${cls}">${escapeHtml(v)}</div>` : "";
         html =
           `<div class="font-sans text-sm" data-popup="station"><div class="font-semibold leading-snug">${escapeHtml(String(p.name ?? ""))}</div>` +
-          `<div class="mt-1 flex items-center gap-1.5"><span class="inline-block size-2.5 shrink-0 rounded-full" style="background:${escapeHtml(color)}"></span><span class="font-medium">${escapeHtml(p.label)}</span></div>` +
+          `<div class="mt-1 flex items-center gap-1.5">${faceSvgHtml(level)}<span class="font-medium">${escapeHtml(p.label)}</span></div>` +
           line(p.value, "num text-xs") +
           line(p.time, "text-xs text-muted-foreground") +
           `<a class="mt-1.5 inline-block text-xs font-semibold text-brand underline underline-offset-2" href="${escapeHtml(href)}">${escapeHtml(openLabel)}</a></div>`;
@@ -1064,9 +1254,27 @@ export function StationMap({
         const name = pick(parseJson(p.name) as Record<string, string>, locale);
         const region = pick(parseJson(p.region) as Record<string, string> | null, locale);
         const status = statusLabels[p.status as string] ?? String(p.status ?? "");
+        // Уровень (0 — нет свежих данных) и время последнего индекса — FR1.1: «последнее
+        // обновление» видно и на карте.
+        const level = Number(p.level ?? 0);
+        const levelLabel = levelLabels?.[level];
+        const indexTime = typeof p.indexTime === "string" ? new Date(p.indexTime) : null;
+        const timeText =
+          indexTime && timeLabels
+            ? (level > 0 ? timeLabels.updated : timeLabels.lastData).replace(
+                "{time}",
+                periodFmt.format(indexTime),
+              )
+            : "";
         html =
-          `<div class="font-sans text-sm"><div class="font-semibold">${escapeHtml(name)}</div>` +
+          `<div class="font-sans text-sm" data-popup="station"><div class="font-semibold">${escapeHtml(name)}</div>` +
           `<div class="text-xs text-muted-foreground">${escapeHtml(region)}${region ? " · " : ""}${escapeHtml(status)}</div>` +
+          (levelLabel
+            ? `<div class="mt-1 flex items-center gap-1.5">${faceSvgHtml(level)}<span class="font-medium">${escapeHtml(levelLabel)}</span></div>`
+            : "") +
+          (timeText
+            ? `<div class="text-xs text-muted-foreground">${escapeHtml(timeText)}</div>`
+            : "") +
           `<a class="mt-1 inline-block text-xs font-medium underline" href="${href}">${escapeHtml(openLabel)}</a></div>`;
       }
       stationPopup?.remove();
@@ -1140,6 +1348,34 @@ export function StationMap({
     if (!map || !applyWarningsRef.current) return;
     if (styleReadyRef.current) applyWarningsRef.current();
   }, [warningsUrl]);
+
+  // Ссылка /?layer=warnings: карта показывает области предупреждений целиком (один раз).
+  const fittedWarningsRef = useRef(false);
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !fitWarnings || !warningsUrl || fittedWarningsRef.current) return;
+    const ctrl = new AbortController();
+    fetch(warningsUrl, { signal: ctrl.signal })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((fc: unknown) => {
+        const box = geojsonBounds(fc);
+        if (!box) return;
+        fittedWarningsRef.current = true;
+        const wide = window.matchMedia("(min-width: 768px)").matches;
+        map.fitBounds(box, {
+          padding: {
+            top: wide ? 64 : 112,
+            bottom: (wide ? 0 : (insetBottom ?? 0)) + 40,
+            left: (wide ? (insetLeft ?? 0) : 0) + 40,
+            right: 40,
+          },
+          maxZoom: 9,
+          duration: 0,
+        });
+      })
+      .catch(() => {});
+    return () => ctrl.abort();
+  }, [fitWarnings, warningsUrl, insetBottom, insetLeft]);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: поля boundaries — триггеры; объект читается из boundariesRef
   useEffect(() => {

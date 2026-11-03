@@ -12,6 +12,7 @@ import { and, count, eq, inArray, sql } from "drizzle-orm";
 import { createDb } from "./client";
 import { loadRootEnv, requireEnv } from "./env";
 import * as s from "./schema";
+import { groupAdviceRows } from "./seed-data/health-advice-groups";
 
 loadRootEnv();
 const db = createDb(requireEnv("DATABASE_URL"), { max: 1 });
@@ -493,7 +494,7 @@ await db
   .onConflictDoNothing();
 
 // ---------------------------------------------------------------------------
-// 4. Медицинские рекомендации (черновик, общее население) — на согласование D7
+// 4. Медицинские рекомендации (черновик: общее население и уязвимые группы) — на согласование D7
 // ---------------------------------------------------------------------------
 const advice: Array<{ level: number; title: I18nText; text: I18nText }> = [
   {
@@ -626,6 +627,27 @@ await db
     })),
   ])
   .onConflictDoNothing();
+
+// Уязвимые группы (FR1.6) — один раз на базу: метка в settings, чтобы seed при выкатке не
+// возвращал тексты, которые администратор потом очистил в /admin/health-advice.
+const GROUP_ADVICE_KEY = "seed.health_advice_groups";
+const groupAdviceSeeded = await db
+  .select({ key: s.settings.key })
+  .from(s.settings)
+  .where(eq(s.settings.key, GROUP_ADVICE_KEY));
+if (groupAdviceSeeded.length === 0) {
+  await db
+    .insert(s.healthAdvice)
+    .values([
+      ...groupAdviceRows(sid("NATIONAL_OPERATIONAL"), advice.length),
+      ...groupAdviceRows(sid("US_AQI"), usAqiAdvice.length),
+    ])
+    .onConflictDoNothing();
+  await db
+    .insert(s.settings)
+    .values({ key: GROUP_ADVICE_KEY, value: { version: 1, at: new Date().toISOString() } })
+    .onConflictDoNothing();
+}
 
 // ---------------------------------------------------------------------------
 // 5. Регионы (геометрия загружается отдельно, см. infra/data)
@@ -815,6 +837,46 @@ await db.execute(sql`
   select code, name, geom from regions
   on conflict (code) do nothing
 `);
+
+// ---------------------------------------------------------------------------
+// Словарь событий CAP: типы явлений SmartMet Alert для Таджикистана (eventTypes в
+// infra/smartmet/alert/capmap-config.js) с переводами из файлов FMI translations-{tg,ru,en}-TJ.js.
+// Заполняются только отсутствующие или пустые записи (пустую создаёт cap-sync для нового события) —
+// правки администратора в /admin/cap/events не затираются. Таджикские названия — проверить (D10).
+// ---------------------------------------------------------------------------
+const capEvents: Array<[string, I18nText]> = [
+  ["Rain", t("Борон", "Дождь", "Rain")],
+  ["Snow", t("Барф", "Снег", "Snow")],
+  ["Mixed precipitation", t("Боришоти омехта", "Смешанные осадки", "Mixed precipitation")],
+  ["Thunderstorm", t("Раъду барқ", "Гроза", "Thunderstorm")],
+  ["Wind", t("Шамол", "Ветер", "Wind")],
+  ["Flood", t("Обхезӣ", "Паводок", "Flood")],
+  ["River overflow", t("Обхезиҳои маҳаллӣ", "Локальные наводнения", "River overflow")],
+  ["Mudflow", t("Сел", "Сель", "Mudflow")],
+  ["Avalanche", t("Тарма", "Лавина", "Avalanche")],
+  ["Landslide", t("Ярч", "Оползень", "Landslide")],
+  [
+    "Glacier lake outburst",
+    t("Кандашавии кӯлҳои пирях", "Прорыв ледникового озера", "Glacier lake outburst"),
+  ],
+  ["High temperature", t("Ҳарорати баланд", "Высокая температура", "High temperature")],
+  ["Heat wave", t("Мавҷи гармо", "Тепловая волна", "Heat wave")],
+  ["Low temperature", t("Ҳарорати паст", "Низкая температура", "Low temperature")],
+  ["Frost", t("Сармо", "Заморозки", "Frost")],
+  ["Icing on roads", t("Яхбандӣ дар роҳҳо", "Гололёд на дорогах", "Icing on roads")],
+  ["Fog", t("Туман", "Туман", "Fog")],
+  ["Visibility", t("Аёният", "Видимость", "Visibility")],
+  ["UV radiation", t("Афканишоти ултрабунафш", "УФ-излучение", "UV radiation")],
+  ["Air quality", t("Сифати ҳаво", "Качество воздуха", "Air quality")],
+];
+await db
+  .insert(s.capEventTranslations)
+  .values(capEvents.map(([event, name]) => ({ event, name })))
+  .onConflictDoUpdate({
+    target: s.capEventTranslations.event,
+    set: { name: sql`excluded.name` },
+    setWhere: sql`${s.capEventTranslations.name} = '{}'::jsonb`,
+  });
 
 // ---------------------------------------------------------------------------
 // Рубрики новостей

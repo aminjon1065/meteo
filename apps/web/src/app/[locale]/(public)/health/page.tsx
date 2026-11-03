@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 const AUDIENCES = ["general", "children", "pregnant", "elderly", "respiratory", "cardio"] as const;
@@ -21,7 +22,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "health" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/health",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 /** Здоровье: рекомендации по уровням — секция на уровень с лёгкой заливкой его цвета. */
@@ -29,17 +35,20 @@ export default async function HealthPage({ params }: { params: Promise<{ locale:
   const { locale } = (await params) as { locale: Locale };
   setRequestLocale(locale);
   const db = getDb();
-  const [t, tl, scale] = await Promise.all([
+  const [t, tl, publicScale] = await Promise.all([
     getTranslations("health"),
     getTranslations("levels"),
-    db.query.indexScales.findFirst({ where: eq(indexScales.isDefaultPublic, true) }) ??
-      db
-        .select()
-        .from(indexScales)
-        .orderBy(asc(indexScales.sortOrder))
-        .limit(1)
-        .then((r) => r[0]),
+    db.query.indexScales.findFirst({ where: eq(indexScales.isDefaultPublic, true) }),
   ]);
+  // Запрос — всегда объект (thenable), поэтому запасной вариант только после await.
+  const scale =
+    publicScale ??
+    (await db
+      .select()
+      .from(indexScales)
+      .orderBy(asc(indexScales.sortOrder))
+      .limit(1)
+      .then((r) => r[0]));
   const entries = scale
     ? await db.select().from(healthAdvice).where(eq(healthAdvice.scaleId, scale.id))
     : [];

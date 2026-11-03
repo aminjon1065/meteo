@@ -1,8 +1,9 @@
 import { and, eq, lte, ne } from "@meteo/db";
-import { forecastLocations, newsPosts, stations } from "@meteo/db/schema";
-import { type Locale, locales, localeTags } from "@meteo/i18n";
+import { ecoBulletins, forecastLocations, newsPosts, stations } from "@meteo/db/schema";
+import { locales } from "@meteo/i18n";
 import type { MetadataRoute } from "next";
 import { getDb } from "@/lib/db";
+import { absoluteUrl, languageAlternates } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -22,13 +23,7 @@ const STATIC_PATHS = [
   "/subscribe",
 ];
 
-function href(base: string, locale: Locale, path: string): string {
-  const prefix = locale === "tg" ? "" : `/${locale}`;
-  return `${base}${prefix}${path === "/" && prefix ? "" : path}`;
-}
-
 function entry(
-  base: string,
   path: string,
   opts: {
     lastModified?: Date;
@@ -36,9 +31,10 @@ function entry(
     priority?: number;
   } = {},
 ): MetadataRoute.Sitemap {
-  const languages = Object.fromEntries(locales.map((l) => [localeTags[l], href(base, l, path)]));
+  // hreflang те же, что в заголовке Link и <link rel="alternate"> (lib/seo.ts), плюс x-default.
+  const languages = languageAlternates(path);
   return locales.map((l) => ({
-    url: href(base, l, path),
+    url: absoluteUrl(l, path),
     lastModified: opts.lastModified,
     changeFrequency: opts.changeFrequency,
     priority: opts.priority,
@@ -46,13 +42,15 @@ function entry(
   }));
 }
 
-/** sitemap.xml: статические разделы на трёх языках (hreflang), станции, города прогноза, новости. */
+/**
+ * sitemap.xml: статические разделы на трёх языках (hreflang + x-default), станции, города прогноза,
+ * новости, экобюллетени. Адрес сайта — из окружения (siteUrl), поэтому файл не пререндерится.
+ */
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const base = (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const out: MetadataRoute.Sitemap = [];
   for (const path of STATIC_PATHS) {
     out.push(
-      ...entry(base, path, {
+      ...entry(path, {
         changeFrequency: path === "/" || path === "/warnings" ? "hourly" : "daily",
         priority: path === "/" ? 1 : 0.7,
       }),
@@ -60,7 +58,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   }
   try {
     const db = getDb();
-    const [stationRows, locationRows, news] = await Promise.all([
+    const [stationRows, locationRows, news, bulletins] = await Promise.all([
       db
         .select({ slug: stations.slug, updatedAt: stations.updatedAt })
         .from(stations)
@@ -73,10 +71,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         .select({ slug: newsPosts.slug, updatedAt: newsPosts.updatedAt })
         .from(newsPosts)
         .where(and(eq(newsPosts.status, "published"), lte(newsPosts.publishedAt, new Date()))),
+      db
+        .select({ id: ecoBulletins.id, publishedAt: ecoBulletins.publishedAt })
+        .from(ecoBulletins)
+        .innerJoin(stations, eq(stations.id, ecoBulletins.stationId))
+        .where(and(eq(ecoBulletins.status, "published"), eq(stations.isPublic, true))),
     ]);
     for (const s of stationRows)
       out.push(
-        ...entry(base, `/air/stations/${s.slug}`, {
+        ...entry(`/air/stations/${s.slug}`, {
           lastModified: s.updatedAt,
           changeFrequency: "hourly",
           priority: 0.8,
@@ -84,7 +87,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       );
     for (const l of locationRows)
       out.push(
-        ...entry(base, `/weather/${l.slug}`, {
+        ...entry(`/weather/${l.slug}`, {
           lastModified: l.updatedAt,
           changeFrequency: "hourly",
           priority: 0.8,
@@ -92,10 +95,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       );
     for (const n of news)
       out.push(
-        ...entry(base, `/news/${n.slug}`, {
+        ...entry(`/news/${n.slug}`, {
           lastModified: n.updatedAt,
           changeFrequency: "monthly",
           priority: 0.5,
+        }),
+      );
+    for (const b of bulletins)
+      out.push(
+        ...entry(`/air/bulletins/${b.id}`, {
+          lastModified: b.publishedAt ?? undefined,
+          changeFrequency: "yearly",
+          priority: 0.4,
         }),
       );
   } catch {

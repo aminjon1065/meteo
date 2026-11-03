@@ -17,6 +17,8 @@ export const permissions = [
   "measurements.read",
   "measurements.write",
   "measurements.qc",
+  /** Правила автоматического QC (диапазоны, выбросы) — настройка, только администратор. */
+  "qcRules.write",
   "scales.write",
   "healthAdvice.write",
   "alerts.manage",

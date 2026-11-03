@@ -10,6 +10,15 @@ test("/warnings: матрица регион × день и карточка д�
   await expect(page.getByRole("heading", { name: t("ru", "warnings.activeNow") })).toBeVisible();
   await expect(page.getByText(E2E.capHeadline.ru).first()).toBeVisible();
   await expect(page.getByText(t("ru", "warnings.severity.Severe")).first()).toBeVisible();
+  // Уровень в матрице — цифрой и цветом (не только цветом): «Высокая» — 3. Подпись — в aria-label.
+  const cell = page.getByRole("link", {
+    name: new RegExp(`^Город Душанбе, .*: ${t("ru", "warnings.severity.Severe")}$`),
+  });
+  await expect(cell.first()).toHaveText("3");
+  // Раздел ведёт на карту: главная с ?layer=warnings показывает области предупреждений.
+  await expect(page.getByTestId("warnings-on-map")).toHaveAttribute("href", "/ru?layer=warnings");
+  // Лента CAP в E2E не настроена — пометки «данные устарели» нет.
+  await expect(page.getByTestId("warnings-stale")).toHaveCount(0);
   // Фильтр по региону Душанбе оставляет предупреждение на месте.
   await page.getByRole("link", { name: "Город Душанбе" }).first().click();
   await expect(page).toHaveURL(/region=DU/);

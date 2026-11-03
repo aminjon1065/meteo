@@ -25,6 +25,8 @@ const schema = z.object({
   SMARTMET_API_KEY: z.string().optional(),
   SMARTMET_HOURLY_STEPS: z.coerce.number().int().positive().default(72),
   SMARTMET_DAILY_DAYS: z.coerce.number().int().positive().default(10),
+  /** Прогон модели старше стольких часов — «застрял» (письмо администраторам, пометка в админке). */
+  SMARTMET_MAX_RUN_AGE_H: z.coerce.number().positive().default(18),
   /** THREDDS NCSS SILAM: базовый URL сервиса grid и путь датасета. */
   SILAM_NCSS_URL: z.string().url().default("https://thredds.silam.fmi.fi/thredds/ncss/grid/"),
   SILAM_DATASET: z.string().default("silam_glob_v6_1_sfc/silam_glob_v6_1_sfc_best.ncd"),

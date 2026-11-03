@@ -146,6 +146,36 @@ export function renderEmail(
         text,
       };
     }
+    case "modelStale": {
+      const kind = payload.kind === "fresh" ? "fresh" : "stale";
+      const vars = {
+        origin:
+          typeof payload.origin === "string" && !Number.isNaN(Date.parse(payload.origin))
+            ? new Date(payload.origin).toLocaleString(locale === "en" ? "en-GB" : "ru-RU", {
+                timeZone: "UTC",
+                dateStyle: "medium",
+                timeStyle: "short",
+              })
+            : "—",
+        hours: String(payload.maxHours ?? ""),
+        producer: String(payload.producer ?? "gfs"),
+      };
+      const subject = t(locale, `modelStale.${kind}Subject`, vars);
+      const lines = [
+        t(locale, `modelStale.${kind}Body`, vars),
+        kind === "stale" ? t(locale, "modelStale.howTo", vars) : "",
+      ].filter(Boolean);
+      const dashboardUrl = String(payload.dashboardUrl ?? "");
+      const body = `${lines.map((l) => `<p>${escapeHtml(l)}</p>`).join("")}${
+        dashboardUrl ? button(dashboardUrl, t(locale, "integration.button")) : ""
+      }`;
+      const text = `${lines.join("\n\n")}${dashboardUrl ? `\n\n${dashboardUrl}` : ""}`;
+      return {
+        subject,
+        html: layout(locale, subject, body, escapeHtml(t(locale, "common.sentBy"))),
+        text,
+      };
+    }
     case "ecoBulletinDraft": {
       const lang = locale === "tg" ? "tg" : "ru";
       const date = String(payload.date ?? "");

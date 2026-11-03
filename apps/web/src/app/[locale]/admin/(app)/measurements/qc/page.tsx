@@ -45,7 +45,9 @@ export default async function QcQueuePage({
       .orderBy(asc(stations.code)),
   ]);
   const stationId = Number(sp.station) || 0;
-  const flag = sp.flag === "3" ? 3 : sp.flag === "2" ? 2 : 0;
+  // По умолчанию — очередь подозрительных и недостоверных; «1» — значения, прошедшие проверку:
+  // оператор может исправить и их (с сохранением исходного значения и записью в аудит).
+  const flag = sp.flag === "3" ? 3 : sp.flag === "2" ? 2 : sp.flag === "1" ? 1 : 0;
   const showLocked = sp.locked === "1";
   const page = Math.max(1, Number(sp.page) || 1);
   const conditions = [
@@ -109,7 +111,9 @@ export default async function QcQueuePage({
     <>
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">{t("title")}</h1>
-        <p className="text-muted-foreground">{t("subtitle", { count: total })}</p>
+        <p className="text-muted-foreground">
+          {flag === 1 ? t("subtitleValid", { count: total }) : t("subtitle", { count: total })}
+        </p>
       </div>
       <form
         method="get"
@@ -140,6 +144,7 @@ export default async function QcQueuePage({
             <NativeSelectOption value="">{t("filters.suspectAndInvalid")}</NativeSelectOption>
             <NativeSelectOption value="2">{tm("qc.2")}</NativeSelectOption>
             <NativeSelectOption value="3">{tm("qc.3")}</NativeSelectOption>
+            <NativeSelectOption value="1">{t("filters.validToCorrect")}</NativeSelectOption>
           </NativeSelect>
         </div>
         <div className="flex flex-col gap-1">

@@ -155,6 +155,12 @@ export default async function CapAlertDetailPage({
               </dd>
             </div>
           ) : null}
+          {alert.withdrawnAt ? (
+            <div>
+              <dt className="text-xs text-muted-foreground">{t("withdrawnAt")}</dt>
+              <dd>{dt(alert.withdrawnAt)}</dd>
+            </div>
+          ) : null}
           {alert.note ? (
             <div className="sm:col-span-2 lg:col-span-3">
               <dt className="text-xs text-muted-foreground">{t("fields.note")}</dt>

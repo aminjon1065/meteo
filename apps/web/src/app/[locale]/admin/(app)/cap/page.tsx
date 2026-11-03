@@ -70,6 +70,7 @@ export default async function CapAlertsPage({
   function stateOf(row: (typeof list.rows)[number]) {
     if (publishedIds.has(row.id)) return { label: t("published"), variant: "default" as const };
     if (row.supersededBy !== null) return { label: t("superseded"), variant: "secondary" as const };
+    if (row.withdrawnAt !== null) return { label: t("withdrawn"), variant: "secondary" as const };
     if (row.status !== "Actual" || (row.msgType !== "Alert" && row.msgType !== "Update"))
       return { label: t("notPublished"), variant: "outline" as const };
     if (row.expires && row.expires <= now)

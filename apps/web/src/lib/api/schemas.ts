@@ -54,7 +54,13 @@ export const StationsResponseSchema = z
   .describe("Public monitoring stations as GeoJSON FeatureCollection");
 
 export const measurementsQuery = z.object({
-  range: z.enum(["24h", "7d", "30d", "1y"]).default("24h"),
+  range: z.enum(["24h", "7d", "30d", "1y", "all"]).default("24h"),
+  agg: z
+    .enum(["hour", "day", "month", "raw"])
+    .optional()
+    .describe(
+      "Aggregation: 24h — hour; 7d — hour|day; 30d — day|hour; 1y — day|month; all — month|day. raw — every value with its QC flag (CSV only, up to 30d)",
+    ),
   pollutant: z
     .string()
     .optional()
@@ -65,10 +71,12 @@ export const measurementsQuery = z.object({
 export const MeasurementsResponseSchema = z
   .object({
     station: z.object({ id: z.int(), slug: z.string(), code: z.string(), name: I18nTextSchema }),
-    range: z.enum(["24h", "7d", "30d", "1y"]),
+    range: z.enum(["24h", "7d", "30d", "1y", "all"]),
     from: isoDateTime,
     to: isoDateTime,
-    aggregation: z.enum(["hour", "day"]).describe("hour for 24h/7d, day (local time) for 30d/1y"),
+    aggregation: z
+      .enum(["hour", "day", "month"])
+      .describe("hour, or day/month by local time (Asia/Dushanbe)"),
     timezone: z.literal("Asia/Dushanbe"),
     series: z.array(
       z.object({
@@ -85,17 +93,26 @@ export const MeasurementsResponseSchema = z
         }),
         points: z.array(
           z.object({
-            t: isoDateTime.describe("Start of the hour/day"),
-            v: z.number().nullable().describe("Mean of valid measurements, in `unit`"),
+            t: isoDateTime.describe("Start of the hour/day/month"),
+            v: z
+              .number()
+              .nullable()
+              .describe("Mean of valid (QC 1) and corrected (QC 4) measurements, in `unit`"),
             min: z.number().nullable(),
             max: z.number().nullable(),
-            n: z.int().describe("Number of measurements in the bin"),
+            n: z.int().describe("Number of measurements in the mean"),
+            corrected: z.int().describe("Of them corrected by an operator (QC 4)"),
+            excluded: z.int().describe("Suspect, invalid or unchecked values left out of the mean"),
+            excludedFlag: z
+              .int()
+              .nullable()
+              .describe("Worst flag among excluded values: 3 invalid, 2 suspect, 0 unchecked"),
           }),
         ),
       }),
     ),
   })
-  .describe("Hourly or daily series of valid measurements for a station");
+  .describe("Hourly, daily or monthly series of valid measurements for a station");
 
 export const indexQuery = z.object({
   scale: z
@@ -237,6 +254,9 @@ export const ForecastResponseSchema = z
     producer: z.string().nullable().describe("SmartMet producer, e.g. ecmwf"),
     originTime: nullableIso.describe("Model run time"),
     fetchedAt: nullableIso,
+    stale: z
+      .boolean()
+      .describe("No successful SmartMet sync for more than 3 hours: show the data as outdated"),
     timeZone: z.literal("Asia/Dushanbe"),
     hourly: z.array(z.object({ time: isoDateTime, ...forecastParams })),
     daily: z.array(
@@ -252,6 +272,25 @@ export const ForecastResponseSchema = z
     ),
   })
   .describe("SmartMet weather forecast for a location: hourly series and daily aggregates");
+
+export const ForecastLocationsResponseSchema = z
+  .object({
+    locations: z.array(
+      z.object({
+        slug: z.string().describe("Use in /api/v1/forecast/{slug} and /embed/forecast?location="),
+        name: I18nTextSchema,
+        lat: z.number(),
+        lon: z.number(),
+        kind: z
+          .enum(["city", "district", "station"])
+          .describe("station — a point next to a monitoring station far from cities"),
+        region: I18nTextSchema.nullable(),
+        regionCode: z.string().nullable(),
+        featured: z.boolean().describe("Major city (shown first on the portal)"),
+      }),
+    ),
+  })
+  .describe("Active SmartMet forecast locations");
 
 export const SilamPointResponseSchema = z
   .object({

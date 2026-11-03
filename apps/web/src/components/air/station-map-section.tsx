@@ -19,7 +19,11 @@ export async function StationMapSection({
   /** Контуры областей и районов (FR6.3); по умолчанию включены. */
   boundaries?: boolean;
 }) {
-  const [tm, ts] = await Promise.all([getTranslations("map"), getTranslations("stations")]);
+  const [tm, ts, tl] = await Promise.all([
+    getTranslations("map"),
+    getTranslations("stations"),
+    getTranslations("levels"),
+  ]);
   const localePrefix = locale === "tg" ? "" : `/${locale}`;
   const prefix = `${localePrefix}/air/stations`;
   return (
@@ -42,6 +46,11 @@ export async function StationMapSection({
         active: ts("status.active"),
         suspended: ts("status.suspended"),
         decommissioned: ts("status.decommissioned"),
+      }}
+      levelLabels={Object.fromEntries(([0, 1, 2, 3, 4, 5, 6] as const).map((l) => [l, tl(`${l}`)]))}
+      timeLabels={{
+        updated: tm("card.updated", { time: "{time}" }),
+        lastData: tm("card.lastData", { time: "{time}" }),
       }}
       stationHrefPrefix={prefix}
       ariaLabel={`${tm("title")}: ${tm("stations")}`}

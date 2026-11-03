@@ -11,6 +11,8 @@ import {
 import {
   type CapAreaRow,
   type CapWarning,
+  getCapSyncState,
+  getIntegrationState,
   type LoadWarningsOptions,
   loadCapEventDictionary,
   loadWarnings,
@@ -146,4 +148,39 @@ export async function loadWarningsForPoint(
       .map((w) => localizeWarning(w, locale, dict))
       .filter((w): w is LocalizedWarning => !!w),
   );
+}
+
+/** Допустимый возраст последней синхронизации CAP (задача cap-sync — каждые 5 мин), как в админке. */
+const CAP_MAX_AGE_MS = 30 * 60_000;
+
+export interface WarningsFreshness {
+  /**
+   * Сведения о предупреждениях могут быть неполными: последняя синхронизация с ошибкой или
+   * давно. Тогда «предупреждений нет» нельзя показывать как отбой — только с оговоркой.
+   */
+  stale: boolean;
+  /** Последняя успешная синхронизация (null — не было). */
+  lastSuccessAt: Date | null;
+}
+
+/**
+ * Свежесть ленты CAP для публичных страниц (только чтение состояния, которое пишет cap-sync).
+ * Источник не настроен (CAP_FEED_URL пуст, синхронизаций не было) — не «устарело»: показывать
+ * нечего, и это не сбой. Ошибка чтения состояния — тоже не «устарело», чтобы не пугать зря.
+ */
+export async function loadWarningsFreshness(now = new Date()): Promise<WarningsFreshness> {
+  try {
+    const db = getDb();
+    const [cap, state] = await Promise.all([getCapSyncState(db), getIntegrationState(db, "cap")]);
+    const disabled = cap?.status === "disabled" || (!cap && !state.lastRunAt);
+    const okAt =
+      cap?.at && cap.status !== "failed" && cap.status !== "disabled" ? new Date(cap.at) : null;
+    const lastSuccessAt = okAt ?? (state.lastSuccessAt ? new Date(state.lastSuccessAt) : null);
+    if (disabled) return { stale: false, lastSuccessAt };
+    const at = cap?.at ? new Date(cap.at) : null;
+    const stale = !at || cap?.status === "failed" || now.getTime() - at.getTime() > CAP_MAX_AGE_MS;
+    return { stale, lastSuccessAt };
+  } catch {
+    return { stale: false, lastSuccessAt: null };
+  }
 }

@@ -1,6 +1,6 @@
 import { type BulletinLang, type EcoDocKind, isEcoDocKind } from "@meteo/core";
 import { getEcoBulletinSettings, getPublishedEcoBulletin } from "@meteo/db";
-import { type Locale, locales, localeTags } from "@meteo/i18n";
+import type { Locale } from "@meteo/i18n";
 import { buttonVariants } from "@meteo/ui/components/button";
 import { ArrowLeftIcon, DownloadIcon } from "lucide-react";
 import type { Metadata } from "next";
@@ -11,18 +11,15 @@ import { EcoDocPreview } from "@/components/eco-bulletins/eco-doc-preview";
 import { EcoDocSwitcher } from "@/components/eco-bulletins/eco-doc-switcher";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
-import { ecoBulletinTitle, ecoDocument } from "@/lib/eco-bulletin";
+import { ecoBulletinPageTitle, ecoDocument } from "@/lib/eco-bulletin";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
 function docLang(locale: Locale, raw: string | undefined): BulletinLang {
   if (raw === "tg" || raw === "ru") return raw;
   return locale === "tg" ? "tg" : "ru";
-}
-
-function localizedHref(locale: string, path: string): string {
-  return `${locale === "tg" ? "" : `/${locale}`}${path}`;
 }
 
 export async function generateMetadata({
@@ -35,21 +32,12 @@ export async function generateMetadata({
   const row = await getPublishedEcoBulletin(getDb(), Number(id)).catch(() => null);
   if (!row) return {};
   const t = await getTranslations({ locale, namespace: "ecoBulletin" });
-  const title = ecoBulletinTitle(row.data, docLang(locale, undefined));
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  return {
-    title,
+  return pageMetadata({
+    locale,
+    path: `/air/bulletins/${row.id}`,
+    title: ecoBulletinPageTitle(row.data, locale),
     description: t("public.intro"),
-    alternates: {
-      canonical: `${base}${localizedHref(locale, `/air/bulletins/${row.id}`)}`,
-      languages: Object.fromEntries(
-        locales.map((l) => [
-          localeTags[l],
-          `${base}${localizedHref(l, `/air/bulletins/${row.id}`)}`,
-        ]),
-      ),
-    },
-  };
+  });
 }
 
 export default async function EcoBulletinPublicPage({

@@ -16,6 +16,10 @@
  *   DOCS_INGEST_STATION код станции для демо‑приёма по API и снимков раздела 4.3 руководства (DU-01)
  *   DOCS_STEPS          только перечисленные шаги, например DOCS_STEPS=map,qc (список — в коде); действует
  *                       и для prepare (import, users, ingest); снимки входа и 2FA — шаг login
+ *   DOCS_PUBLIC_ONLY=1  только публичные страницы, без входа в админку (например, с https://staging.havo.tj)
+ *   DOCS_STATION        адрес станции для снимков страницы станции и виджета (по умолчанию — первая
+ *                       станция с актуальным индексом из /api/v1/stations)
+ *   DOCS_IMG_DIR        куда писать снимки (по умолчанию docs/manuals/img)
  *
  * Если у администратора 2FA ещё не включена, скрипт проходит мастер включения (как E2E) и сохраняет
  * ключ в DOCS_STATE_DIR/totp.secret. Ключ и резервные коды на снимках размываются.
@@ -50,11 +54,13 @@ const cfg = {
   email: process.env.DOCS_ADMIN_EMAIL ?? process.env.SEED_ADMIN_EMAIL ?? "admin@meteo.tj",
   password: process.env.DOCS_ADMIN_PASSWORD ?? process.env.SEED_ADMIN_PASSWORD ?? "",
   stateDir: process.env.DOCS_STATE_DIR ?? resolve(tmpdir(), "meteo-docs-screenshots"),
-  imgDir: resolve(here, "img"),
+  imgDir: process.env.DOCS_IMG_DIR ? resolve(process.env.DOCS_IMG_DIR) : resolve(here, "img"),
+  publicOnly: process.env.DOCS_PUBLIC_ONLY === "1",
+  station: process.env.DOCS_STATION ?? "",
   demoCsv: process.env.DOCS_DEMO_CSV ?? "",
   ingestStation: process.env.DOCS_INGEST_STATION ?? "DU-01",
 };
-if (!cfg.password) {
+if (!cfg.password && !cfg.publicOnly) {
   console.error("Не задан пароль администратора (DOCS_ADMIN_PASSWORD или SEED_ADMIN_PASSWORD).");
   process.exit(1);
 }
@@ -624,6 +630,21 @@ async function captureAdmin(browser) {
     }
   });
 
+  await step("qc-rules", async () => {
+    await page.goto(url("/admin/qc-rules"));
+    await shot(page, "admin-qc-rules");
+  });
+
+  await step("eco-bulletins", async () => {
+    await page.goto(url("/admin/eco-bulletins"));
+    await shot(page, "admin-eco-bulletins");
+    const href = await firstHref(page, /\/admin\/eco-bulletins\/\d+$/);
+    if (href) {
+      await page.goto(`${cfg.baseUrl}${href}`);
+      await shot(page, "admin-eco-bulletin");
+    }
+  });
+
   await step("audit", async () => {
     await page.goto(url("/admin/audit"));
     await shot(page, "admin-audit");
@@ -744,6 +765,16 @@ async function waitCanvas(page, selector) {
   await sleep(1500);
 }
 
+/** Станция для снимков: DOCS_STATION или первая с актуальным индексом (уровень ≥ 1). */
+async function pickStation() {
+  if (cfg.station) return cfg.station;
+  const res = await fetch(`${cfg.baseUrl}/api/v1/stations`);
+  const { features = [] } = res.ok ? await res.json() : {};
+  const withData = features.find((f) => (f.properties?.level ?? 0) >= 1) ?? features[0];
+  if (!withData) throw new Error("на портале нет станций");
+  return withData.properties.slug;
+}
+
 async function capturePublic(browser) {
   const context = await browser.newContext({
     viewport: { width: 1280, height: 800 },
@@ -754,10 +785,22 @@ async function capturePublic(browser) {
   });
   const page = await context.newPage();
 
+  const stationSlug = await pickStation();
+
   await step("home", async () => {
     await page.goto(url("/"));
+    await waitCanvas(page, "[data-deferred='map']");
     await shot(page, "user-home");
-    await shot(page, "user-home-full", { fullPage: true });
+  });
+
+  await step("basemap", async () => {
+    await page.goto(url("/"));
+    await waitCanvas(page, "[data-deferred='map']");
+    await page.getByTestId("basemap-picker").click();
+    await page.getByRole("menuitemradio").first().waitFor();
+    await sleep(500);
+    await shot(page, "user-basemap");
+    await page.keyboard.press("Escape");
   });
 
   await step("language", async () => {
@@ -776,7 +819,7 @@ async function capturePublic(browser) {
   });
 
   await step("station", async () => {
-    await page.goto(url("/air/stations/dushanbe-post-no-1"));
+    await page.goto(url(`/air/stations/${stationSlug}`));
     await waitCanvas(page, "[data-deferred='chart']");
     await shot(page, "user-station", { fullPage: true });
     const chart = page.locator("[data-deferred='chart']").first();
@@ -807,6 +850,33 @@ async function capturePublic(browser) {
       await sleep(2500);
     }
     await shot(page, "user-map");
+  });
+
+  await step("map-weather", async () => {
+    await page.goto(url("/?layer=weather"));
+    await waitCanvas(page, "[data-deferred='map']");
+    await sleep(3000);
+    await shot(page, "user-map-weather");
+  });
+
+  await step("silam", async () => {
+    await page.goto(url("/air/silam"));
+    await page
+      .locator("img")
+      .filter({ hasNot: page.locator("header img") })
+      .last()
+      .waitFor({ timeout: 30_000 })
+      .catch(() => {});
+    await sleep(2000);
+    await shot(page, "user-silam");
+  });
+
+  await step("bulletins", async () => {
+    await page.goto(url("/air/bulletins"));
+    const href = await firstHref(page, /\/air\/bulletins\/\d+$/);
+    if (!href) throw new Error("нет опубликованных экобюллетеней");
+    await page.goto(`${cfg.baseUrl}${href}`);
+    await shot(page, "user-eco-bulletin");
   });
 
   await step("weather", async () => {
@@ -851,7 +921,7 @@ async function capturePublic(browser) {
 
   await step("embed", async () => {
     await page.setViewportSize({ width: 420, height: 300 });
-    await page.goto(url("/embed/aqi?station=dushanbe-post-no-1"));
+    await page.goto(url(`/embed/aqi?station=${stationSlug}`));
     await shot(page, "user-embed-aqi");
     await page.goto(url("/embed/forecast?location=dushanbe"));
     await shot(page, "user-embed-forecast");
@@ -875,7 +945,7 @@ try {
   if (mode === "prepare") {
     await prepare(browser);
   } else {
-    await captureAdmin(browser);
+    if (!cfg.publicOnly) await captureAdmin(browser);
     await capturePublic(browser);
   }
 } finally {

@@ -11,7 +11,7 @@ import {
 } from "./rate-limit";
 
 export interface RateLimitGroup {
-  name: "api" | "auth" | "ingest" | "subscribe";
+  name: "api" | "auth" | "ingest" | "subscribe" | "tiles";
   rule: RateLimitRule;
 }
 
@@ -31,9 +31,18 @@ function perMinute(name: string, fallback: number): number {
  *  - /api/v1/*   — публичный JSON API (RATE_LIMIT_API_PER_MINUTE, по умолчанию 120);
  *  - /api/auth/* — better-auth (RATE_LIMIT_AUTH_PER_MINUTE, по умолчанию 30; внутри better-auth
  *                  действуют свои лимиты на вход и проверку кода 2FA — 5/мин).
+ *  - /wms/*, /silam-fmi/* — тайлы и кадры, которые портал запрашивает у SmartMet и FMI
+ *                  (RATE_LIMIT_TILES_PER_MINUTE, по умолчанию 1200). Proxy эти пути не видит (в них
+ *                  точка — .png), поэтому лимит проверяют сами маршруты: limitRouteRequest.
  * Значение 0 выключает ограничение (нагрузочные проверки).
  */
 export function rateLimitGroupFor(pathname: string): RateLimitGroup | null {
+  if (pathname.startsWith("/wms/") || pathname.startsWith("/silam-fmi/")) {
+    return {
+      name: "tiles",
+      rule: { limit: perMinute("RATE_LIMIT_TILES_PER_MINUTE", 1200), windowMs: WINDOW_MS },
+    };
+  }
   if (pathname.startsWith("/api/v1/ingest/")) {
     return {
       name: "ingest",
@@ -131,4 +140,13 @@ export async function enforceRateLimit(
   const response = NextResponse.next();
   for (const [key, value] of Object.entries(headers)) response.headers.set(key, value);
   return response;
+}
+
+/**
+ * Лимит для маршрутов‑обработчиков (вне proxy): 429 с no-store или null, если запрос можно выполнять.
+ * Тайлы, отданные из кэша Cloudflare, сюда не доходят — считаются только промахи кэша.
+ */
+export async function limitRouteRequest(request: NextRequest): Promise<NextResponse | null> {
+  const limited = await enforceRateLimit(request);
+  return limited.status === 429 ? limited : null;
 }

@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PageHeader } from "@/components/site/page-header";
 import { SubscribeForm } from "@/components/subscribe/subscribe-form";
 import { getDb } from "@/lib/db";
+import { pageMetadata } from "@/lib/seo";
 import { subscribe } from "./actions";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "subscribe" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/subscribe",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 export default async function SubscribePage({

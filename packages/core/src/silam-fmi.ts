@@ -51,9 +51,18 @@ export function fmiSilamProduct(code: string): (typeof FMI_SILAM_PRODUCTS)[numbe
   return FMI_SILAM_PRODUCTS.find((p) => p.code === code);
 }
 
-/** Начало прогона по времени выпуска файлов: 00 UTC суток, предшествующих дню выпуска (UTC). */
+/**
+ * Выпуск до этого часа UTC — прогон предыдущих суток, позже — прогон того же дня. Обычно FMI
+ * выкладывает карты около 02:03 UTC с прогоном от 00 UTC вчера (28.10 и 31.10.2026), но 01.11.2026
+ * карты вышли в 06:03 UTC с прогоном от 00 UTC того же дня — первый кадр «01Nov2026 hour: 00Z».
+ * Других сведений о прогоне FMI не публикует (ни в именах файлов, ни на страницах).
+ */
+const FMI_SAME_DAY_AFTER_HOUR_UTC = 4;
+
+/** Начало прогона (00 UTC) по времени выпуска файлов (Last-Modified). */
 export function fmiSilamOrigin(issued: Date): Date {
-  return new Date(Date.UTC(issued.getUTCFullYear(), issued.getUTCMonth(), issued.getUTCDate() - 1));
+  const shifted = new Date(issued.getTime() - FMI_SAME_DAY_AFTER_HOUR_UTC * HOUR_MS);
+  return new Date(Date.UTC(shifted.getUTCFullYear(), shifted.getUTCMonth(), shifted.getUTCDate()));
 }
 
 /** Идентификатор прогона в адресах портала: YYYYMMDD начала (00 UTC). */

@@ -1,9 +1,13 @@
 import { isLocale, type Locale } from "@meteo/i18n";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
-import { SeverityDot } from "@/components/warnings/severity-badge";
+import { SeverityMark } from "@/components/warnings/severity-badge";
 import { redirect } from "@/i18n/navigation";
 import { name } from "@/lib/format";
-import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
+import {
+  type LocalizedWarning,
+  loadLocalizedWarnings,
+  loadWarningsFreshness,
+} from "@/lib/warnings";
 
 export const dynamic = "force-dynamic";
 
@@ -34,9 +38,12 @@ export default async function EmbedAlertsPage({
   ]);
   const limit = Math.min(10, Math.max(1, Number(sp.limit) || 5));
   const region = sp.region?.trim().toUpperCase() || undefined;
-  const list = await loadLocalizedWarnings(locale, { horizonDays: 3, regionCode: region }).catch(
-    () => [] as LocalizedWarning[],
-  );
+  const [list, freshness] = await Promise.all([
+    loadLocalizedWarnings(locale, { horizonDays: 3, regionCode: region }).catch(
+      () => [] as LocalizedWarning[],
+    ),
+    loadWarningsFreshness(),
+  ]);
   const base = `${process.env.NEXT_PUBLIC_APP_URL ?? ""}${locale === "tg" ? "" : `/${locale}`}`;
   const dt = (d: Date) =>
     format.dateTime(d, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
@@ -49,13 +56,20 @@ export default async function EmbedAlertsPage({
           {list.length > 0 ? t("mapCount", { count: list.filter((w) => w.active).length }) : ""}
         </span>
       </div>
+      {freshness.stale ? (
+        <p className="text-xs text-muted-foreground" data-testid="warnings-stale">
+          {freshness.lastSuccessAt
+            ? t("freshnessNote", { time: dt(freshness.lastSuccessAt) })
+            : t("freshnessNoteNever")}
+        </p>
+      ) : null}
       {list.length === 0 ? (
         <p className="text-muted-foreground">{t("none")}</p>
       ) : (
         <ul className="flex flex-col divide-y">
           {list.slice(0, limit).map((w) => (
             <li key={w.id} className="flex gap-2 py-2 first:pt-0 last:pb-0">
-              <SeverityDot severity={w.severity} className="mt-1" />
+              <SeverityMark severity={w.severity} className="mt-0.5" />
               <div className="flex min-w-0 flex-col">
                 <span className="font-medium">{w.headline}</span>
                 <span className="text-xs text-muted-foreground tabular-nums">

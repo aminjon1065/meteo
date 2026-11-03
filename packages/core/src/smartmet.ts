@@ -291,3 +291,20 @@ export function nightVariant(symbol: number | null, localHour: number): number |
   const night = localHour < 6 || localHour >= 19;
   return night ? symbol + 100 : symbol;
 }
+
+/**
+ * Допустимый возраст прогона модели (часы): GFS загружается 4 раза в сутки, два пропуска подряд
+ * (≈ 12 ч) ещё бывают, 18 ч — уже сбой загрузки. Синхронизация при этом может проходить успешно:
+ * SmartMet продолжает отдавать старый прогон.
+ */
+export const SMARTMET_MAX_RUN_AGE_HOURS = 18;
+
+/** Прогон модели устарел (originTime старше maxHours); неизвестное время — не считается устаревшим. */
+export function isModelRunStale(
+  originTime: Date | null | undefined,
+  now: Date,
+  maxHours: number = SMARTMET_MAX_RUN_AGE_HOURS,
+): boolean {
+  if (!originTime) return false;
+  return now.getTime() - originTime.getTime() > maxHours * 3_600_000;
+}

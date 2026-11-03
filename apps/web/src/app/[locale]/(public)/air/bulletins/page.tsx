@@ -8,6 +8,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 30;
@@ -19,7 +20,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "ecoBulletin" });
-  return { title: t("public.title"), description: t("public.intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/air/bulletins",
+    title: t("public.title"),
+    description: t("public.intro"),
+  });
 }
 
 function fileLinks(row: EcoBulletinRow, lang: "tg" | "ru"): Array<{ ext: string; href: string }> {

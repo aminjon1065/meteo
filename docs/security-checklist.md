@@ -2,7 +2,7 @@
 
 Статус на 19.10.2026 (неделя 8 плана, hardening; дополнено по итогам независимого ревью перед
 деплоем — `docs/review-2026-10.md`). Основание — `docs/02-architecture.md` §10.
-Обозначения: ✅ выполнено и проверено, 🔶 выполнено частично / зависит от среды Заказчика, ⬜ не делалось.
+Обозначения: ✅ выполнено и проверено, 🔶 выполнено частично / зависит от среды (сервер `havo.tj`), ⬜ не делалось.
 
 ## 1. Транспорт и заголовки
 
@@ -58,7 +58,7 @@
 | 5.2 | Роль БД без DDL для приложения | ⬜ | сейчас web/worker/migrate используют одну роль `meteo` (владелец). Разделение ролей — после выдачи сервера (runbook, раздел «Ротация секретов», п. «роль приложения») |
 | 5.3 | Секреты только в `.env` на сервере, не в репозитории | ✅ | `.gitignore`, `.env.example`; CI использует собственные значения; ротация описана в `docs/runbook.md`. Контейнеры получают только переменные, перечисленные в `compose.prod.yml` (`${VAR:-}`); пустое значение приложения считают незаданным |
 | 5.5 | Учётные данные источников станций (SFTP/FTP/HTTP) | ✅ | AES‑256‑GCM (`STATION_SOURCES_KEY`, один ключ у web и worker) или ссылка `env:ИМЯ`; клиенту отдаётся только признак наличия; worker отклоняет адреса loopback/link‑local/`.internal` и, в Docker, подсети своих интерфейсов (сервисы compose) — по написанию и после DNS; HTTP‑перенаправления проверяются на каждом шаге, `Authorization` на другой origin не уходит (`apps/worker/src/station-pull/{target,http-fetch}.ts`, 24.10.2026) |
-| 5.4 | Резервные копии: pg_dump + restic (шифрование репозитория), ежедневно, 30 дневных + 12 месячных, тест восстановления | ✅ | `infra/backup/run.sh`, образ `infra/backup/Dockerfile`, `infra/backup/restore-test.sh` (прогнан локально 17.10.2026 — см. runbook); офсайт-репозиторий — после выдачи хранилища Заказчиком |
+| 5.4 | Резервные копии: pg_dump + restic (шифрование репозитория), ежедневно, 30 дневных + 12 месячных, тест восстановления | ✅ | `infra/backup/run.sh`, образ `infra/backup/Dockerfile`, `infra/backup/restore-test.sh` (прогнан локально 17.10.2026 — см. runbook); офсайт-репозиторий — проверить `RESTIC_REPOSITORY`/`RESTIC_PASSWORD` в `/opt/meteo/production/.env` (runbook §3.1); проверка восстановления на staging — runbook §3.2 |
 
 ## 6. Поставка и среда выполнения
 
@@ -67,7 +67,7 @@
 | 6.1 | `pnpm audit --prod --audit-level=high` в CI | ✅ | job `security` в `.github/workflows/ci.yml`. 17.10.2026: nodemailer обновлён 7.0 → 10.1 (5 high / 7 moderate advisories закрыты), CLI `shadcn` перенесён в devDependencies (неисправимый `braces` вне production). Остаток: 2 moderate/low advisories `esbuild` через необязательные peer-зависимости better-auth (`drizzle-kit`, `vitest`) — dev-сервер esbuild не используется в продакшене, в образы не попадают (`pnpm deploy --prod --no-optional`) |
 | 6.2 | Trivy: файловая система (lockfile, Dockerfile/compose misconfig, секреты) и образы web/worker/backup (HIGH/CRITICAL с исправлением) | ✅ | job `security` и `docker` в CI; образы сканируются до публикации в GHCR |
 | 6.3 | Pinned-версии, политика pnpm `minimumReleaseAge` 24 ч | ✅ | `pnpm-workspace.yaml`, lockfile |
-| 6.4 | Dependabot | ⬜ | включить после переноса репозитория в GitHub Заказчика (`.github/dependabot.yml`, еженедельно, группировка minor/patch) |
+| 6.4 | Dependabot | ⬜ | не включён; вместо него еженедельный `.github/workflows/security-weekly.yml` (`pnpm audit`, Trivy fs — блокирующие; Trivy сторонних образов FMI, caddy, timescale, redis — отчёт). Dependabot (`.github/dependabot.yml`, еженедельно, группировка minor/patch) — по решению исполнителя, репозиторий остаётся у исполнителя |
 | 6.5 | Образы non-root | ✅ | web/worker/backup — пользователь `app`/`backup`; redis — `user: 999:1000`; postgres — пользователь образа |
 | 6.6 | Read-only root FS, `cap_drop: ALL`, `no-new-privileges`, лимиты памяти/PID, ротация логов | ✅ | `infra/compose/compose.prod.yml`: web (tmpfs `/tmp`, `.next/cache`), worker, migrate, redis, backup — read-only; Caddy — read-only + `NET_BIND_SERVICE`; postgres — без read-only (сокеты/статистика), с `no-new-privileges`. Проверка: `docker compose … config` |
 | 6.7 | Секреты в CI | ✅ | `GITHUB_TOKEN` для GHCR; пароли E2E — тестовые значения в workflow; выкатка — `DEPLOY_SSH_KEY` в окружениях GitHub `staging`/`production` (у production — обязательное одобрение), ключ на сервере открывает только принудительную команду `meteo-deploy <окружение>` (без shell и проброса портов); `.env` окружений — только на сервере (`docs/runbook.md` §13) |
@@ -78,7 +78,7 @@
 - Логи JSON (pino) → Docker json-file с ротацией 5×10 МБ.
 - Рекомендуется (после выдачи сервера): Uptime Kuma на `/api/healthz`, уведомление о `backup.result != ok` из `last-backup.json`.
 
-## 8. Что проверить при приёмке на сервере Заказчика
+## 8. Что проверить при приёмке (production `havo.tj`)
 
 1. `curl -I https://<домен>/` — HSTS, CSP с nonce, `X-Frame-Options: DENY`; `curl -I https://<домен>/embed/aqi` — `frame-ancestors` c meteo.tj.
 2. `curl -s -o /dev/null -w '%{http_code}' https://<домен>/api/v1/stations` ×130 за минуту → последние ответы 429.

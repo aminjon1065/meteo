@@ -1,5 +1,6 @@
 import { FMI_SILAM_FOLDERS, fmiSilamFolder, parseFmiSilamFramePath } from "@meteo/core/silam-fmi";
 import { type NextRequest, NextResponse } from "next/server";
+import { limitRouteRequest } from "@/lib/security/limits";
 import { loadFmiSilamCatalog, loadFmiSilamFrame } from "@/lib/silam-fmi";
 
 export const dynamic = "force-dynamic";
@@ -15,7 +16,9 @@ function noStore(status: number, error: string) {
  * строится из них же. Кадр прогона не меняется, поэтому ответ кэшируется браузером и Cloudflare,
  * а у FMI каждый кадр скачивается один раз.
  */
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+  const limited = await limitRouteRequest(req);
+  if (limited) return limited;
   const { path } = await ctx.params;
   const frame = parseFmiSilamFramePath(path);
   if (!frame) return noStore(404, "not found");

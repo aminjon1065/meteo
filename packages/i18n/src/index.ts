@@ -12,7 +12,7 @@ export const localeNames: Record<Locale, string> = {
   en: "English",
 };
 
-/** BCP‑47 теги для <html lang> и hreflang. */
+/** BCP‑47 теги для <html lang> и JSON-LD. hreflang — короткие коды языков (apps/web/src/lib/seo.ts). */
 export const localeTags: Record<Locale, string> = {
   tg: "tg-Cyrl-TJ",
   ru: "ru",
@@ -48,3 +48,32 @@ export function pick(text: I18nText | null | undefined, locale: Locale): string 
 export function missingLocales(text: I18nText | null | undefined): Locale[] {
   return locales.filter((l) => !text?.[l]?.trim());
 }
+
+/**
+ * Тексты аварийной страницы (app/global-error.tsx): она заменяет корневой лейаут целиком, словари
+ * next-intl там недоступны, а подключать сообщения целиком в клиентский бандл ради неё не стоит.
+ * Смысл совпадает с ключами errorPage.* в messages.
+ */
+export const criticalErrorText: Record<
+  Locale,
+  { title: string; description: string; retry: string }
+> = {
+  tg: {
+    title: "Хатогӣ рух дод",
+    description:
+      "Саҳифа бор нашуд: хатои муваққатӣ дар сервер. Пас аз як дақиқа аз нав кӯшиш кунед.",
+    retry: "Аз нав кӯшиш кардан",
+  },
+  ru: {
+    title: "Что-то пошло не так",
+    description:
+      "Страница не загрузилась: временная ошибка на сервере. Попробуйте ещё раз через минуту.",
+    retry: "Повторить",
+  },
+  en: {
+    title: "Something went wrong",
+    description:
+      "The page failed to load because of a temporary server error. Please try again in a minute.",
+    retry: "Try again",
+  },
+};

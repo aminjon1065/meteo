@@ -138,5 +138,22 @@ test.describe("публичный API", () => {
     expect(csv.headers()["content-type"]).toContain("text/csv");
     const text = await csv.text();
     expect(text.split("\n").length).toBeGreaterThan(10);
+    // FR1.4: время UTC и местное, единицы, флаг качества.
+    expect(text.split("\r\n")[0]).toContain("time_utc,time_local");
+    expect(text.split("\r\n")[0]).toContain("unit");
+    expect(text.split("\r\n")[0]).toContain("qc_flag");
+    const raw = await request.get(
+      `/api/v1/stations/${E2E.station.slug}/measurements?range=7d&agg=raw&format=csv`,
+    );
+    expect(raw.ok()).toBeTruthy();
+    expect((await raw.text()).split("\r\n")[0]).toContain("averaging_min,qc_flag");
+    const month = await request.get(
+      `/api/v1/stations/${E2E.station.slug}/measurements?range=1y&agg=month`,
+    );
+    expect(((await month.json()) as { aggregation: string }).aggregation).toBe("month");
+    const bad = await request.get(
+      `/api/v1/stations/${E2E.station.slug}/measurements?range=24h&agg=month`,
+    );
+    expect(bad.status()).toBe(400);
   });
 });

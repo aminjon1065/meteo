@@ -1,12 +1,12 @@
 # Meteoportal User Guide
 
-Version 1.0 · 17 October 2026 · Languages: [Тоҷикӣ](tg.md) · [Русский](ru.md) · **English**
+Version 1.1 · 2 November 2026 · Languages: [Тоҷикӣ](tg.md) · [Русский](ru.md) · **English**
 
 Meteoportal is the official website of the Agency for Hydrometeorology of the Republic of Tajikistan on air quality and weather: measurements of the monitoring station network, the air‑quality index, weather and air‑quality forecasts, severe‑weather warnings, health advice and news. This guide covers the public part of the portal; staff work in the administration panel is described in the [Administrator guide](../admin/en.md).
 
 ## 1. Overview
 
-- **Address**: `https://<portal domain>` (for example `https://portal.meteo.tj`). The portal works on desktops, tablets and phones; no registration is needed.
+- **Address**: `https://<portal domain>` (for example `https://havo.tj`). The portal works on desktops, tablets and phones; no registration is needed.
 - **Languages**: Tajik (primary, addresses without a prefix — `/air`), Russian (`/ru/air`) and English (`/en/air`). The language switch is in the top‑right corner (globe icon).
 - **Theme**: light or dark (moon/sun icon next to the language; on a phone — in the ☰ menu).
 - **Sections** are in the ☰ menu on the left of the header (as on data.meteo.uz): MeteoAlert (SmartMet) — warnings, SmartMet (forecast) — weather, SmartMet (SILAM) — air‑quality forecast, Air monitoring, Map, News, Health, Open data · API, About; below them — "About the index", "Eco-bulletins", "Email alerts". The menu also holds the language, theme and project credits. Every page except the home page has a footer with the same links and contacts.
@@ -28,6 +28,8 @@ The portal shows an **operational five‑level index**: for each pollutant the l
 | 5 · Very poor | purple | Very high pollution: stay indoors if possible, close the windows |
 | No data | grey | No measurements or they are stale (older than 6 hours) |
 
+The level is always shown three ways: colour, word and a face icon — from a smile (1) to crossed-out eyes (5), a dash for no data. So the level can be told apart without colour vision and on a black-and-white printout.
+
 Only measurements that passed the Agency's quality control are used. If the latest measurement is older than 6 hours, the portal honestly shows "no data" instead of an outdated number.
 
 Pollutants: PM2.5 and PM10 particles, nitrogen dioxide NO₂, sulphur dioxide SO₂, carbon monoxide CO, ozone O₃; the Dushanbe automatic station and the posts also report nitric oxide NO, formaldehyde CH₂O, phenol, hydrogen fluoride HF, suspended particulates (dust), carbon dioxide CO₂ (ppm) and total volatile organic compounds (TVOC, ppb). The display unit is chosen by the Agency: µg/m³ (CO — mg/m³) or mg/m³ as in the daily bulletins; the unit is always shown next to the value, and the API and CSV carry it in the `unit` field.
@@ -45,7 +47,10 @@ The home page is a full‑screen map of Tajikistan (modelled on data.meteo.uz); 
 - **Air quality · Weather** — what to show: air‑monitoring stations or the weather in cities. Only one is shown at a time so that markers do not overlap.
 - **Now · Forecast** — current data or a forecast with a time slider (the switch appears once a forecast is loaded).
 
-Below the switches (at the bottom of the screen on a phone) is the card of the city selected in the header. In "Air quality" mode it shows the air‑quality level as a word and a colour, the dominant pollutant, the update time and the level scale, which is also the legend of the map colours; in "Weather" mode — the weather symbol, temperature, the day's maximum and minimum and a link to the detailed forecast. When you pick another city the card changes and the map flies to it. If severe‑weather warnings are in force, a chip with their number appears above the map — it leads to the "Warnings" section, and the warning areas are shaded on the map. All other sections are in the ☰ menu.
+Below the switches (at the bottom of the screen on a phone) is the card of the city selected in the header. In "Air quality" mode it shows the air‑quality level as a word and a colour, the dominant pollutant, the update time and the level scale, which is also the legend of the map colours; in "Weather" mode — the weather symbol, temperature, the day's maximum and minimum and a link to the detailed forecast. When you pick another city the card changes and the map flies to it. Chips above the map:
+
+- **Warnings** — the number of severe-weather warnings in force and of those starting within 24 hours ("1 active warning · 1 more expected"); with no warnings the chip says "No warnings". If warning data has not been updated for a while, the chip says it may be out of date. The chip leads to the "Warnings" section, and the warning areas are shaded on the map.
+- **Threshold exceedances** (orange, when present) — e.g. "PM10 above the threshold at 1 station"; leads to the exceedance list in the "Air monitoring" section. All other sections are in the ☰ menu.
 
 ## 4. Stations and charts
 
@@ -62,22 +67,24 @@ Station page (`/air/stations/<station slug>`):
 - **Weather — GFS forecast** — weather maps from the Agency's SmartMet Server: air temperature, precipitation, wind (speed in colour and direction arrows) or cloud cover — pick the parameter in the drop‑down. The slider and the "‹ ›" buttons step through the forecast every 3 hours for 5 days, then every 6 hours up to 10 days; "▶" starts the animation. Below the slider are the value scale and the GFS run time. One forecast layer is shown at a time: turning on the weather turns off SILAM and vice versa.
 - **SILAM forecast** — model air‑quality forecast for the station coordinates for today, tomorrow and the day after (daily mean level by the worst pollutant).
 - **Ratio to limit values (Agency method)** — a table like the daily bulletins: the daily mean concentration and its ratio to the daily MPC, the maximum single value of the day and its ratio to the single MPC for every pollutant; below it the NO₂+SO₂ summation (sum of the daily-MPC ratios when the station measures both) and a note on high (≥ 10 single MPCs) and extremely high (≥ 50) pollution cases. Ratios ≥ 1 are highlighted. Calculated from valid measurements of the last 24 hours.
-- **Advice** — what to do at the current level (general population); the full version by group is in the "Health" section.
+- **Advice** — what to do at the current level: for the general population and (the expandable "For vulnerable groups" block) for children, pregnant and breastfeeding women, elderly people, people with chronic respiratory and heart diseases; the link leads to this level in the "Health" section.
 - **Get exceedance alerts for this station** — link to the subscription.
 - **Measurement history** — chart with period and pollutant selection (section 4.1).
 - **Station passport** — code, type, coordinates, elevation, commissioning date, sampling mode, data source.
 
 ### 4.1. Chart
 
-- Periods: **24 hours** and **7 days** — hourly means; **30 days** and **Year** — daily means in local time.
+- **Period**: 24 hours, 7 days, 30 days, Year or **All time** (up to 10 years).
+- **Averaging**: "Hourly", "Daily" or "Monthly" — days and months follow local time. Each period offers suitable options: 24 hours — hourly; 7 and 30 days — hourly or daily; Year — daily or monthly; All time — monthly or daily.
 - The pollutant is chosen from the drop‑down next to the periods.
 - Coloured bands in the background are the scale levels for the selected pollutant: it is immediately visible which level a value falls into.
-- Hover (or tap on a phone) a point to see the time and value; on long periods also the daily minimum and maximum.
+- Hover (or tap on a phone) a point to see the time and value; with daily and monthly averaging also the minimum and maximum. With many points a zoom slider appears under the chart.
+- The **Data table** under the chart (expand it with a click) gives the same data as text, for screen readers and copying.
 - Only valid and corrected measurements are shown; gaps mean missing data, not zero pollution.
 
 ## 5. CSV download
 
-The **"Download CSV"** button above the chart saves the data of the selected period and pollutant (all station pollutants if none is selected) to a file for Excel, LibreOffice or analysis.
+The **"Download CSV"** button above the chart saves the means of the selected period, averaging and pollutant (all station pollutants if none is selected) to a file for Excel, LibreOffice or analysis.
 
 File format: UTF‑8 with BOM (Excel opens it without configuration), comma separator, columns:
 
@@ -86,14 +93,18 @@ File format: UTF‑8 with BOM (Excel opens it without configuration), comma sepa
 | `time_utc` | interval start in UTC (ISO 8601) |
 | `time_local` | the same in Dushanbe time (`YYYY-MM-DD HH:MM`) |
 | `station` | station code |
-| `pollutant` | pollutant code (`PM25`, `PM10`, `NO2`, `SO2`, `CO`, `O3`) |
-| `value` | interval mean in the pollutant unit |
-| `unit` | unit (`µg/m³` or `mg/m³`) |
-| `aggregation` | `hour` — hourly mean, `day` — daily |
-| `samples` | number of measurements in the interval |
+| `pollutant` | pollutant code (`PM25`, `PM10`, `NO2`, `SO2`, `CO`, `O3`, `NO`, `CH2O`, `C6H5OH`, `HF`, `TSP`, `CO2`, `TVOC`) |
+| `value` | interval mean in the portal display unit (from valid and corrected values) |
+| `unit` | unit (`µg/m³` or `mg/m³`; `ppm` for CO₂, `ppb` for VOC) — as chosen by the Agency in the settings |
+| `aggregation` | `hour` — hourly mean, `day` — daily, `month` — monthly |
+| `samples` | number of measurements included in the mean |
 | `min`, `max` | minimum and maximum in the interval |
+| `qc_flag` | point quality: `valid` — all values passed quality control, `corrected` — some were corrected by an operator; if there are no valid values — the worst flag of the excluded ones (`suspect`, `invalid`, `raw`) or `missing` |
+| `excluded` | how many values in the interval were excluded by quality control |
 
-The same file is available at `…/api/v1/stations/<slug>/measurements?range=7d&pollutant=PM25&format=csv` (see section 13). Request historical data for periods longer than a year from the Agency.
+The **"Original values with quality flags (CSV)"** link exports every measurement without averaging (up to 30 days): `time_utc`, `time_local`, `station`, `pollutant`, `value`, `unit`, `averaging_min` (instrument averaging period, min) and `qc_flag` per value.
+
+The same file is available at `…/api/v1/stations/<slug>/measurements?range=7d&agg=day&pollutant=PM25&format=csv`, original values — `…&agg=raw&format=csv` (see section 13).
 
 ## 6. Map
 
@@ -115,9 +126,18 @@ The map is the portal's home page (`/`; the old address `/map` leads there too).
 
 **Map type** — a button with a map thumbnail (bottom left on a computer, top right under the location button on a phone): "Map" (a regular colour map: vegetation, water, roads), "Grey" (the same map without colour, so station and forecast colours stand out most), "Terrain" (hill shading from the Copernicus digital elevation model) and "Satellite" (a cloud‑free Sentinel‑2 image for 2021). The choice is remembered in the browser. All base maps are built from open data and stored on the portal's server.
 
-The outlines of the regions, Dushanbe and the RRP are always shown, and dashed district boundaries appear when zoomed in. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. Active warnings are polygons coloured by danger level; click a polygon to read its headline and validity period.
+The outlines of the regions, Dushanbe and the RRP are always shown, and dashed district boundaries appear when zoomed in. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. Active warnings are polygons coloured by danger level; warnings starting within 24 hours have a pale fill and a dashed outline. A legend of danger levels with digits 1–4 appears next to the chip. Click a polygon to read the level (digit and word), headline and validity period. The link `/?layer=warnings` zooms the map straight to the warning areas. Station markers and station-group circles carry the level face icon (the worst level for a group).
 
 If the browser does not support WebGL (very old computers, hardware acceleration disabled), a message is shown instead of the map — use the station list.
+
+### 6.1. FMI maps "SmartMet (SILAM)"
+
+The "SmartMet (SILAM)" section (`/air/silam`, in the ☰ menu) shows ready-made air pollution forecast maps for Tajikistan and neighbouring countries, computed every day by the Finnish Meteorological Institute (FMI) with the SILAM model under the FINTAJ project. The portal shows them unchanged.
+
+- **Parameter** — buttons above the map: air quality index AQI (the worst of the pollutant levels), PM2.5, PM10, NO₂, O₃, CO, SO₂ and boundary layer height (ABL — the lower it is, the more pollution accumulates near the ground).
+- **Time** — mouse wheel over the map (down for later, up for earlier) or hover over the hour strip; on a phone, swipe the map left or right; on a keyboard, use the arrow keys. "Animate" plays all 48 hours.
+- The 48-hour forecast usually starts at 00 UTC of the previous day, and new maps appear at about 07:00 Dushanbe time; when FMI publishes later, the run starts at 00 UTC of the same day — the portal accounts for this. The map gives the time in UTC ("06Z" = 11:00 in Dushanbe), the portal shows local time above it. If FMI has not updated the maps for a while, the portal says so and shows the latest run.
+- Below the map — explanations, the FMI index thresholds table and links to the SILAM layer on the portal map and to station measurements. The model shows background pollution on a grid of tens of kilometres; the official assessment is based on station data.
 
 ## 7. Weather
 
@@ -145,8 +165,10 @@ The "Warnings" section (`/warnings`) — the Agency's severe‑weather warnings 
 ![Figure 9. Warnings: active now, upcoming, table by region and day](../img/user-warnings.png)
 
 - **Active now** and **Upcoming** — cards with headline, danger level, validity period, area, description and instructions; the "CAP XML" button opens the source message.
-- **By region and day** — a table: rows — regions (Dushanbe, RRP, Sughd, Khatlon, GBAO), columns — the coming days; the cell colour is the maximum danger level. A region link filters the list.
-- Danger levels: yellow — minor, orange — moderate, red — severe and extreme.
+- **By region and day** — a table: rows — regions (Dushanbe, RRP, Sughd, Khatlon, GBAO), columns — the coming days; a cell holds a circle with the digit of the maximum danger level. A region link filters the list.
+- Danger levels are shown by colour and digit: 1 — minor (yellow), 2 — moderate (orange), 3 — severe and 4 — extreme (red).
+- The "Show on the map" link opens the home map zoomed to the warning areas.
+- If data from the warning editor has not arrived for a while, a note at the top of the section says the list may be incomplete.
 - An updated warning replaces the previous one, a cancelled one disappears; expired warnings are not shown.
 
 Active warnings are also visible on the home page map, on the weather pages of the affected area and in the widget.
@@ -162,6 +184,10 @@ The "Health" section (`/health`) — advice for each index level for different g
 The "News" section (`/news`) — Agency publications with categories, pinned ("Important") items and pagination. RSS feed: `/api/v1/news/rss.xml?locale=en` (the "RSS feed" link in the section). The "Get the newsletter by e‑mail" link leads to the subscription.
 
 ![Figure 11. "News" section](../img/user-news.png)
+
+### 10.1. Eco-bulletins
+
+The "Eco-bulletins" section (`/air/bulletins`, in the ☰ menu and the footer) is the archive of the Agency's daily ecological bulletins on air pollution in the cities of the republic for the previous day. Open the bulletin for the date you need: the document is shown right on the page. The switches above it choose the document type ("City bulletin", "Cities summary", "Form 4a") and the language (Tajik or Russian — the documents are issued in these two languages). The DOCX and PDF buttons download the document, HTML opens a printable version. Each published bulletin also appears in "News".
 
 ## 11. E‑mail alerts subscription
 
@@ -183,7 +209,7 @@ Ready‑made blocks for embedding on meteo.tj and other websites via `<iframe>` 
 | Widget | Address | Parameters |
 |---|---|---|
 | Station index | `<portal>/embed/aqi?station=<slug>&lang=tg` | `station` — station slug from the station list (without it — the first station with data); `lang` — `tg`, `ru`, `en` |
-| Weather forecast | `<portal>/embed/forecast?location=dushanbe&lang=ru` | `location` — forecast point slug (`dushanbe`, `khujand`, `bokhtar`, `kulob`, `khorugh`, …) |
+| Weather forecast | `<portal>/embed/forecast?location=dushanbe&lang=ru` | `location` — forecast point slug (`dushanbe`, `khujand`, `bokhtar`, `kulob`, `khorugh`, …; full list — `/api/v1/forecast`). If the forecast has not been updated for a while, the widget shows an "outdated" note |
 | Warnings | `<portal>/embed/alerts?region=DU&lang=en&limit=5` | `region` — region code (`DU`, `RRP`, `SU`, `KT`, `GB`), without it — the whole country; `limit` — number of messages |
 
 ![Figure 13. Index widget](../img/user-embed-aqi.png)
@@ -195,7 +221,7 @@ Ready‑made blocks for embedding on meteo.tj and other websites via `<iframe>` 
 Example code (a ready line is available on a city page in "Weather" and in "Open data"):
 
 ```html
-<iframe src="https://portal.meteo.tj/en/embed/forecast?location=dushanbe"
+<iframe src="https://havo.tj/en/embed/forecast?location=dushanbe"
         width="320" height="260" style="border:0" loading="lazy"
         title="Weather in Dushanbe"></iframe>
 ```
@@ -226,10 +252,11 @@ Essentials:
 | Endpoint | Purpose | Parameters | Cache |
 |---|---|---|---|
 | `GET /api/v1/stations` | public stations (GeoJSON) with the current index level | — | 60 s |
-| `GET /api/v1/stations/{slug}/measurements` | station measurement series | `range` = `24h` (default) / `7d` / `30d` / `1y`; `pollutant` = pollutant code (all if omitted); `format` = `json` / `csv` | 60 s |
-| `GET /api/v1/index/current` | current index of all stations | `scale` = `NATIONAL_OPERATIONAL` (default) / `WHO_24H` / `IZA` | 60 s |
+| `GET /api/v1/stations/{slug}/measurements` | station measurement series | `range` = `24h` (default) / `7d` / `30d` / `1y` / `all` (up to 10 years); `agg` = `hour` / `day` / `month` (allowed combinations as in section 4.1) or `raw` — original values with quality flag (CSV only, up to 30 days); `pollutant` = pollutant code (all if omitted); `format` = `json` / `csv` | 60 s |
+| `GET /api/v1/index/current` | current index of all stations | `scale` = `NATIONAL_OPERATIONAL` (default) / `WHO_24H` / `RATIO_TO_LIMIT` / `US_AQI` / `IZA` | 60 s |
 | `GET /api/v1/exceedances` | active threshold exceedances | — | 60 s |
-| `GET /api/v1/forecast/{slug}` | weather forecast for a point | `hours` 1–240 (72), `days` 1–16 (10) | 300 s |
+| `GET /api/v1/forecast` | list of forecast points: slug, names in three languages, coordinates, kind (`city`, `district`, `station`), region | — | 600 s |
+| `GET /api/v1/forecast/{slug}` | weather forecast for a point; `stale: true` — the forecast has not been updated for a while | `hours` 1–240 (72), `days` 1–16 (10) | 300 s |
 | `GET /api/v1/silam/{slug}` | SILAM point air‑quality forecast | — | 600 s |
 | `GET /api/v1/silam/layers` | catalogue of raster layers of the latest SILAM run | — | 600 s |
 | `GET /api/v1/alerts` | CAP warnings | `active=1` — only active; `region` = `DU` / `RRP` / `SU` / `KT` / `GB`; `lang` = `tg` / `ru` / `en`; `days` 1–14 (7); `format` = `json` / `geojson` | 60 s |
@@ -363,7 +390,7 @@ Warnings — `GET /api/v1/alerts?active=1&lang=en`:
       "active": true, "upcoming": false,
       "regions": [ { "code": "DU", "name": { "en": "Dushanbe city" } } ],
       "areas": [ "Dushanbe and the Districts of Republican Subordination" ],
-      "xml": "https://portal.meteo.tj/api/v1/alerts/16/xml"
+      "xml": "https://havo.tj/api/v1/alerts/16/xml"
     }
   ]
 }
@@ -381,7 +408,7 @@ News — `GET /api/v1/news?locale=en&pageSize=1`:
       "excerpt": "Air quality, forecast and warnings in one place.",
       "publishedAt": "2026-10-16T09:47:58.056Z", "pinned": true,
       "category": { "slug": "news", "name": "News" }, "cover": null,
-      "url": "https://portal.meteo.tj/en/news/portal-launch-week6"
+      "url": "https://havo.tj/en/news/portal-launch-week6"
     }
   ]
 }
@@ -408,7 +435,7 @@ SILAM layers — `GET /api/v1/silam/layers` returns the raster bounds and, for e
 - Use `format=csv` for tables and analysis; for charts use JSON with `range=7d` (hourly) or `1y` (daily).
 - `stale: true` or `level: 0` means no current data — do not show such values as zero pollution.
 - SILAM forecasts update once a day, weather every 15 minutes, warnings every 5 minutes; do not poll the API more often.
-- Take station and forecast‑point slugs from `/api/v1/stations` and from the "Weather" section (city addresses).
+- Take station codes from `/api/v1/stations` and forecast point slugs from `/api/v1/forecast`.
 
 ## 14. Frequently asked questions
 
@@ -421,4 +448,4 @@ SILAM layers — `GET /api/v1/silam/layers` returns the raster bounds and, for e
 | May the data be used in media and apps? | Yes, under CC BY 4.0 with attribution; forecasts — with credit to FMI |
 | How do I unsubscribe? | Through the link at the bottom of any e‑mail |
 | The map does not show | The browser lacks WebGL support or hardware acceleration is off; update the browser or use the station list |
-| Where is historical data for past years? | The chart offers one year; longer series — on request from the Agency |
+| Where is historical data for past years? | On the station page choose the "All time" period (up to 10 years, monthly or daily means); data older than what the portal holds — on request from the Agency |

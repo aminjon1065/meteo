@@ -17,7 +17,8 @@
     "import-history": "tsx src/scripts/import-history.ts",
     "import-wwcs": "tsx src/scripts/import-wwcs-stations.ts",
     "studio": "drizzle-kit studio",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
     "@meteo/core": "workspace:*",
@@ -31,6 +32,7 @@
     "@types/node": "^22",
     "drizzle-kit": "^0.31.11",
     "tsx": "^4.20.5",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "vitest": "5.0.4"
   }
 }

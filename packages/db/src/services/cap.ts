@@ -76,6 +76,20 @@ export async function ingestCapAlert(
       const found = existing[0];
       if (!found) throw new Error(`CAP ${alert.identifier}: не удалось найти строку после upsert`);
       id = found.id;
+      // Редактор SmartAlert кладёт действующие предупреждения в каждый новый выпуск (новый каталог):
+      // то же сообщение приходит по новому адресу — запоминаем его, иначе сверка ленты сочтёт
+      // сообщение пропавшим (reconcileCapFeed).
+      if (meta.sourceUrl) {
+        await tx
+          .update(s.capAlerts)
+          .set({ sourceUrl: meta.sourceUrl })
+          .where(
+            and(
+              eq(s.capAlerts.id, id),
+              sql`${s.capAlerts.sourceUrl} is distinct from ${meta.sourceUrl}`,
+            ),
+          );
+      }
     }
 
     if (inserted) {
@@ -216,6 +230,62 @@ export async function ingestCapAlert(
   });
 }
 
+export interface CapFeedReconcileResult {
+  /** Пропали из ленты — сняты с публикации. */
+  withdrawn: number;
+  /** Вернулись в ленту — снова опубликованы. */
+  restored: number;
+}
+
+/**
+ * Сверка с лентой‑списком действующих предупреждений (Atom‑лента SmartAlert capfeed.php отдаёт только
+ * последний выпуск редактора). Сообщения этой ленты (адрес файла начинается с feedBase), которых в ней
+ * больше нет, снимаются с публикации (withdrawn_at); вернувшиеся — публикуются снова. Так синоптик
+ * отзывает предупреждение, просто не включив его в новый выпуск, даже без CAP Cancel.
+ * Трогаются только действующие Alert/Update, не заменённые и не истёкшие.
+ */
+export async function reconcileCapFeed(
+  db: Database,
+  opts: { feedBase: string; presentUrls: string[]; now?: Date },
+): Promise<CapFeedReconcileResult> {
+  const now = opts.now ?? new Date();
+  const present = [...new Set(opts.presentUrls)];
+  const prefix = `${opts.feedBase.replace(/[\\%_]/g, (c) => `\\${c}`)}%`;
+  return db.transaction(async (tx) => {
+    const restored = present.length
+      ? await tx
+          .update(s.capAlerts)
+          .set({ withdrawnAt: null })
+          .where(
+            and(
+              inArray(s.capAlerts.sourceUrl, present),
+              sql`${s.capAlerts.withdrawnAt} is not null`,
+            ),
+          )
+          .returning({ id: s.capAlerts.id })
+      : [];
+    const withdrawn = await tx
+      .update(s.capAlerts)
+      .set({ withdrawnAt: now })
+      .where(
+        and(
+          isNull(s.capAlerts.withdrawnAt),
+          isNull(s.capAlerts.supersededBy),
+          inArray(s.capAlerts.msgType, ["Alert", "Update"]),
+          sql`${s.capAlerts.sourceUrl} like ${prefix}`,
+          present.length ? sql`${s.capAlerts.sourceUrl} not in ${present}` : sql`true`,
+          sql`exists (
+            select 1 from ${s.capInfos} i
+            where i.alert_id = ${s.capAlerts.id}
+              and (i.expires is null or i.expires > ${now.toISOString()}::timestamptz)
+          )`,
+        ),
+      )
+      .returning({ id: s.capAlerts.id });
+    return { withdrawn: withdrawn.length, restored: restored.length };
+  });
+}
+
 export interface CapAreaRow {
   id: number;
   areaDesc: string;
@@ -265,6 +335,8 @@ export interface CapWarning {
   note: string | null;
   sourceUrl: string | null;
   supersededBy: number | null;
+  /** Снято с публикации: пропало из ленты SmartAlert (без Cancel). */
+  withdrawnAt: Date | null;
   receivedAt: Date;
   infos: CapInfoRow[];
   /** Активно сейчас (любой info) / ещё не началось. */
@@ -311,6 +383,7 @@ export async function loadWarnings(
       eq(s.capAlerts.status, "Actual"),
       inArray(s.capAlerts.msgType, ["Alert", "Update"]),
       isNull(s.capAlerts.supersededBy),
+      isNull(s.capAlerts.withdrawnAt),
     );
   }
   if (opts.alertIds) {
@@ -417,6 +490,7 @@ export async function loadWarnings(
       note: a.note,
       sourceUrl: a.sourceUrl,
       supersededBy: a.supersededBy,
+      withdrawnAt: a.withdrawnAt,
       receivedAt: a.receivedAt,
       infos: list,
       active: list.some((i) => isCapActive({ start: i.start, end: i.end }, now)),
@@ -495,6 +569,7 @@ export interface CapAdminRow {
   status: CapStatus;
   msgType: CapMsgType;
   supersededBy: number | null;
+  withdrawnAt: Date | null;
   sourceUrl: string | null;
   receivedAt: Date;
   /** Сводка по первому info (по возможности на языке портала). */
@@ -527,6 +602,7 @@ export async function listCapAlertsAdmin(
         status: s.capAlerts.status,
         msgType: s.capAlerts.msgType,
         supersededBy: s.capAlerts.supersededBy,
+        withdrawnAt: s.capAlerts.withdrawnAt,
         sourceUrl: s.capAlerts.sourceUrl,
         receivedAt: s.capAlerts.receivedAt,
       })
@@ -593,6 +669,9 @@ export interface CapSyncState {
   fetched?: number;
   inserted?: number;
   superseded?: number;
+  /** Сверка ленты: снято с публикации / возвращено (reconcileCapFeed). */
+  withdrawn?: number;
+  restored?: number;
   errors?: Array<{ source: string; error: string }>;
   message?: string;
 }

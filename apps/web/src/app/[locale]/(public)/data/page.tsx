@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +15,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "data" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/data",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 const DATASETS = [

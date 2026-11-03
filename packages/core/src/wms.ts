@@ -145,3 +145,26 @@ export function parseDataTimes(rows: unknown): DataTimes {
   const times = [...seen.values()].sort((a, b) => a.getTime() - b.getTime());
   return { originTime: origin, times };
 }
+
+/**
+ * Можно ли запрашивать у SmartMet тайл с этим прогоном и сроком (прокси /wms). Без проверки каждый
+ * уникальный адрес проходит мимо кэша Cloudflare к SmartMet. Текущий прогон — только сроки каталога;
+ * до maxPreviousRuns предыдущих (шаг runStepHours) — для открытых до смены прогона страниц: сроки на
+ * сетке 3 ч в пределах maxLeadHours.
+ */
+export function isWmsRequestAllowed(
+  req: { run: Date; time: Date },
+  catalog: { originTime: Date; times: Date[] },
+  opts: { runStepHours?: number; maxPreviousRuns?: number; maxLeadHours?: number } = {},
+): boolean {
+  const H = 3_600_000;
+  const step = (opts.runStepHours ?? 6) * H;
+  const current = catalog.originTime.getTime();
+  const run = req.run.getTime();
+  const time = req.time.getTime();
+  if (run === current) return catalog.times.some((t) => t.getTime() === time);
+  const back = current - run;
+  if (back <= 0 || back % step !== 0 || back / step > (opts.maxPreviousRuns ?? 4)) return false;
+  const lead = time - run;
+  return lead >= 0 && lead <= (opts.maxLeadHours ?? 240) * H && lead % (3 * H) === 0;
+}

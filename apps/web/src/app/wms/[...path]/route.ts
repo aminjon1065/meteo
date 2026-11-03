@@ -1,6 +1,7 @@
 import {
   buildWmsGetMapUrl,
   isValidTile,
+  isWmsRequestAllowed,
   parseCompactTime,
   tileBbox3857,
   tileIntersects,
@@ -13,7 +14,8 @@ import {
   WEATHER_WMS_LAYERS,
   type WeatherWmsLayer,
 } from "@/components/map/weather-layers";
-import { smartmetWmsUrl } from "@/lib/weather-catalog";
+import { limitRouteRequest } from "@/lib/security/limits";
+import { loadWeatherCatalog, smartmetWmsUrl } from "@/lib/weather-catalog";
 
 export const dynamic = "force-dynamic";
 
@@ -28,12 +30,15 @@ function notFound() {
  * Тайлы слоёв погоды SmartMet Server (WMS GetMap) для MapLibre:
  * /wms/<прогон YYYYMMDDHHmm>/<слой>/<срок YYYYMMDDTHHmm>/<z>/<x>/<y>.png.
  * SmartMet доступен только во внутренней сети Docker; сюда пропускаются лишь продукты из белого списка,
- * тайлы в пределах области модели и уровней карты. Адрес содержит прогон и срок, поэтому ответ
- * неизменяем и кэшируется браузером и Cloudflare.
+ * тайлы в пределах области модели и уровней карты, прогоны и сроки из каталога (isWmsRequestAllowed),
+ * не больше RATE_LIMIT_TILES_PER_MINUTE промахов кэша с одного IP. Адрес содержит прогон и срок,
+ * поэтому ответ неизменяем и кэшируется браузером и Cloudflare.
  */
-export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
+export async function GET(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const base = smartmetWmsUrl();
   if (!base) return notFound();
+  const limited = await limitRouteRequest(req);
+  if (limited) return limited;
   const { path } = await ctx.params;
   if (path.length !== 6) return notFound();
   const [runRaw, layerRaw, timeRaw, zRaw, xRaw, yFile] = path as [
@@ -58,6 +63,24 @@ export async function GET(_req: NextRequest, ctx: { params: Promise<{ path: stri
   const y = Number(yMatch[1]);
   if (z < WEATHER_MIN_ZOOM || z > WEATHER_MAX_ZOOM || !isValidTile(z, x, y)) return notFound();
   if (!tileIntersects(z, x, y, WEATHER_AREA)) return notFound();
+  // Только прогоны и сроки, которые есть у SmartMet (каталог в Redis, 10 мин): иначе каждый выдуманный
+  // адрес проходил бы мимо кэша Cloudflare и нагружал SmartMet.
+  const catalog = await loadWeatherCatalog();
+  if (
+    !catalog.run ||
+    !isWmsRequestAllowed(
+      { run, time },
+      {
+        originTime: new Date(catalog.run.originTime),
+        times: catalog.times.map((t) => new Date(t)),
+      },
+    )
+  ) {
+    return NextResponse.json(
+      { error: "not found" },
+      { status: 404, headers: { "Cache-Control": "no-store" } },
+    );
+  }
 
   const url = buildWmsGetMapUrl(base, {
     layers: [`tajikistan:${layer}`],

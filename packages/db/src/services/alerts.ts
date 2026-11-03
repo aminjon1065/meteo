@@ -35,7 +35,16 @@ export async function evaluateAlertRules(
   const now = opts.now ?? new Date();
   const rules = await db.select().from(s.alertRules).where(eq(s.alertRules.enabled, true));
   const summary: EvaluateSummary = { rules: rules.length, opened: 0, resolved: 0, emailsQueued: 0 };
-  if (rules.length === 0) return summary;
+  if (rules.length === 0) {
+    // Все правила выключены — открытые события больше никто не закроет.
+    const closed = await db
+      .update(s.alertEvents)
+      .set({ status: "resolved", endedAt: now })
+      .where(eq(s.alertEvents.status, "active"))
+      .returning({ id: s.alertEvents.id });
+    summary.resolved = closed.length;
+    return summary;
+  }
 
   const stationRows = await db
     .select({
@@ -93,6 +102,7 @@ export async function evaluateAlertRules(
     .from(s.alertEvents)
     .where(eq(s.alertEvents.status, "active"));
   const activeByKey = new Map(activeEvents.map((e) => [`${e.ruleId}|${e.stationId}`, e]));
+  const evaluated = new Set<string>();
 
   const subscriberRows = await db
     .select()
@@ -137,6 +147,7 @@ export async function evaluateAlertRules(
         }
       }
       const key = `${rule.id}|${st.id}`;
+      evaluated.add(key);
       const active = activeByKey.get(key);
       const exceeded = current !== null && current >= rule.threshold;
 
@@ -225,15 +236,36 @@ export async function evaluateAlertRules(
           .update(s.alertEvents)
           .set({ peakValue: peak, lastValue: current, level })
           .where(eq(s.alertEvents.id, active.id));
-      } else if (!exceeded && active && current !== null) {
+      } else if (!exceeded && active) {
+        // Значение ниже порога — или свежих данных нет дольше окна (6 ч): превышение уже нельзя
+        // подтвердить, и на портале оно не должно висеть сутками. Последнее значение сохраняем.
         await db
           .update(s.alertEvents)
-          .set({ status: "resolved", endedAt: now, lastValue: current })
+          .set({
+            status: "resolved",
+            endedAt: now,
+            ...(current !== null ? { lastValue: current } : {}),
+          })
           .where(eq(s.alertEvents.id, active.id));
         activeByKey.delete(key);
         summary.resolved += 1;
       }
     }
+  }
+  // События выключенных правил и станций, которые правило больше не охватывает
+  // (выведена из эксплуатации, скрыта, другой регион), закрываем.
+  const orphaned = [...activeByKey.entries()].filter(([key]) => !evaluated.has(key));
+  if (orphaned.length > 0) {
+    await db
+      .update(s.alertEvents)
+      .set({ status: "resolved", endedAt: now })
+      .where(
+        inArray(
+          s.alertEvents.id,
+          orphaned.map(([, e]) => e.id),
+        ),
+      );
+    summary.resolved += orphaned.length;
   }
   return summary;
 }

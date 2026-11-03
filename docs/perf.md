@@ -35,7 +35,7 @@ PostgreSQL 17 + TimescaleDB и Redis в Docker Desktop, база E2E (2 стан
   `forecast_points_uq`, `silam_fields_time_idx`, гипертаблица `measurements` по времени); при
   нагрузке 100 соединений БД не была узким местом (p99 < 60 мс на самом тяжёлом маршруте).
 
-Повторить на сервере Заказчика после деплоя (ожидаемо медленнее: 4 vCPU, общий хост с БД):
+Повторить на production (`havo.tj`; ожидаемо медленнее: 4 vCPU, БД, SmartMet и staging на том же хосте):
 `BASE_URL=https://<домен> VUS=20 DURATION=60s sh infra/perf/run.sh` с временно выставленным
 `RATE_LIMIT_API_PER_MINUTE=0` (или с IP‑исключением) — результаты занести в эту таблицу.
 

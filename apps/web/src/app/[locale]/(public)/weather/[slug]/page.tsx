@@ -26,6 +26,7 @@ import { Link } from "@/i18n/navigation";
 import { loadCurrentAq } from "@/lib/aq";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 import { type LocalizedWarning, loadWarningsForPoint } from "@/lib/warnings";
 import { aggregateDay, modelLabel, symbolLabel, windDirectionKey } from "@/lib/weather";
 
@@ -77,8 +78,17 @@ export async function generateMetadata({
   const { locale, slug } = await params;
   const location = await getForecastLocation(getDb(), slug).catch(() => null);
   if (!location) return {};
-  const t = await getTranslations({ locale: locale as Locale, namespace: "weather" });
-  return { title: `${name(location.name, locale)} · ${t("title")}` };
+  const [t, ts] = await Promise.all([
+    getTranslations({ locale: locale as Locale, namespace: "weather" }),
+    getTranslations({ locale: locale as Locale, namespace: "seo" }),
+  ]);
+  const city = name(location.name, locale);
+  return pageMetadata({
+    locale: locale as Locale,
+    path: `/weather/${location.slug}`,
+    title: `${city} · ${t("title")}`,
+    description: ts("cityWeatherDescription", { city }),
+  });
 }
 
 /** Прогноз для города: сейчас, завтра/SILAM, предупреждения, лента 24 ч, график, дни. */

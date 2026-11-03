@@ -2,15 +2,21 @@ import { CAP_SEVERITIES, maxSeverity } from "@meteo/core";
 import { listWarningRegions, localDateKey, localMidnightUtc } from "@meteo/db";
 import type { Locale } from "@meteo/i18n";
 import { cn } from "@meteo/ui/lib/utils";
+import { MapIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { PageHeader, Section } from "@/components/site/page-header";
-import { SeverityBadge, SeverityDot } from "@/components/warnings/severity-badge";
+import { SeverityBadge, SeverityMark } from "@/components/warnings/severity-badge";
 import { WarningCard } from "@/components/warnings/warning-card";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
-import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
+import { pageMetadata } from "@/lib/seo";
+import {
+  type LocalizedWarning,
+  loadLocalizedWarnings,
+  loadWarningsFreshness,
+} from "@/lib/warnings";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +30,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "warnings" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/warnings",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 interface DayColumn {
@@ -49,13 +60,14 @@ export default async function WarningsPage({
   setRequestLocale(locale);
   const sp = await searchParams;
   const now = new Date();
-  const [t, format, warnings, regions] = await Promise.all([
+  const [t, format, warnings, regions, freshness] = await Promise.all([
     getTranslations("warnings"),
     getFormatter(),
     loadLocalizedWarnings(locale, { now, horizonDays: DAYS + 2 }).catch(
       () => [] as LocalizedWarning[],
     ),
     listWarningRegions(getDb()).catch(() => []),
+    loadWarningsFreshness(now),
   ]);
   const day0 = localMidnightUtc(now);
   const days: DayColumn[] = Array.from({ length: DAYS }, (_, i) => {
@@ -110,13 +122,38 @@ export default async function WarningsPage({
         title={t("title")}
         intro={activeCount > 0 ? t("summaryActive", { count: activeCount }) : t("summaryNone")}
       >
+        {freshness.stale ? (
+          <p
+            className="w-fit rounded-lg border border-l-4 border-l-status-stale bg-card px-3 py-2 text-sm"
+            data-testid="warnings-stale"
+          >
+            {freshness.lastSuccessAt
+              ? t("freshnessNote", {
+                  time: format.dateTime(freshness.lastSuccessAt, {
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  }),
+                })
+              : t("freshnessNoteNever")}
+          </p>
+        ) : null}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
           {CAP_SEVERITIES.filter((s) => s !== "Unknown").map((s) => (
             <span key={s} className="inline-flex items-center gap-1.5">
-              <SeverityDot severity={s} className="size-2" />
+              <SeverityMark severity={s} />
               {t(`severity.${s}` as "severity.Severe")}
             </span>
           ))}
+          <Link
+            href={{ pathname: "/", query: { layer: "warnings" } }}
+            className="inline-flex items-center gap-1 font-semibold text-brand underline-offset-4 hover:underline"
+            data-testid="warnings-on-map"
+          >
+            <MapIcon className="size-4" aria-hidden="true" />
+            {t("showOnMap")}
+          </Link>
         </div>
       </PageHeader>
 
@@ -191,7 +228,7 @@ export default async function WarningsPage({
                               aria-label={`${r.label}, ${dayDate(d)}: ${t(`severity.${sev}` as "severity.Severe")}`}
                               className="inline-flex"
                             >
-                              <SeverityDot severity={sev} className="size-5" />
+                              <SeverityMark severity={sev} className="size-6 text-xs" />
                             </Link>
                           )}
                         </td>

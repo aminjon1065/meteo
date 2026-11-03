@@ -30,6 +30,7 @@ import {
   ScrollText,
   Send,
   Settings,
+  ShieldCheck,
   Siren,
   SlidersHorizontal,
   Users,
@@ -44,6 +45,7 @@ interface Item {
     | "dashboard"
     | "stations"
     | "measurements"
+    | "qcRules"
     | "scales"
     | "healthAdvice"
     | "alerts"
@@ -83,6 +85,13 @@ const groups: Array<{ key: "content" | "measurements" | "settings" | null; items
         key: "measurements",
         icon: Database,
         permission: "measurements.read",
+        ready: true,
+      },
+      {
+        href: "/admin/qc-rules",
+        key: "qcRules",
+        icon: ShieldCheck,
+        permission: "qcRules.write",
         ready: true,
       },
       {

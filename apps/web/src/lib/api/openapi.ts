@@ -11,6 +11,7 @@ import {
   DistrictsResponseSchema,
   ErrorSchema,
   ExceedancesResponseSchema,
+  ForecastLocationsResponseSchema,
   ForecastResponseSchema,
   forecastQuery,
   IndexCurrentResponseSchema,
@@ -279,6 +280,15 @@ export function listEndpoints(t: Translate): ApiEndpoint[] {
       [ok(ExceedancesResponseSchema)],
       "/api/v1/exceedances",
       "60 s",
+    ),
+    ep(
+      "forecastLocations",
+      "/api/v1/forecast",
+      "weather",
+      [],
+      [ok(ForecastLocationsResponseSchema)],
+      "/api/v1/forecast",
+      "600 s",
     ),
     ep(
       "forecast",

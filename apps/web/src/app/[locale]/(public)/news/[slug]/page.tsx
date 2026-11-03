@@ -9,6 +9,7 @@ import { MarkdownContent } from "@/components/news/markdown-content";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { absoluteUrl, DEFAULT_OG_IMAGE, LOGO_URL, pageMetadata, siteUrl } from "@/lib/seo";
 import { uploadUrl } from "@/lib/uploads";
 
 export const dynamic = "force-dynamic";
@@ -18,10 +19,6 @@ function pickWithLocale(text: I18nText | null | undefined, locale: Locale) {
   if (text?.[locale]?.trim()) return { value: text[locale] as string, locale };
   for (const l of locales) if (text?.[l]?.trim()) return { value: text[l] as string, locale: l };
   return { value: "", locale };
-}
-
-function localizedHref(locale: string, path: string): string {
-  return `${locale === "tg" ? "" : `/${locale}`}${path}`;
 }
 
 export async function generateMetadata({
@@ -34,37 +31,25 @@ export async function generateMetadata({
   const post = await getPublishedNews(getDb(), slug).catch(() => null);
   if (!post) return {};
   const title = name(post.title, locale);
-  const description = name(post.excerpt, locale) || markdownExcerpt(name(post.body, locale), 200);
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
-  return {
+  return pageMetadata({
+    locale,
+    path: `/news/${post.slug}`,
     title,
-    description,
-    alternates: {
-      canonical: `${base}${localizedHref(locale, `/news/${post.slug}`)}`,
-      languages: Object.fromEntries(
-        locales.map((l) => [localeTags[l], `${base}${localizedHref(l, `/news/${post.slug}`)}`]),
-      ),
-    },
-    openGraph: {
-      type: "article",
-      title,
-      description,
-      locale: localeTags[locale],
-      publishedTime: post.publishedAt?.toISOString(),
-      modifiedTime: post.updatedAt.toISOString(),
-      images: post.cover
-        ? [
-            {
-              url: `${base}${uploadUrl(post.cover.path)}`,
-              width: post.cover.width ?? undefined,
-              height: post.cover.height ?? undefined,
-              alt: name(post.cover.alt, locale) || title,
-            },
-          ]
-        : undefined,
-    },
-    twitter: { card: post.cover ? "summary_large_image" : "summary", title, description },
-  };
+    description: name(post.excerpt, locale) || markdownExcerpt(name(post.body, locale), 200),
+    type: "article",
+    publishedTime: post.publishedAt?.toISOString(),
+    modifiedTime: post.updatedAt.toISOString(),
+    images: post.cover
+      ? [
+          {
+            url: `${siteUrl()}${uploadUrl(post.cover.path)}`,
+            width: post.cover.width ?? undefined,
+            height: post.cover.height ?? undefined,
+            alt: name(post.cover.alt, locale) || title,
+          },
+        ]
+      : undefined,
+  });
 }
 
 export default async function NewsArticlePage({
@@ -83,7 +68,7 @@ export default async function NewsArticlePage({
   ]);
   const title = pickWithLocale(post.title, locale);
   const body = pickWithLocale(post.body, locale);
-  const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
+  const base = siteUrl();
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "NewsArticle",
@@ -92,10 +77,15 @@ export default async function NewsArticlePage({
     datePublished: post.publishedAt?.toISOString(),
     dateModified: post.updatedAt.toISOString(),
     inLanguage: localeTags[body.locale],
-    image: post.cover ? [`${base}${uploadUrl(post.cover.path)}`] : undefined,
+    // Google требует image и publisher.logo для статей; без обложки — картинка сайта по умолчанию.
+    image: [post.cover ? `${base}${uploadUrl(post.cover.path)}` : `${base}${DEFAULT_OG_IMAGE.url}`],
     author: { "@type": "Organization", name: tc("agency") },
-    publisher: { "@type": "Organization", name: tc("siteName") },
-    mainEntityOfPage: `${base}${localizedHref(locale, `/news/${post.slug}`)}`,
+    publisher: {
+      "@type": "Organization",
+      name: tc("siteName"),
+      logo: { "@type": "ImageObject", url: `${base}${LOGO_URL}` },
+    },
+    mainEntityOfPage: absoluteUrl(locale, `/news/${post.slug}`),
   };
 
   return (

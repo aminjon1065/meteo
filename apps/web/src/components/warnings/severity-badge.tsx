@@ -1,4 +1,4 @@
-import { severityStyle } from "@meteo/core";
+import { CAP_SEVERITY_RANK, type CapSeverity, severityStyle } from "@meteo/core";
 import { cn } from "@meteo/ui/lib/utils";
 
 /** Уровень CAP → токены уровня воздуха того же цвета: жёлтый (2), оранжевый (3), красный (4). */
@@ -23,7 +23,43 @@ const DOT: Record<0 | 2 | 3 | 4, string> = {
   4: "bg-aq-4",
 };
 
-/** Плашка уровня опасности CAP: точка цвета + подпись на лёгкой заливке. */
+const FG: Record<0 | 2 | 3 | 4, string> = {
+  0: "text-aq-0-foreground",
+  2: "text-aq-2-foreground",
+  3: "text-aq-3-foreground",
+  4: "text-aq-4-foreground",
+};
+
+/** Цифра уровня опасности: 1 — низкая … 4 — чрезвычайная (CAP_SEVERITY_RANK); неизвестный — «?». */
+export function severityNumber(severity: string): string {
+  const rank = CAP_SEVERITY_RANK[severity as CapSeverity] ?? 0;
+  return rank > 0 ? String(rank) : "?";
+}
+
+/**
+ * Знак уровня опасности: круг цвета уровня с цифрой 1–4. Цифра различает уровни без цвета
+ * (WCAG 1.4.1) — в том числе высокую и чрезвычайную опасность, у которых цвет один (красный).
+ * Декоративен: смысл передаёт подпись или aria-label ссылки рядом.
+ */
+export function SeverityMark({ severity, className }: { severity: string; className?: string }) {
+  const style = severityStyle(severity);
+  return (
+    <span
+      className={cn(
+        "inline-flex size-4 shrink-0 items-center justify-center rounded-full text-[10px] leading-none font-bold tabular-nums",
+        DOT[style.level],
+        FG[style.level],
+        className,
+      )}
+      aria-hidden="true"
+      data-severity={severity}
+    >
+      {severityNumber(severity)}
+    </span>
+  );
+}
+
+/** Плашка уровня опасности CAP: знак уровня (цвет + цифра) и подпись на лёгкой заливке. */
 export function SeverityBadge({
   severity,
   label,
@@ -42,10 +78,7 @@ export function SeverityBadge({
         className,
       )}
     >
-      <span
-        className={cn("inline-block size-2 rounded-full", DOT[style.level])}
-        aria-hidden="true"
-      />
+      <SeverityMark severity={severity} className="size-3.5 text-[9px]" />
       {label}
     </span>
   );

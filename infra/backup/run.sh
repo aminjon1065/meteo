@@ -52,6 +52,9 @@ run_backup() {
     set -- "$DUMPS"
     [ -d /srv/uploads ] && set -- "$@" /srv/uploads
     [ -d /srv/silam ] && set -- "$@" /srv/silam
+    # Архив выпусков SmartMet Alert (CAP, которые публикует редактор) — подключается оверлеем
+    # compose.smartmet.yml, только если SmartMet стоит на этом хосте.
+    [ -d /srv/smartalert ] && set -- "$@" /srv/smartalert
     restic backup --tag meteo --host meteoportal --exclude-caches "$@"
     restic forget --tag meteo --keep-daily "$KEEP_DAILY" --keep-monthly "$KEEP_MONTHLY" --prune
     restic check
@@ -82,16 +85,18 @@ if ! command -v pg_dump >/dev/null 2>&1; then
 fi
 
 if [ "${BACKUP_ONCE:-0}" = "1" ]; then
+  # Любая ошибка (set -e) — статус failed и ненулевой код: healthcheck и deploy.sh это видят.
+  # shellcheck disable=SC2154 # rc задаётся внутри самого trap
+  trap 'rc=$?; if [ "$rc" -ne 0 ]; then log "FAILED (код $rc)"; write_status failed "" 0 error; fi' EXIT
   run_backup
   exit 0
 fi
 
 # Первый запуск сразу (контроль, что доступы верны), далее ежедневно в BACKUP_TIME_UTC.
+# Каждый прогон — отдельный процесс: внутри «if run_backup» оболочка игнорирует set -e, и сбой
+# pg_dump или restic записывался бы как ok.
 while true; do
-  if run_backup; then :; else
-    log "FAILED"
-    write_status failed "" 0 "error"
-  fi
+  BACKUP_ONCE=1 sh "$0" || true
   SLEEP="$(seconds_until "$BACKUP_TIME_UTC")"
   log "next run in ${SLEEP}s (at $BACKUP_TIME_UTC UTC)"
   sleep "$SLEEP"

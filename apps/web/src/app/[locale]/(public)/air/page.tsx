@@ -1,6 +1,7 @@
 import type { Locale } from "@meteo/i18n";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
+import { ExceedanceNotice } from "@/components/air/exceedance-notice";
 import { LevelLegend } from "@/components/air/level-legend";
 import { MapPanel } from "@/components/air/map-panel";
 import { StationFeed } from "@/components/air/station-feed";
@@ -8,6 +9,7 @@ import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { loadStationSummaries, type StationSummary } from "@/lib/city-air";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +20,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "air" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/air",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 /** Качество воздуха: карта и лента всех станций по регионам. */
@@ -68,6 +75,11 @@ export default async function AirPage({ params }: { params: Promise<{ locale: st
           </Link>
         </div>
       </PageHeader>
+
+      {/* Уведомление портала о превышениях порогов (FR1.5): сюда ведёт плашка на главной. */}
+      <div id="exceedances" className="-my-3 scroll-mt-24 empty:hidden">
+        <ExceedanceNotice locale={locale} />
+      </div>
 
       <MapPanel locale={locale} levels={aq?.scale?.levels.map((l) => l.level)} height="h-[420px]" />
 

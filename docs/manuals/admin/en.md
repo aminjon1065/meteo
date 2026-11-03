@@ -1,6 +1,6 @@
 # Meteoportal Administrator Guide
 
-Version 1.0 · 17 October 2026 · Languages: [Тоҷикӣ](tg.md) · [Русский](ru.md) · **English**
+Version 1.1 · 2 November 2026 · Languages: [Тоҷикӣ](tg.md) · [Русский](ru.md) · **English**
 
 Audience: administrators, monitoring operators and editors of the Agency for Hydrometeorology who work in the Meteoportal administration panel (`/admin`). Server operations (deployment, backups, upgrades) are covered separately in the [Runbook for the IT service](../../runbook.en.md); the public portal is described in the [Portal user guide](../user/en.md).
 
@@ -10,7 +10,7 @@ Screenshots were taken with the Russian interface; the Tajik and English interfa
 
 ### 1.1. Address and access
 
-The panel is available at `https://<portal domain>/admin` (for example `https://portal.meteo.tj/admin`). Any modern browser works (Chrome, Firefox, Edge, Safari) on a desktop or tablet; the panel also works on a phone, but data entry is more comfortable on screens wider than 1024 px.
+The panel is available at `https://<portal domain>/admin` (for example `https://havo.tj/admin`). Any modern browser works (Chrome, Firefox, Edge, Safari) on a desktop or tablet; the panel also works on a phone, but data entry is more comfortable on screens wider than 1024 px.
 
 Accounts are created by an administrator in the "Users" section (see [section 13](#13-users)); there is no self‑registration. Passwords must be at least 10 characters long and are handed over through a secure channel.
 
@@ -32,10 +32,12 @@ The interface language does not affect the data: all multilingual fields (statio
 | Station registry | create, edit, decommission, API key | view | view |
 | Measurements: entry, CSV import, browse | ✓ | ✓ | — |
 | Quality‑control queue (decisions) | ✓ | ✓ | — |
+| Quality control rules | ✓ | — | — |
 | Scales, thresholds, limit values; health advice | ✓ | — | — |
 | Alert rules, exceedance events, CAP messages, event dictionary | ✓ | — | — |
 | News | ✓ | list only | create, publish |
 | Media, bulletins | ✓ | — | ✓ |
+| Eco-bulletin: drafts, publishing, settings | ✓ | ✓ | ✓ |
 | Subscribers, users, audit log, settings | ✓ | — | — |
 
 Permissions are enforced on the server: opening a section URL directly without the required role shows the "Access denied" page.
@@ -96,7 +98,7 @@ The dashboard (`/admin`) summarises the system state (see Figure 1):
 | Data freshness by station | time of the last measurement of each active station; "stale" — no data for 24 hours; share of stations without data | a post that stops reporting — check entry/import |
 | Background service | whether the worker is alive (heartbeat every minute); "not responding" — contact the IT service | without the worker the index, forecasts and e‑mails stop updating |
 | Mail queue | whether SMTP is configured, how many messages are pending, failed, sent in 24 hours; link to a test e‑mail | delivery errors — check SMTP in "Settings" |
-| Integrations | SmartMet (weather forecast), SILAM (air‑quality forecast), SmartMet Alert (CAP): last successful load, model run, source address, status | statuses are explained in [section 14](#14-integration-statuses-and-background-jobs) |
+| Integrations | SmartMet (weather forecast), SILAM (air‑quality forecast), SmartMet Alert (CAP): last successful load, model run, source address, status | statuses are explained in [section 14](#14-integration-statuses-and-background-jobs); the SmartMet line "Model run … is older than 18 h" means GFS loading has stopped and the portal shows an old forecast (section 16.1) |
 | Recent actions | latest audit‑log entries | "Full log" link |
 
 ## 4. Station registry
@@ -119,7 +121,7 @@ Click "Add station" and fill in the form.
 | Type | air / meteo / combined |
 | Status | active / suspended / decommissioned |
 | Latitude, longitude | click the map, drag the marker or type the values (latitude 35–42, longitude 66–76) |
-| Region, district | the district is chosen after the region; the district list comes from the loaded boundaries |
+| Region, district | the district is chosen after the region; the district list comes from the loaded boundaries. The server checks that the district belongs to the selected region; if only the district is given, the region is taken from it |
 | Elevation, m | optional |
 | Commissioned | start date of observations |
 | Data source | manual entry / file import / API / automatic sensor — informational |
@@ -129,7 +131,7 @@ Click "Add station" and fill in the form.
 
 "Save" opens the card of the created station. An error on the "Code" field means the code already exists.
 
-**City for the station.** An active station shown on the portal belongs to a city from the header list if it is no more than 15 km away. If there is no city that close, the portal creates one at the station's location, named after the district ("Panjakent district"; for a town with its own boundaries — just the town name, "Hisor"). The city appears at once in the city selector, on the home page and in the "Weather" section; its weather forecast is loaded within 15 minutes. The same happens for stations created by import — a background job checks every 30 minutes. A disabled city is not created again.
+**City for the station.** An active station shown on the portal belongs to a city from the header list if it is no more than 15 km away. If there is no city that close, the portal creates one at the station's location, named after the district ("Panjakent district"; for a town with its own boundaries — just the town name, "Hisor"). The city appears at once in the city selector, on the home page and in the "Weather" section; its weather forecast is loaded within 15 minutes. The same happens for stations created by import — a background job checks every 30 minutes. A disabled city is not created again. Such a city cannot be renamed or disabled in the panel — ask the IT service (runbook, section 8.2).
 
 ### 4.2. Station card, API key, decommissioning
 
@@ -269,6 +271,17 @@ The operator's decision for each value:
 
 After a decision the value is locked for automatic QC (it will not return to the queue), the station index is recalculated and an audit record with "before → after" and the reason is written. The filter "Decision → Already processed" shows the decision history.
 
+**Correcting valid values.** The "Valid (to correct)" filter also lists values that passed quality control: if an error is noticed later (e.g. a wrong multiplier on import), the value can be corrected or rejected the same way — with a reason, the original value kept and an audit log entry.
+
+### 5.5. Quality control rules
+
+The "Quality control rules" page (`/admin/qc-rules`, administrators only) sets the automatic check parameters:
+
+- **Allowed ranges** — minimum and maximum per pollutant (in the storage unit) and the "Enabled" switch. Values outside the range on manual entry, import and API intake are flagged invalid and excluded from the index. Disable an unwanted range rather than deleting it — otherwise a portal update restores the default.
+- **Batch checks** (every 15 minutes over the last 48 hours): spikes — threshold in median absolute deviations (MAD, default 6) and minimum values in the series; stuck sensor — hours without change (12) and minimum identical values (3), continuous stations only; outliers against 30 days — robust z threshold (5) and minimum baseline values (30).
+
+Changes apply from the next check run; operator decisions already taken are never changed by the rules. Every save is written to the audit log (`qcRules.update`).
+
 ## 6. Audit log
 
 "Audit log" (`/admin/audit`) keeps every action in the panel: who (e‑mail and role), when, what (`stations.update`, `measurement.correct`, `news.publish`, `user.ban` and so on), on which object, and the "before" / "after" state as JSON. Records cannot be edited or deleted — not even by an administrator; when a user is deleted, their actions stay in the log with the e‑mail.
@@ -277,18 +290,22 @@ After a decision the value is locked for automatic QC (it will not return to the
 
 Search by action, e‑mail or identifier; filter by object and period. Use the log when investigating disputed values, restoring accidentally changed settings and during inspections.
 
+Panel sign-ins are recorded too (entity `auth`): successful sign-in (`auth.signIn`), sign-in waiting for a 2FA code, a failed attempt with the e‑mail entered (`auth.signIn.failed`), 2FA code verification and failure, enabling and disabling 2FA, new backup codes, sign-out. A series of failed attempts for one e‑mail is a reason to check for password guessing.
+
 ## 7. Scales, thresholds and limit values
 
 "Scales and thresholds" (`/admin/scales`) — administrators only. Changes apply to the index calculation immediately and affect the whole portal, widgets and API; change thresholds only according to an approved methodology and document the decision.
 
 ![Figure 21. List of index scales](../img/admin-scales.png)
 
-Three scales are supplied:
+Five scales are supplied:
 
 | Scale | Type | Purpose |
 |---|---|---|
 | Operational air‑quality index | breakpoint scale (5 levels by hourly concentrations, worst pollutant) | public default: map, station pages, widgets |
 | WHO guideline scale | breakpoint scale (WHO 2021 daily guideline values) | reference |
+| Ratio to limit values (Agency method) | daily mean against the daily limit and maximum single value against the single limit; NO₂+SO₂ summation; high/extremely high pollution cases | station page, eco-bulletin, API (`scale=RATIO_TO_LIMIT`) |
+| US AQI (EPA) | breakpoint scale, **6 levels** with EPA colours (adds maroon "hazardous") | WWCS sensor network and comparison with international services |
 | Air pollution index (IZA) | composite index from monthly means and limit values | national reporting |
 
 ### 7.1. Editing a scale
@@ -296,8 +313,8 @@ Three scales are supplied:
 ![Figure 22. Scale card: basics, levels, pollutant thresholds](../img/admin-scale-edit.png)
 
 - **Basics**: name and description in three languages, "Enabled" and "Public default scale" (exactly one scale can be public), order.
-- **Levels**: labels of the five levels in three languages; colours are fixed by the design system (green, yellow, orange, red, purple).
-- **Pollutant thresholds** (breakpoint scale): the lower bound of each level in the pollutant unit and the averaging period (1 h, 8 h, 24 h). Bounds must strictly increase; for a pollutant fill in all five bounds or leave the row empty — then the pollutant is excluded from the index.
+- **Levels**: level labels in three languages (five; six for US AQI); colours are fixed by the design system (green, yellow, orange, red, purple; plus maroon for US AQI).
+- **Pollutant thresholds** (breakpoint scale): the lower bound of each level in the pollutant unit and the averaging period (1 h, 8 h, 24 h). Bounds must strictly increase; for a pollutant fill in all bounds (one per level) or leave the row empty — then the pollutant is excluded from the index.
 
 After "Save" the message "Scale saved, index recalculated" appears.
 
@@ -318,6 +335,8 @@ After "Save" the message "Scale saved, index recalculated" appears.
 - Save with the "Save level «…»" button under each level.
 
 Texts must be agreed with medical experts; the portal shows a disclaimer that the advice does not replace a doctor's consultation.
+
+Texts for all groups and levels are supplied (based on WHO and EPA guidance, with the ambulance number 103) — this is a **draft for approval** by the Agency's medical specialists; edit it here. Portal updates do not overwrite edited texts, and a cleared text does not reappear.
 
 ## 9. Exceedance alerts and subscribers
 
@@ -346,6 +365,8 @@ How evaluation works: every 10 minutes a background job takes the latest availab
 
 "Exceedance events" (`/admin/alerts/events`): start, end, peak, whether e‑mails were sent. An active event can be closed manually with "Resolve" (for example after rejecting a wrong value in QC).
 
+An event closes automatically when the value drops below the threshold, when the station has had **no fresh data for more than 6 hours** (the portal does not keep an "eternal" exceedance from a stale value) and when the rule is disabled or no longer covers the station.
+
 ### 9.3. Subscribers
 
 ![Figure 28. Subscribers: statuses, topics, export](../img/admin-subscribers.png)
@@ -366,6 +387,7 @@ Statuses in the list:
 | expired | the validity period (`expires`) has passed — hidden from the portal, kept in the panel archive |
 | superseded | an Update message referencing this one arrived; the new version is shown |
 | cancelled | a Cancel message arrived; removed from the portal |
+| withdrawn | the warning is missing from the latest SmartMet Alert editor issue (the forecaster removed it without a Cancel); removed from the portal, the card shows the withdrawal date; if it returns to an issue, it is published again |
 | not published | status `Test`, `Exercise`, `Draft` — visible only in the panel |
 
 The "Synchronisation" block at the top shows the result of the last run (ok / partial / error / not modified / source not configured) and parsing errors of individual files.
@@ -524,6 +546,9 @@ The background service (worker) runs scheduled jobs; their state is shown on the
 | SmartMet (weather forecast) | every 15 minutes | hourly and daily forecast for forecast points |
 | SILAM (air‑quality forecast) | hourly (at :20) | new model run: map layers and point forecasts for cities and stations |
 | SmartMet Alert (CAP) | every 5 minutes | new, updated and cancelled warnings |
+| Station data intake (source polling) | every 10 minutes | files and JSON feeds of stations with automatic intake (SFTP, FTP, HTTP, WWCS network) |
+| Cities for stations | every 30 minutes and when a station is saved | a forecast point for a station farther than 15 km from listed cities (section 4.1) |
+| Eco-bulletin draft | daily at 08:00 Dushanbe time | bulletin drafts for the previous day and an e‑mail to the responsible staff (section 11.4) |
 
 Integration statuses on the dashboard:
 
@@ -560,6 +585,35 @@ Failure and recovery e‑mails are sent to all users with the "Administrator" ro
 | "Not allowed: this is the last active administrator" | protection against losing access | create a second administrator first |
 | Forgotten password | — | administrator → "Reset password" |
 
+## 16. SmartMet Server and SmartMet Alert
+
+Both FMI systems run on the portal server (`havo.tj`); the IT service installs, updates and restores them following the runbook (section 14). The panel administrator watches their state and the content of the warnings.
+
+### 16.1. SmartMet Server — weather forecast
+
+- **What it gives the portal**: forecasts for forecast points (cities, districts, station cities) — the "Weather" section, home page cards, station pages, the widget and the API; weather maps (temperature, precipitation, wind, cloud cover) in the "Weather · Forecast" mode on the home page and on station pages.
+- **Data**: the global GFS model (NOAA) at 0.25°, forecast up to 10 days. The server loads a new run 4 times a day — around 02:15, 08:15, 14:15 and 20:15 Dushanbe time; the portal fetches the forecast every 15 minutes.
+- **Check**: dashboard → "Integrations" → SmartMet — "up to date", model run time no older than 18 hours.
+- **If "stale" or "Model run … older than 18 h"**: the portal shows a "Forecast is out of date" note, and administrators receive a "SmartMet forecast is not updating" e‑mail. Tell the IT service (runbook 14.3: container checks and an extra GFS download). Until it is fixed, the portal shows the last loaded forecast.
+- Forecast points are added by the IT service (runbook 8.2); station cities are created automatically (section 4.1).
+
+### 16.2. SmartMet Alert — severe-weather warnings
+
+How a warning reaches the portal:
+
+1. A forecaster prepares the warning in the SmartMet Alert editor on the Agency workstation (event, danger level, areas, validity, texts in Tajik, Russian and English) and publishes an issue.
+2. The issue is saved on the server over a secure SFTP connection — the editor's network drive (set up by the IT service, runbook 14.5).
+3. The SmartMet Alert web module serves the latest issue as a CAP feed; the portal reads it every 5 minutes.
+4. Within 5 minutes the warning is visible on the home page, in the "Warnings" section, on the weather pages of the area, in the widget and the API, and in the panel under "CAP messages" (section 10).
+
+Working rules:
+
+- Each editor issue is the **complete list** of warnings in force. To change a warning, publish an update (Update) — the portal replaces the previous version. To withdraw it, send a cancellation (Cancel) or leave it out of the next issue: the portal removes it (status "cancelled" or "withdrawn").
+- An expired warning hides itself; messages with status Test and Exercise are visible only in the panel.
+- Fill in texts in all three languages; if a language is missing, the portal shows another language and the event type translation from the dictionary (section 10.1).
+- **Trial issues and training** go only to the test folder `smartalert-test` on the editor's network drive: staging (`staging.havo.tj`) sees them, `havo.tj` does not.
+- **Monitoring**: dashboard → "Integrations" → SmartMet Alert — "up to date". If the feed cannot be read, the portal shows a "data may be out of date" note next to the warnings, and after 3 failures in a row administrators receive an e‑mail — tell the IT service.
+
 ## Appendix A. Panel sections
 
 | Section | Address | Roles |
@@ -567,6 +621,7 @@ Failure and recovery e‑mails are sent to all users with the "Administrator" ro
 | Dashboard | `/admin` | all |
 | Stations | `/admin/stations` | administrator (edit), others — view |
 | Measurements: entry, import, browse, QC | `/admin/measurements`, `/entry`, `/import`, `/browse`, `/qc` | administrator, operator |
+| Quality control rules | `/admin/qc-rules` | administrator |
 | Scales and thresholds, limit values | `/admin/scales`, `/admin/scales/limits` | administrator |
 | Health advice | `/admin/health-advice` | administrator |
 | Alerts, events | `/admin/alerts`, `/admin/alerts/events` | administrator |
@@ -574,6 +629,7 @@ Failure and recovery e‑mails are sent to all users with the "Administrator" ro
 | News, categories | `/admin/news`, `/admin/news/categories` | administrator, editor; operator — view |
 | Media | `/admin/media` | administrator, editor |
 | Bulletins | `/admin/bulletins` | administrator, editor |
+| Eco-bulletin, eco-bulletin settings | `/admin/eco-bulletins`, `/admin/eco-bulletins/settings` | administrator, operator, editor |
 | Users | `/admin/users` | administrator |
 | Subscribers | `/admin/subscribers` | administrator |
 | Audit log | `/admin/audit` | administrator |

@@ -78,6 +78,13 @@
       "when": 1792734706642,
       "tag": "0010_drop_airquality_site_mentions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793633510009,
+      "tag": "0011_cap_withdrawn",
+      "breakpoints": true
     }
   ]
 }

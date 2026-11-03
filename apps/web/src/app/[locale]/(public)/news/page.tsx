@@ -10,6 +10,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 const PAGE_SIZE = 12;
@@ -21,7 +22,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "news" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/news",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 export default async function NewsPage({

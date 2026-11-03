@@ -52,7 +52,7 @@ function integrationTone(row: IntegrationRow): { tone: Tone; key: string } {
   if (row.disabled) return { tone: "muted", key: "disabled" };
   if (row.state.circuit.open) return { tone: "bad", key: "paused" };
   if (row.state.status === "failed") return { tone: "bad", key: "failed" };
-  if (row.stale) return { tone: "warn", key: "stale" };
+  if (row.stale || row.modelStale) return { tone: "warn", key: "stale" };
   if (!row.lastSuccessAt && row.state.status === "never") return { tone: "muted", key: "never" };
   return { tone: "ok", key: "ok" };
 }
@@ -308,6 +308,14 @@ export default async function AdminDashboardPage({
                         ? ` · ${t("integration.lastRun")}: ${rel(new Date(i.state.lastRunAt))}`
                         : ""}
                     </p>
+                    {i.modelStale && i.originTime ? (
+                      <p className="text-caption break-words text-destructive">
+                        {t("integration.modelStale", {
+                          time: utcTime(i.originTime),
+                          hours: i.modelMaxAgeHours ?? 18,
+                        })}
+                      </p>
+                    ) : null}
                     {i.state.lastError && i.state.status === "failed" ? (
                       <p className="text-caption break-words text-destructive">
                         {t("integration.failed", { count: i.state.consecutiveFailures })}:{" "}

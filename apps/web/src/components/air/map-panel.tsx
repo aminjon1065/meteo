@@ -1,6 +1,6 @@
 import { AQ_LEVELS_FIVE, type AqLevel } from "@meteo/core";
 import type { Locale } from "@meteo/i18n";
-import { AqDot } from "@meteo/ui/components/aq-badge";
+import { AqIcon } from "@meteo/ui/components/aq-badge";
 import { cn } from "@meteo/ui/lib/utils";
 import { getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -62,7 +62,7 @@ export async function MapPanel({
       >
         {shown.map((level) => (
           <li key={level} className={chip}>
-            <AqDot level={level} />
+            <AqIcon level={level} className="size-3.5" />
             {t(`${level}`)}
           </li>
         ))}

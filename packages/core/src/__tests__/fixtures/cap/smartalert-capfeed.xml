@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<?xml-stylesheet href="capatom.xsl" type="text/xsl"?>
+<!--
+  This atom/xml feed is an index to active advisories, watches and warnings
+  issued by the Агентии обуҳавошиносӣ (ТЕСТ). This index file
+  is not the complete Common Alerting Protocol (CAP) alert message. To obtain
+  the complete CAP alert, please follow the links for each entry in this index.
+  Not all information in the CAP message is contained in this index of active
+  alerts.
+-->
+
+<feed
+  xmlns="http://www.w3.org/2005/Atom"
+  xmlns:cap="urn:oasis:names:tc:emergency:cap:1.2"
+  xmlns:ha="http://www.alerting.net/namespace/index_1.0">
+
+  <link href="http://smartalert/capfeed.php" rel="self"/>
+  <rights> Copyright, Агентии обуҳавошиносӣ (ТЕСТ). Licensed under CC BY 4.0 </rights>
+  <id>http://smartalert/capfeed.php</id>
+  <generator>Агентии обуҳавошиносӣ (ТЕСТ)</generator>
+  <updated>2026-11-02T15:50:42+00:00</updated>
+  <author>
+     <name>Агентии обуҳавошиносӣ (ТЕСТ)</name>
+  </author>
+  <title>Current Watches, Warnings and Advisories Issued by Агентии обуҳавошиносӣ (ТЕСТ)</title>
+<entry>
+<id>http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0000_UPDATE_Wind.xml</id>
+<title>Шамоли сахт for DU issued November 2 at 3:36 PM UTC until December 31 at 6:59 PM UTC </title>
+<summary>Паёми санҷишӣ барои қабули модули M3. Ба он аҳамият надиҳед.</summary>
+<cap:effective></cap:effective>
+<cap:expires>2099-12-31T23:59:59+05:00</cap:expires>
+<cap:msgType>Update</cap:msgType>
+<updated>2026-11-02T20:36:08+05:00</updated>
+<link rel="related" type="application/cap+xml" href="http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0000_UPDATE_Wind.xml"/>
+</entry>
+<entry>
+<id>http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0001_CANCEL_Wind.xml</id>
+<title>Cancel: havo.test.20261102153606.3 </title>
+<summary>Тестовое предупреждение отменено.</summary>
+<cap:msgType>Cancel</cap:msgType>
+<updated>2026-11-02T20:36:10+05:00</updated>
+<link rel="related" type="application/cap+xml" href="http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0001_CANCEL_Wind.xml"/>
+</entry>
+
+</feed>

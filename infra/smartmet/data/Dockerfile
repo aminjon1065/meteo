@@ -7,6 +7,10 @@ FROM rockylinux/rockylinux:10
 
 # Утилиты unixtools из smartmet-base-international (utcrun, cleaner) — зафиксированный коммит.
 ARG FMI_BASE_COMMIT=92131aed2d334562ff0823decb0f1826b424f014
+# Пакеты FMI. По умолчанию — последние из smartmet-open; для воспроизводимой пересборки можно закрепить
+# версии, записанные при прошлой сборке (runbook §14.2: rpm -q … > /opt/smartmet/VERSIONS), например
+# --build-arg SMARTMET_PACKAGES="smartmet-qdtools-<версия> smartmet-data-gfs-<версия> eccodes-<версия>".
+ARG SMARTMET_PACKAGES="smartmet-qdtools smartmet-data-gfs eccodes"
 # supercronic — cron без root, журнал заданий в stdout контейнера.
 ARG SUPERCRONIC_VERSION=v0.2.49
 ARG SUPERCRONIC_SHA256=a53ae236602c7338aba3fbaff40bda6300eae3b9fedb8261eb06cfe3724430c1
@@ -22,7 +26,7 @@ RUN dnf -y install dnf-plugins-core \
  && dnf config-manager --set-enabled crb \
  && dnf -y install epel-release \
  && dnf config-manager --setopt="epel.exclude=eccodes*" --save \
- && dnf -y install smartmet-qdtools smartmet-data-gfs eccodes \
+ && dnf -y install ${SMARTMET_PACKAGES} \
       perl-interpreter perl-Time-Local lbzip2 rsync procps-ng \
  && dnf clean all \
  && rm -rf /var/cache/dnf

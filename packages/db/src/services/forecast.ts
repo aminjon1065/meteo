@@ -21,6 +21,8 @@ export interface ForecastLocationRow {
   /** Код области (DU, SU, KT, GB, RRP) — группировка городов в выборе на портале. */
   regionCode: string | null;
   regionName: I18nText | null;
+  /** city — населённый пункт, district — район, station — точка у станции вдали от городов (ensureStationCities). */
+  kind: (typeof s.forecastLocationKind.enumValues)[number];
   featured: boolean;
   sortOrder: number;
 }
@@ -38,6 +40,7 @@ export async function listForecastLocations(
       regionId: s.forecastLocations.regionId,
       regionCode: s.regions.code,
       regionName: s.regions.name,
+      kind: s.forecastLocations.kind,
       featured: s.forecastLocations.featured,
       sortOrder: s.forecastLocations.sortOrder,
     })

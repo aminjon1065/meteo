@@ -8,6 +8,7 @@ import {
   getCapSyncState,
   inArray,
   ingestCapAlert,
+  reconcileCapFeed,
   setCapSyncState,
 } from "@meteo/db";
 import { db } from "../db";
@@ -38,6 +39,16 @@ interface Sources {
 
 function isFileUrl(url: string): boolean {
   return url.startsWith("file:");
+}
+
+/** Лента‑список действующих сообщений (Atom по HTTP, как capfeed.php SmartAlert), а не архив файлов. */
+export function isSnapshotFeed(url: string, kind: string): boolean {
+  return kind === "atom" && /^https?:/i.test(url);
+}
+
+/** Общее начало адресов файлов ленты: каталог, где лежит capfeed.php (http://smartalert/). */
+export function feedBase(url: string): string {
+  return new URL(".", url).href;
 }
 
 /** Список источников: фид/каталог по HTTP или файл/каталог с фикстурами. */
@@ -245,6 +256,17 @@ async function syncCap(data: CapSyncData) {
   const attempted = todo.length + sources.inline.length;
   const status: CapSyncState["status"] =
     errors.length === 0 ? "ok" : errors.length >= attempted ? "failed" : "partial";
+
+  // Atom‑лента SmartAlert — список действующих предупреждений последнего выпуска редактора:
+  // пропавшие из неё снимаются с публикации, вернувшиеся — публикуются снова (Cancel не обязателен).
+  let withdrawn = 0;
+  let restored = 0;
+  if (isSnapshotFeed(url, sources.kind) && status !== "failed") {
+    const r = await reconcileCapFeed(db, { feedBase: feedBase(url), presentUrls: sources.links });
+    withdrawn = r.withdrawn;
+    restored = r.restored;
+    if (withdrawn || restored) logger.info({ withdrawn, restored }, "cap feed reconciled");
+  }
   await setCapSyncState(db, {
     at,
     status,
@@ -254,6 +276,8 @@ async function syncCap(data: CapSyncData) {
     fetched,
     inserted,
     superseded,
+    withdrawn,
+    restored,
     errors: errors.slice(0, 10),
   });
   const summary = {
@@ -263,6 +287,8 @@ async function syncCap(data: CapSyncData) {
     fetched,
     inserted,
     superseded,
+    withdrawn,
+    restored,
     failed: errors.length,
     status,
   };

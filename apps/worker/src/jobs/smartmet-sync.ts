@@ -20,6 +20,7 @@ import { db } from "../db";
 import { env } from "../env";
 import { withLock } from "../lock";
 import { logger } from "../logger";
+import { checkModelFreshness } from "../model-freshness";
 import { fetchWithRetry, runIntegration } from "../resilience";
 import type { JobDefinition } from "./types";
 
@@ -240,7 +241,15 @@ async function syncSmartmet(data: SmartmetSyncData) {
     };
     if (status === "failed")
       throw new Error(`SmartMet: все точки завершились ошибкой (${errors[0]?.error})`);
-    logger.info(summary, "smartmet synced");
-    return summary;
+    // Загрузка GFS могла остановиться, а сервер — отдавать старый прогон: проверяем его возраст.
+    const modelStale = await checkModelFreshness(originTime, now).catch((error) => {
+      logger.warn(
+        { err: error instanceof Error ? error.message : String(error) },
+        "model freshness check failed",
+      );
+      return false;
+    });
+    logger.info({ ...summary, modelStale }, "smartmet synced");
+    return { ...summary, modelStale };
   }
 }

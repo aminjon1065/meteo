@@ -1,6 +1,6 @@
 import { AQ_LEVELS_FIVE, type AqLevelOrNone } from "@meteo/core";
 import type { Locale } from "@meteo/i18n";
-import { AQ_DOT_CLASS, AqBadge, type AqLevelValue } from "@meteo/ui/components/aq-badge";
+import { AQ_DOT_CLASS, AqBadge, AqIcon, type AqLevelValue } from "@meteo/ui/components/aq-badge";
 import { cn } from "@meteo/ui/lib/utils";
 import { ChevronRightIcon } from "lucide-react";
 import { getFormatter, getTranslations } from "next-intl/server";
@@ -22,9 +22,10 @@ export function shortTime(format: Formatter, date: Date, now = new Date()): stri
 }
 
 /**
- * Шкала уровней — она же легенда цветов карты: сегменты всех уровней публичной шкалы, текущий
- * выделен (выше, с обводкой), подписи крайних уровней под шкалой, полный список — для экранных
- * дикторов. `level` 0 — ничего не выделено (легенда прогноза, город без данных).
+ * Шкала уровней — она же легенда цветов карты: сегменты всех уровней публичной шкалы со значками
+ * уровней (различимы без цвета), текущий выделен (выше, с обводкой, крупный значок и подпись).
+ * `level` 0 — легенда (прогноз SILAM, город без данных): подписаны все уровни; в карточке города —
+ * крайние и текущий. Полный список — для экранных дикторов.
  */
 export async function LevelGauge({
   level = 0,
@@ -39,28 +40,51 @@ export async function LevelGauge({
   const shown = (levels?.length ? levels : AQ_LEVELS_FIVE) as readonly AqLevelValue[];
   const first = shown[0] ?? 1;
   const last = shown[shown.length - 1] ?? 5;
+  const legend = level === 0;
   return (
     <div className={className} data-testid="level-gauge">
-      <div aria-hidden="true" className="flex h-3 items-center gap-0.5">
-        {shown.map((l) => (
-          <span
-            key={l}
-            title={tl(`${l}` as "1")}
-            className={cn(
-              "block flex-1 rounded-full",
-              AQ_DOT_CLASS[l],
-              l === level ? "h-3 ring-2 ring-card ring-offset-0" : "h-1.5",
-              level > 0 && l !== level && "opacity-45",
-            )}
-          />
-        ))}
-      </div>
       <div
         aria-hidden="true"
-        className="mt-1 flex justify-between gap-2 text-[11px] leading-tight text-muted-foreground"
+        className="grid items-start gap-x-0.5"
+        style={{ gridTemplateColumns: `repeat(${shown.length}, minmax(0, 1fr))` }}
       >
-        <span>{tl(`${first}` as "1")}</span>
-        <span className="text-right">{tl(`${last}` as "1")}</span>
+        {shown.map((l) => {
+          const current = l === level;
+          const dim = level > 0 && !current && "opacity-45";
+          const labelled = legend || current || l === first || l === last;
+          return (
+            <div key={l} title={tl(`${l}` as "1")} className="flex min-w-0 flex-col items-center">
+              <span className="flex h-3 w-full items-center">
+                <span
+                  className={cn(
+                    "block w-full rounded-full",
+                    AQ_DOT_CLASS[l],
+                    current ? "h-3 ring-2 ring-card ring-offset-0" : "h-1.5",
+                    dim,
+                  )}
+                />
+              </span>
+              <AqIcon
+                level={l}
+                className={cn(
+                  "mt-1",
+                  current ? "size-5" : "size-3.5",
+                  level > 0 && !current && "opacity-60",
+                )}
+              />
+              {labelled ? (
+                <span
+                  className={cn(
+                    "mt-0.5 w-full text-center text-[10.5px] leading-tight break-words hyphens-auto text-muted-foreground",
+                    current && "font-semibold text-foreground",
+                  )}
+                >
+                  {tl(`${l}` as "1")}
+                </span>
+              ) : null}
+            </div>
+          );
+        })}
       </div>
       <ul className="sr-only" aria-label={tc("legend")}>
         {shown.map((l) => (
@@ -158,15 +182,20 @@ export async function CityAirCard({
   );
 }
 
-/** Карточка «Погода сейчас»: значок, температура, описание, макс/мин за сутки, ссылка на прогноз. */
+/**
+ * Карточка «Погода сейчас»: значок, температура, описание, макс/мин за сутки, ссылка на прогноз.
+ * `stale` — прогноз SmartMet давно не обновлялся (как на /weather): показывается пометка.
+ */
 export async function CityWeatherCard({
   cityName,
   overview,
   locale,
+  stale = false,
 }: {
   cityName: string;
   overview: LocationOverview | null;
   locale: Locale;
+  stale?: boolean;
 }) {
   const [t, tw, tsym, format] = await Promise.all([
     getTranslations("map"),
@@ -211,6 +240,14 @@ export async function CityWeatherCard({
       {maxMin || wind ? (
         <p className="text-sm text-muted-foreground">
           {[maxMin, wind].filter(Boolean).join(" · ")}
+        </p>
+      ) : null}
+      {stale && (temp || label) ? (
+        <p
+          className="w-fit rounded-md border border-l-4 border-l-status-stale bg-background px-2.5 py-1 text-caption"
+          data-testid="weather-stale"
+        >
+          {tw("stale")}
         </p>
       ) : null}
       {slug ? (

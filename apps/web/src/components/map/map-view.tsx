@@ -6,8 +6,11 @@ import { NativeSelect, NativeSelectOption } from "@meteo/ui/components/native-se
 import { cn } from "@meteo/ui/lib/utils";
 import type { FeatureCollection, Point } from "geojson";
 import {
+  ActivityIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
+  CircleCheckIcon,
+  CircleHelpIcon,
   PauseIcon,
   PlayIcon,
   TriangleAlertIcon,
@@ -55,15 +58,43 @@ export interface HomeStation extends StationFeatureProps {
   lat: number;
 }
 
+/** Строка легенды уровней опасности: только уровни, которые есть среди показанных предупреждений. */
+export interface WarningLegendItem {
+  severity: string;
+  /** Цифра уровня 1–4 (различает уровни без цвета). */
+  number: string;
+  label: string;
+  color: string;
+  foreground: string;
+}
+
 export interface WarningsSummary {
-  /** Число действующих предупреждений; 0 — ни слоя, ни плашки. */
+  /** Число действующих предупреждений. */
   count: number;
-  /** GeoJSON действующих предупреждений. */
+  /** Ожидаемые: начнутся в ближайшие сутки (пунктир на карте). */
+  upcoming: number;
+  /** GeoJSON действующих и ожидаемых в ближайшие сутки предупреждений. */
   url: string;
   /** Раздел предупреждений (с локалью). */
   href: string;
-  /** Цвет самого серьёзного действующего предупреждения. */
+  /** Цвет самого серьёзного предупреждения (действующего, иначе ожидаемого). */
   color: string | null;
+  /**
+   * Лента CAP давно не обновлялась или с ошибкой: «предупреждений нет» нельзя показывать как
+   * отбой — плашка говорит, что данные могут быть устаревшими.
+   */
+  stale: boolean;
+  legend: WarningLegendItem[];
+  /** Подписи уровней опасности для попапа (по CAP severity). */
+  severityLabels: Record<string, string>;
+  /** Открыто по ссылке /?layer=warnings — карта показывает области предупреждений. */
+  focus: boolean;
+}
+
+/** Действующие превышения порогов (уведомление портала, FR1.5): готовая строка и ссылка. */
+export interface ExceedancesSummary {
+  text: string;
+  href: string;
 }
 
 /** Тема карты: качество воздуха (станции) или погода (города). */
@@ -84,13 +115,17 @@ export interface MapViewProps {
   /** Слои погоды SmartMet (WMS). */
   weather: WeatherCatalog;
   warnings: WarningsSummary;
+  /** Превышения порогов на станциях; null — нет. */
+  exceedances: ExceedancesSummary | null;
+  /** Прогноз SILAM старше суток с запасом (нового прогона нет). */
+  silamStale: boolean;
   stations: HomeStation[];
   /** Погода в городах (точки прогноза SmartMet). */
   cities: CityMarker[];
   /** Город, выбранный в шапке: его маркер выделен, при смене карта перелетает к нему. */
   selectedCity: string | null;
   stationHrefPrefix: string;
-  /** Ссылка из попапа области на список станций (с локалью). */
+  /** Ссылка из попапа области на список станций (с локалью); она же — текстовая альтернатива карте. */
   regionsHref: string;
   /** Страница карт SILAM от FMI для Таджикистана (с локалью). */
   silamFmiHref: string;
@@ -123,6 +158,25 @@ export interface MapViewProps {
     maxInDomain: string;
     warningsActive: string;
     warningsOpen: string;
+    /** «Ожидается N предупреждений» — когда действующих нет. */
+    warningsUpcoming: string;
+    /** «ещё N ожидается» — после числа действующих. */
+    warningsUpcomingMore: string;
+    warningsNone: string;
+    warningsStale: string;
+    warningsStaleShort: string;
+    /** «Ожидается» — пометка в попапе. */
+    warningUpcoming: string;
+    warningsLegend: string;
+    warningsLegendUpcoming: string;
+    /** Доступное имя области карты. */
+    mapRegion: string;
+    /** Скрытая ссылка для экранных дикторов: список станций без карты. */
+    stationList: string;
+    weatherForecastNone: string;
+    silamStale: string;
+    /** Подписи встроенных элементов MapLibre (map-ui-strings.ts). */
+    mapUi: Record<string, string>;
     unsupported: string;
     weatherParam: string;
     weatherRun: string;
@@ -222,6 +276,8 @@ export function MapView({
   catalog,
   weather,
   warnings,
+  exceedances,
+  silamStale,
   stations,
   cities,
   selectedCity,
@@ -497,6 +553,12 @@ export function MapView({
       <p className="truncate text-[11px] leading-snug text-muted-foreground md:whitespace-normal">
         {topic === "air" ? silamMeta : weatherMeta}
       </p>
+      {topic === "air" && silamStale ? (
+        <p className="flex items-center gap-1.5 text-[11px] leading-snug font-medium">
+          <span className="size-1.5 shrink-0 rounded-full bg-status-stale" aria-hidden="true" />
+          {labels.silamStale}
+        </p>
+      ) : null}
       {topic === "air" ? (
         <a
           href={silamFmiHref}
@@ -508,22 +570,106 @@ export function MapView({
     </section>
   );
 
-  const warningsChip =
-    warnings.count > 0 ? (
-      <a
-        href={warnings.href}
-        data-testid="warnings-chip"
-        className="pointer-events-auto inline-flex h-9 items-center gap-2 rounded-full border bg-card/95 px-3.5 text-sm font-semibold text-foreground shadow-md backdrop-blur hover:bg-card"
-      >
+  /** Предупреждения на карте: действующие и ожидаемые в ближайшие сутки. */
+  const warningsShown = warnings.count + warnings.upcoming;
+  // Плашка видна всегда: «предупреждений нет» — тоже ответ, а при сбое ленты CAP — оговорка,
+  // чтобы отсутствие данных не читалось как отбой.
+  const warningsState =
+    warnings.count > 0
+      ? "active"
+      : warnings.upcoming > 0
+        ? "upcoming"
+        : warnings.stale
+          ? "stale"
+          : "none";
+  const warningsNote = [
+    warnings.count > 0 && warnings.upcoming > 0 ? labels.warningsUpcomingMore : null,
+    warningsShown > 0 && warnings.stale ? labels.warningsStaleShort : null,
+  ].filter(Boolean);
+  const chipClass =
+    "pointer-events-auto inline-flex min-h-9 max-w-full items-center gap-2 rounded-full border bg-card/95 px-3.5 py-1 text-sm shadow-md backdrop-blur hover:bg-card";
+  const warningsChip = (
+    <a
+      href={warnings.href}
+      data-testid="warnings-chip"
+      data-state={warningsState}
+      className={cn(
+        chipClass,
+        warningsState === "none"
+          ? "font-medium text-muted-foreground"
+          : "font-semibold text-foreground",
+      )}
+    >
+      {warningsState === "none" ? (
+        <CircleCheckIcon className="size-4 shrink-0" aria-hidden="true" />
+      ) : warningsState === "stale" ? (
+        <CircleHelpIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      ) : (
         <TriangleAlertIcon
-          className="size-4"
+          className="size-4 shrink-0"
           style={{ color: warnings.color ?? undefined }}
           aria-hidden="true"
         />
-        {labels.warningsActive}
-        <ChevronRightIcon className="size-4 text-muted-foreground" aria-hidden="true" />
-      </a>
+      )}
+      <span className="min-w-0">
+        {warningsState === "active"
+          ? labels.warningsActive
+          : warningsState === "upcoming"
+            ? labels.warningsUpcoming
+            : warningsState === "stale"
+              ? labels.warningsStale
+              : labels.warningsNone}
+        {warningsNote.length > 0 ? (
+          <span className="font-normal text-muted-foreground"> · {warningsNote.join(" · ")}</span>
+        ) : null}
+      </span>
+      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    </a>
+  );
+  const exceedancesChip = exceedances ? (
+    <a
+      href={exceedances.href}
+      data-testid="exceedances-chip"
+      className={cn(chipClass, "font-semibold")}
+    >
+      <ActivityIcon className="size-4 shrink-0 text-aq-3" aria-hidden="true" />
+      <span className="min-w-0">{exceedances.text}</span>
+      <ChevronRightIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+    </a>
+  ) : null;
+  /** Легенда уровней опасности — только когда предупреждения на карте (на широком экране). */
+  const warningsLegend =
+    warningsShown > 0 && warnings.legend.length > 0 ? (
+      <div
+        className="pointer-events-auto flex max-w-full flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border bg-card/95 px-3 py-1.5 text-xs shadow-md backdrop-blur"
+        data-testid="warnings-legend"
+      >
+        <span className="font-semibold">{labels.warningsLegend}</span>
+        {warnings.legend.map((l) => (
+          <span key={l.severity} className="inline-flex items-center gap-1.5">
+            <span
+              className="inline-flex size-4 items-center justify-center rounded-full text-[10px] leading-none font-bold"
+              style={{ background: l.color, color: l.foreground }}
+              aria-hidden="true"
+            >
+              {l.number}
+            </span>
+            {l.label}
+          </span>
+        ))}
+        {warnings.upcoming > 0 ? (
+          <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+            <span
+              className="inline-block h-0 w-4 border-t-2 border-dashed border-current"
+              aria-hidden="true"
+            />
+            {labels.warningsLegendUpcoming}
+          </span>
+        ) : null}
+      </div>
     ) : null;
+  /** Карты прогноза темы недоступны (SmartMet WMS не отвечает): короткая пометка вместо пустоты. */
+  const forecastNote = topic === "weather" && !weatherAvailable ? labels.weatherForecastNone : null;
 
   const card = forecastOn ? forecastPanel : topic === "air" ? cards.air : cards.weather;
 
@@ -539,9 +685,13 @@ export function MapView({
         stationsVisible={topic === "air" && !forecastOn}
         overlay={overlay}
         weather={weatherOverlay}
-        warningsUrl={warnings.count > 0 ? warnings.url : null}
+        warningsUrl={warningsShown > 0 ? warnings.url : null}
         warningsHref={warnings.href}
         warningsOpenLabel={labels.warningsOpen}
+        warningLabels={{ severity: warnings.severityLabels, upcoming: labels.warningUpcoming }}
+        fitWarnings={warnings.focus}
+        uiStrings={labels.mapUi}
+        ariaLabel={labels.mapRegion}
         cities={topic === "weather" && !forecastOn ? cities : null}
         selectedCity={selectedCity}
         cityOpenLabel={labels.cityOpen}
@@ -555,6 +705,13 @@ export function MapView({
       />
 
       <h1 className="sr-only">{labels.title}</h1>
+      {/* Текстовая альтернатива карте: те же станции списком (WCAG 1.1.1). */}
+      <a
+        href={regionsHref}
+        className="sr-only focus:not-sr-only focus:absolute focus:top-3 focus:right-3 focus:z-20 focus:rounded-md focus:bg-card focus:px-3 focus:py-2 focus:text-sm focus:font-semibold focus:shadow-md"
+      >
+        {labels.stationList}
+      </a>
 
       {/* Колонка поверх карты: переключатели темы и срока, под ними карточка. На телефоне колонка
           во всю высоту — карточка прижата к низу (над атрибуцией OSM), справа сверху остаётся
@@ -585,7 +742,15 @@ export function MapView({
             />
           ) : null}
         </div>
-        {warningsChip ? <div className="md:hidden">{warningsChip}</div> : null}
+        <div className="flex flex-wrap items-start gap-1.5 pr-12 md:hidden">
+          {warningsChip}
+          {exceedancesChip}
+        </div>
+        {forecastNote ? (
+          <p className="pointer-events-auto w-fit max-w-full rounded-lg border bg-card/95 px-3 py-1.5 text-xs text-muted-foreground shadow-md backdrop-blur">
+            {forecastNote}
+          </p>
+        ) : null}
         <div className="flex-1 md:hidden" />
         {card ? (
           <div className="pointer-events-auto max-h-[55%] min-h-0 shrink-0 overflow-y-auto rounded-xl border bg-card/95 p-3.5 shadow-md backdrop-blur md:max-h-none md:shrink md:p-4">
@@ -603,14 +768,16 @@ export function MapView({
         className="absolute top-[52px] right-3 z-10 md:top-auto md:right-auto md:bottom-8 md:left-3"
       />
 
-      {warningsChip ? (
-        <div
-          className="pointer-events-none absolute top-3 z-10 hidden -translate-x-1/2 md:block"
-          style={{ left: `calc(50% + ${DESKTOP_INSET_LEFT / 2}px)` }}
-        >
+      <div
+        className="pointer-events-none absolute top-3 z-10 hidden w-max max-w-[calc(100%-30rem)] -translate-x-1/2 flex-col items-center gap-1.5 md:flex"
+        style={{ left: `calc(50% + ${DESKTOP_INSET_LEFT / 2}px)` }}
+      >
+        <div className="flex flex-wrap justify-center gap-2">
           {warningsChip}
+          {exceedancesChip}
         </div>
-      ) : null}
+        {warningsLegend}
+      </div>
     </div>
   );
 }

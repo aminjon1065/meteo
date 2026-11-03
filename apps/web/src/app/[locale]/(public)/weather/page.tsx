@@ -8,6 +8,7 @@ import { CityWeatherList, type CityWeatherRow } from "@/components/weather/city-
 import { getSelectedCitySlug } from "@/lib/city";
 import { loadStationSummaries, summarizeCityAir } from "@/lib/city-air";
 import { getDb } from "@/lib/db";
+import { pageMetadata } from "@/lib/seo";
 import { loadWeatherOverview, modelLabel } from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +21,12 @@ export async function generateMetadata({
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "weather" });
   const lastRun = await getLastForecastRun(getDb(), "smartmet").catch(() => null);
-  return { title: t("title"), description: t("intro", { model: modelLabel(lastRun?.producer) }) };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/weather",
+    title: t("title"),
+    description: t("intro", { model: modelLabel(lastRun?.producer) }),
+  });
 }
 
 /** Погода по городам списком: крупные города, затем остальные точки; выбранный город — первым. */

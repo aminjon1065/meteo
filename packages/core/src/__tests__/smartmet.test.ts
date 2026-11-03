@@ -2,10 +2,12 @@ import { describe, expect, it } from "vitest";
 import {
   buildHourlyUrl,
   deriveSymbol,
+  isModelRunStale,
   nightVariant,
   parseDaily,
   parseHourly,
   parseSmartmetTime,
+  SMARTMET_MAX_RUN_AGE_HOURS,
   windFromComponents,
 } from "../smartmet";
 import { symbolKey, symbolPath } from "../weather-symbols";
@@ -101,5 +103,18 @@ describe("smartmet client", () => {
     expect(symbolKey(138)).toBe("rain");
     expect(symbolPath(104, "dark")).toBe("/weather-symbols/dark/104.svg");
     expect(symbolPath(999)).toBeNull();
+  });
+});
+
+describe("isModelRunStale", () => {
+  const now = new Date("2026-11-02T12:00:00Z");
+  it("прогон моложе порога — свежий, старше — устарел", () => {
+    expect(isModelRunStale(new Date("2026-11-02T00:00:00Z"), now)).toBe(false);
+    expect(isModelRunStale(new Date("2026-11-01T17:59:00Z"), now)).toBe(true);
+    expect(SMARTMET_MAX_RUN_AGE_HOURS).toBe(18);
+  });
+  it("порог настраивается, неизвестное время не считается устаревшим", () => {
+    expect(isModelRunStale(new Date("2026-11-02T05:00:00Z"), now, 6)).toBe(true);
+    expect(isModelRunStale(null, now)).toBe(false);
   });
 });

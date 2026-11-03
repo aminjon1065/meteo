@@ -1,0 +1,65 @@
+name: Security (weekly)
+
+# Еженедельная проверка без выкатки: новые уязвимости появляются и без изменений в коде.
+#  - зависимости и конфигурация — как в CI (high/critical блокируют: письмо о провале прогона);
+#  - сторонние образы, которые работают на сервере (FMI SmartMet, Caddy, TimescaleDB, Redis), — отчёт
+#    без провала: исправляются обновлением тега в compose (runbook §2 и §14.2).
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deps:
+    name: pnpm audit, Trivy (fs, config)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 12.5.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: pnpm audit (production dependencies)
+        run: pnpm audit --prod --audit-level=high
+      - name: Trivy — lockfile и конфигурация
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,misconfig,secret
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          skip-dirs: node_modules,apps/web/.next
+
+  third-party-images:
+    name: Trivy — ${{ matrix.image }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        image:
+          - fmidev/smartmetserver:26.08.01
+          - fmidev/smartmetalert:26.10.21
+          - caddy:2-alpine
+          - timescale/timescaledb-ha:pg17
+          - redis:7-alpine
+    steps:
+      - name: Trivy (отчёт, без провала)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: ${{ matrix.image }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: "0"
+          format: table

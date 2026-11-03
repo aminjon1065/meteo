@@ -128,6 +128,7 @@
     "dashboard": "Dashboard",
     "stations": "Stations",
     "measurements": "Measurements",
+    "qcRules": "Quality control rules",
     "scales": "Scales and thresholds",
     "healthAdvice": "Health advice",
     "content": "Content",
@@ -203,6 +204,7 @@
       "disabled": "source not configured",
       "never": "never ran",
       "lastSuccess": "Last successful load",
+      "modelStale": "Model run {time} UTC is older than {hours} h: GFS loading on the SmartMet server has stopped (runbook §14.3).",
       "lastRun": "last run",
       "capErrors": "errors in the last run: {count}"
     },
@@ -299,7 +301,8 @@
       "date": "Invalid date",
       "validation": "Check the form fields",
       "notFound": "Station not found",
-      "insert": "Could not save"
+      "insert": "Could not save",
+      "regionMismatch": "The district does not belong to the selected region"
     },
     "apiKey": {
       "title": "Station API key",
@@ -465,7 +468,36 @@
       "gray": "Grey",
       "relief": "Terrain",
       "satellite": "Satellite"
-    }
+    },
+    "mapRegion": "Map: air quality and weather",
+    "stationList": "Station list without the map",
+    "warningsUpcoming": "{count, plural, one {# warning expected} other {# warnings expected}}",
+    "warningsUpcomingMore": "{count, plural, one {# more expected} other {# more expected}}",
+    "warningsNone": "No warnings",
+    "warningsStale": "No recent warning data",
+    "warningsStaleShort": "data may be out of date",
+    "warningUpcoming": "Expected",
+    "warningsLegendUpcoming": "Dashed outline — expected",
+    "weatherForecastNone": "Weather forecast maps are unavailable right now",
+    "dataStale": "Data are out of date",
+    "controls": {
+      "mapTitle": "Map",
+      "zoomIn": "Zoom in",
+      "zoomOut": "Zoom out",
+      "resetBearing": "Reset bearing to north",
+      "findMyLocation": "Find my location",
+      "locationNotAvailable": "Location not available",
+      "toggleAttribution": "Map attribution",
+      "fullscreenEnter": "Enter fullscreen",
+      "fullscreenExit": "Exit fullscreen",
+      "popupClose": "Close",
+      "meters": "m",
+      "kilometers": "km",
+      "cooperativeWindows": "Use Ctrl + scroll to zoom the map",
+      "cooperativeMac": "Use ⌘ + scroll to zoom the map",
+      "cooperativeMobile": "Use two fingers to move the map"
+    },
+    "exceedancesMore": "{count, plural, one {and # more pollutant} other {and # more pollutants}}"
   },
   "air": {
     "title": "Air quality",
@@ -516,6 +548,7 @@
     "staleSince": "Data is stale: last updated {time}.",
     "recommendations": "Recommendations",
     "allGroups": "For all groups",
+    "vulnerableGroups": "For vulnerable groups",
     "pollutantsTitle": "Pollutants",
     "pollutantsHint": "hourly means · last 24 hours",
     "dayRange": "24 h: min {min} · max {max}",
@@ -668,7 +701,8 @@
       "24h": "24 hours",
       "7d": "7 days",
       "30d": "30 days",
-      "1y": "Year"
+      "1y": "Year",
+      "all": "All time"
     },
     "pollutant": "Pollutant",
     "downloadCsv": "Download CSV",
@@ -676,6 +710,18 @@
     "loading": "Loading…",
     "hourly": "hourly means",
     "daily": "daily means, local time",
+    "monthly": "monthly means, local time",
+    "aggregation": "Averaging",
+    "aggHour": "Hourly",
+    "aggDay": "Daily",
+    "aggMonth": "Monthly",
+    "downloadRaw": "Original values with quality flags (CSV)",
+    "dataTable": "Data table",
+    "colTime": "Time",
+    "colMean": "Mean",
+    "colMin": "Min",
+    "colMax": "Max",
+    "colSamples": "Values",
     "dominant": "Dominant pollutant",
     "stale": "data is stale",
     "scale": "Scale",
@@ -738,6 +784,13 @@
       "readOnSite": "Read on the portal",
       "footer": "You receive this e-mail because you subscribed to the Meteoportal bulletin."
     },
+    "modelStale": {
+      "staleSubject": "SmartMet forecast is not updating: model run {origin} UTC",
+      "staleBody": "The latest {producer} model run on the SmartMet server is {origin} UTC, older than {hours} h. Sync works, but no new runs arrive: the portal shows an outdated forecast.",
+      "howTo": "Check data loading on the server: docker compose ps and the data container log in /opt/smartmet, files in /smartmet/data/gfs (runbook §14.3).",
+      "freshSubject": "SmartMet forecast is updating again",
+      "freshBody": "A fresh {producer} model run is available: {origin} UTC."
+    },
     "integration": {
       "names": {
         "smartmet": "SmartMet (weather forecast)",
@@ -777,6 +830,7 @@
   "qc": {
     "title": "Quality control",
     "subtitle": "{count, plural, one {# value} other {# values}} awaiting a decision",
+    "subtitleValid": "{count, plural, one {# value has} other {# values have}} passed QC — find a wrong one and correct it (the original value is kept)",
     "context": "Before → after",
     "reason": "Reason",
     "actions": "Actions",
@@ -785,7 +839,8 @@
       "suspectAndInvalid": "Suspect and invalid",
       "resolved": "Decision",
       "pending": "Awaiting decision",
-      "resolvedOnly": "Already resolved"
+      "resolvedOnly": "Already resolved",
+      "validToCorrect": "Valid (to correct)"
     },
     "reasons": {
       "range": "Out of range",
@@ -1141,7 +1196,8 @@
     "windShort": "wind {value} m/s",
     "humidityShort": "humidity {value} %",
     "noForecastShort": "no forecast yet",
-    "breadcrumbs": "Breadcrumbs"
+    "breadcrumbs": "Breadcrumbs",
+    "embedStale": "Forecast is out of date: last updated {time}"
   },
   "weatherSymbols": {
     "clear": "Clear",
@@ -1268,13 +1324,16 @@
     "bannerTitle": "{count, plural, one {# warning in force} other {# warnings in force}}",
     "forLocation": "Warnings for this area",
     "noneForLocation": "No warnings for this area",
-    "colorHint": "Colour matches the danger level: yellow — minor, orange — moderate, red — severe and extreme",
+    "colorHint": "Colour and number show the danger level: 1 — minor (yellow), 2 — moderate (orange), 3 — severe and 4 — extreme (red)",
     "sourceNote": "Warnings are issued by the Agency for Hydrometeorology in CAP format (SmartMet Alert)",
     "dayNav": "Choose a day",
     "mapCount": "{count, plural, one {# active} other {# active}}",
     "xml": "CAP XML",
     "summaryActive": "{count, plural, one {# warning is} other {# warnings are}} currently in force from the Agency for Hydrometeorology. Below: by region for the coming days.",
-    "summaryNone": "No storm warnings are in force. The table shows the coming days by region; warnings are issued by the Agency for Hydrometeorology."
+    "summaryNone": "No storm warnings are in force. The table shows the coming days by region; warnings are issued by the Agency for Hydrometeorology.",
+    "showOnMap": "Show on the map",
+    "freshnessNote": "The warning feed has not been updated for a while, so this information may be incomplete. Last update: {time}.",
+    "freshnessNoteNever": "The warning feed is unavailable right now, so this information may be incomplete."
   },
   "capAdmin": {
     "title": "CAP messages",
@@ -1306,6 +1365,8 @@
     },
     "superseded": "superseded",
     "cancelled": "cancelled",
+    "withdrawn": "withdrawn",
+    "withdrawnAt": "Withdrawn (missing from the latest SmartAlert issue)",
     "published": "published",
     "notPublished": "not published",
     "expired": "expired",
@@ -1946,10 +2007,11 @@
       },
       "stationMeasurements": {
         "summary": "Station measurement series",
-        "description": "Hourly (24h, 7d) or daily local-time (30d, 1y) means of valid measurements with min/max and count. CSV with format=csv. Values and the unit field use the display unit chosen by the Agency (µg/m³ or mg/m³).",
+        "description": "Hourly, daily or monthly (days and months by local time) means of valid measurements with min/max, count and the number of excluded values. CSV with format=csv; the qc_flag column gives the quality of each point. agg=raw returns every value with its quality-control flag (CSV only, up to 30 days). Values and the unit field use the display unit chosen by the Agency (µg/m³ or mg/m³).",
         "params": {
           "slug": "Station address (the slug field from the station list)",
-          "range": "Period: 24h, 7d, 30d or 1y",
+          "range": "Period: 24h, 7d, 30d, 1y or all (whole history, up to 10 years)",
+          "agg": "Aggregation: 24h — hour; 7d — hour or day; 30d — day or hour; 1y — day or month; all — month or day; raw — original values with their quality flag (CSV only)",
           "pollutant": "Pollutant code (PM25, PM10, NO2, SO2, CO, O3, NO, CH2O, C6H5OH, HF, TSP, CO2, TVOC); all pollutants when omitted",
           "format": "json or csv"
         }
@@ -1964,6 +2026,10 @@
       "exceedances": {
         "summary": "Active threshold exceedances",
         "description": "Open exceedance events according to the Agency's alert rules (portal channel)."
+      },
+      "forecastLocations": {
+        "summary": "Weather forecast locations",
+        "description": "Cities, districts and points next to stations that have a SmartMet forecast: slug for /api/v1/forecast/{slug} and the /embed/forecast widget, names and coordinates."
       },
       "forecast": {
         "summary": "Weather forecast for a location",
@@ -2265,7 +2331,7 @@
     "about": {
       "heading": "What these maps are",
       "p1": "SILAM (System for Integrated modeLling of Atmospheric coMposition) is an atmospheric composition model developed by the Finnish Meteorological Institute. It computes how substances from traffic, industry, stoves, fires and dust storms are carried by wind, mixed, chemically transformed and deposited.",
-      "p2": "For Tajikistan, FMI computes a 48-hour forecast every day. The run starts at 00 UTC of the previous day, so it takes in information on actual emissions over the past day. New maps appear at about 07:00 Dushanbe time and cover the period up to 05:00 the next day.",
+      "p2": "For Tajikistan, FMI computes a 48-hour forecast every day. The run usually starts at 00 UTC of the previous day, so it takes in information on actual emissions over the past day. New maps appear at about 07:00 Dushanbe time and cover the period up to 05:00 the next day.",
       "p3": "The model shows background pollution over a large area with a grid of tens of kilometres. It is a calculation, not a measurement: next to a busy street or a plant the air may be worse. For measured data, see the <link>monitoring stations</link> page."
     },
     "read": {
@@ -2295,6 +2361,60 @@
       "heading": "Source and limitations",
       "p1": "The maps are computed and published by FMI at <link>silam.fmi.fi</link> under the FINTAJ project; the portal shows them unchanged and updates them after FMI does.",
       "p2": "FMI notes that model products are created for scientific use and their accuracy and completeness are not guaranteed. The official air quality assessment is based on the Agency's monitoring stations; hazardous phenomena are in the <link>Warnings</link> section."
+    }
+  },
+  "seo": {
+    "homeDescription": "Air quality and weather map of Tajikistan: monitoring stations, weather and air quality forecasts, warnings of the Agency for Hydrometeorology.",
+    "stationDescription": "Air quality at {station}: current level, pollutant concentrations, charts for a day, week, month and year, CSV download.",
+    "cityWeatherDescription": "Weather forecast — {city}: now, hourly for 24 hours and for 10 days — temperature, precipitation, wind; air quality forecast."
+  },
+  "errorPage": {
+    "title": "Something went wrong",
+    "description": "The page failed to load because of a temporary server error. Please try again in a minute.",
+    "retry": "Try again",
+    "backHome": "Back to home",
+    "code": "Error code: {digest}"
+  },
+  "qcRules": {
+    "title": "Quality control rules",
+    "subtitle": "Automatic checks of measurements: allowed ranges per pollutant and batch checks of series. Operator decisions in the QC queue are never changed by the rules.",
+    "enabled": "Enabled",
+    "save": "Save",
+    "saved": "Quality control rules saved",
+    "ranges": {
+      "title": "Allowed ranges",
+      "hint": "Values outside the range on manual entry, import and API intake are flagged invalid and excluded from the index. The unit is the pollutant's storage unit.",
+      "pollutant": "Pollutant",
+      "min": "Minimum",
+      "max": "Maximum"
+    },
+    "batch": {
+      "title": "Batch checks (qc-batch job)",
+      "hint": "Every 15 minutes over the last 48 hours: suspicious values are flagged suspect and go to the operator's QC queue."
+    },
+    "spike": {
+      "title": "Spikes",
+      "madMultiplier": "Threshold, MAD",
+      "madMultiplierHint": "How many median absolute deviations a value differs from its neighbours (default 6)",
+      "minSamples": "Minimum values",
+      "minSamplesHint": "Shorter series are not checked (default 6)"
+    },
+    "stuck": {
+      "title": "Stuck sensor",
+      "hours": "Hours without change",
+      "hoursHint": "The same value for longer is suspicious; continuous stations only (default 12)",
+      "minRun": "Minimum identical values",
+      "minRunHint": "Default 3"
+    },
+    "outlier": {
+      "title": "Outliers against 30 days",
+      "z": "Threshold, robust z",
+      "zHint": "Deviation from the 30‑day median in MAD units (default 5)",
+      "minBaseline": "Minimum baseline values",
+      "minBaselineHint": "The check is skipped with a shorter 30‑day history (default 30)"
+    },
+    "errors": {
+      "validation": "Check the values: minimum below maximum, numbers within the allowed limits"
     }
   }
 }

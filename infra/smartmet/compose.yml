@@ -21,6 +21,10 @@ services:
     networks:
       smartmet:
         aliases: [smartmet]
+    # Процесс работает от пользователя smartmet (101010) на порту 8080: привилегии не нужны.
+    cap_drop: [ALL]
+    security_opt:
+      - no-new-privileges:true
     mem_limit: 3g
     cpus: 2
     healthcheck:
@@ -53,6 +57,17 @@ services:
     cap_drop: [ALL]
     security_opt:
       - no-new-privileges:true
+    # Здоров, если свежий прогон GFS моложе 18 ч (загрузка 4 раза в сутки; два пропуска подряд — уже сбой).
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - >-
+          now=$$(date +%s); for f in /smartmet/data/gfs/tajikistan/*/querydata/*_surface.sqd;
+          do [ -f "$$f" ] && [ $$((now - $$(stat -c %Y "$$f"))) -lt 64800 ] && exit 0; done; exit 1
+      interval: 10m
+      timeout: 10s
+      retries: 1
+      start_period: 3h
     mem_limit: 1g
     cpus: 1
     logging:
@@ -60,25 +75,57 @@ services:
       options: { max-size: "20m", max-file: "5" }
 
   # Веб-карта и CAP-лента SmartMet Alert (fmidev/smartalert-web): /capfeed.php — источник предупреждений
-  # для портала (CAP_FEED_URL=http://smartalert/capfeed.php). Редактор SmartMet Alert публикует CAP в
-  # /smartmet/editor/smartalert/<источник>/publishedCap/<дата>/*_ALERT_*.xml.
-  alert-web:
+  # для портала (CAP_FEED_URL=http://smartalert/capfeed.php). Редактор SmartMet Alert публикует CAP по SFTP
+  # (sftp/setup-editor-sftp.sh) в /smartmet/editor/smartalert/publishedCap/<год>/<месяц>/<YYYYMMDDHHmmss>/.
+  # capfeed.php — наша правка файла FMI (Cancel, битые файлы; см. alert/capfeed.php и ADR-010).
+  alert-web: &alert-web
     image: fmidev/smartmetalert:26.10.21
     restart: unless-stopped
     volumes:
       - /smartmet/editor/smartalert:/var/www/html/data:ro
+      - ./alert/capfeed.php:/var/www/html/capfeed.php:ro
       - ./alert/capmap-config.js:/var/www/html/capmap-config.js:ro
       - ./alert/index.html:/var/www/html/index.html:ro
+      - ./alert/vendor:/var/www/html/vendor:ro
     ports:
       - "127.0.0.1:8181:80"
     networks:
       smartmet:
         aliases: [smartalert]
+    # Apache стартует от root и переходит на www-data: нужны только порт 80 и смена пользователя.
+    cap_drop: [ALL]
+    cap_add: [NET_BIND_SERVICE, SETUID, SETGID]
+    security_opt:
+      - no-new-privileges:true
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "-o", "/dev/null", "http://localhost/capfeed.php"]
+      interval: 60s
+      timeout: 10s
+      retries: 3
     mem_limit: 256m
     cpus: 0.5
     logging:
       driver: json-file
       options: { max-size: "20m", max-file: "5" }
+
+  # Тестовая лента только для staging (CAP_FEED_URL=http://smartalert-test/capfeed.php): приёмка M3 и
+  # проверка редактора без риска показать тестовое сообщение на havo.tj. Каталог пишут генератор
+  # alert/test-feed/cap-chain.mjs и (при проверке редактора) пользователь SFTP smartalert.
+  alert-web-test:
+    <<: *alert-web
+    volumes:
+      - /smartmet/editor/smartalert-test:/var/www/html/data:ro
+      - ./alert/capfeed.php:/var/www/html/capfeed.php:ro
+      - ./alert/capmap-config.js:/var/www/html/capmap-config.js:ro
+      - ./alert/index.html:/var/www/html/index.html:ro
+      - ./alert/vendor:/var/www/html/vendor:ro
+    ports:
+      - "127.0.0.1:8182:80"
+    networks:
+      smartmet:
+        aliases: [smartalert-test]
+    mem_limit: 128m
+    cpus: 0.25
 
 networks:
   smartmet:

@@ -1,5 +1,5 @@
 import type { Locale } from "@meteo/i18n";
-import { AQ_DOT_CLASS } from "@meteo/ui/components/aq-badge";
+import { AQ_DOT_CLASS, AqIcon } from "@meteo/ui/components/aq-badge";
 import { cn } from "@meteo/ui/lib/utils";
 import { getFormatter, getTranslations } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
@@ -8,7 +8,7 @@ import { name } from "@/lib/format";
 
 /**
  * Лента станций (макет 1): плитка с цветной полоской уровня слева, значение определяющего
- * вещества, слово уровня и время обновления; без данных — «нет данных с …».
+ * вещества, значок и слово уровня, время обновления; без данных — «нет данных с …».
  */
 export async function StationFeed({
   stations,
@@ -65,7 +65,8 @@ export async function StationFeed({
                   </small>
                 ) : null}
               </span>
-              <span className="text-caption text-muted-foreground">
+              <span className="inline-flex items-center gap-1.5 text-caption text-muted-foreground">
+                <AqIcon level={fresh ? s.level : 0} className="size-3.5" />
                 {fresh && s.idx
                   ? `${tl(`${s.level}` as "0")} · ${format.relativeTime(s.idx.time)}`
                   : s.status === "suspended"

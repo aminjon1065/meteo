@@ -5,7 +5,7 @@ import { WeatherSymbol } from "@/components/weather/weather-symbol";
 import { redirect } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
-import { loadWeatherOverview, symbolLabel } from "@/lib/weather";
+import { isForecastStale, loadWeatherOverview, symbolLabel } from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
 
@@ -55,6 +55,9 @@ export default async function EmbedForecastPage({
   }).catch(() => null);
   const days = (forecast?.daily ?? []).filter((d) => localDateKey(d.time) > todayKey).slice(0, 3);
   const code = overview.now?.params.symbol ?? overview.today?.symbol ?? null;
+  // Как на /weather: без синхронизации дольше 3 ч сайт‑получатель видит пометку «устарело».
+  const fetchedAt = forecast?.fetchedAt ?? null;
+  const stale = isForecastStale(fetchedAt);
   const deg = (v: number | null | undefined) =>
     v === null || v === undefined ? "—" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
 
@@ -76,6 +79,18 @@ export default async function EmbedForecastPage({
           ) : null}
         </span>
       </div>
+      {stale ? (
+        <p
+          className="rounded border border-l-4 border-l-status-stale px-2 py-1 text-xs"
+          data-testid="embed-forecast-stale"
+        >
+          {t("embedStale", {
+            time: fetchedAt
+              ? format.dateTime(fetchedAt, { dateStyle: "short", timeStyle: "short" })
+              : "—",
+          })}
+        </p>
+      ) : null}
       {days.length > 0 ? (
         <ul className="grid grid-cols-3 gap-1 border-t pt-2">
           {days.map((d) => (

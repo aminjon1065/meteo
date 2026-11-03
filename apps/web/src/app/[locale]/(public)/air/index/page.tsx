@@ -16,6 +16,7 @@ import { PageHeader } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 import { name } from "@/lib/format";
+import { pageMetadata } from "@/lib/seo";
 import { displayScaleOf, getConcentrationDisplayMode } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -27,7 +28,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "aboutIndex" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/air/index",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 type Breakpoint = {

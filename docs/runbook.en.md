@@ -1,8 +1,11 @@
 # Meteoportal Runbook (operations)
 
-Version 1.1 · 17 October 2026 · Русская версия: [runbook.md](runbook.md)
+Version 1.2 · 2 November 2026 · Русская версия: [runbook.md](runbook.md)
 
-For the IT service of the Agency for Hydrometeorology. Environment: a single Ubuntu 24.04 LTS host, Docker Compose
+For the IT service of the Agency for Hydrometeorology and the contractor. The portal runs permanently on the
+contractor's VPS behind Cloudflare (`havo.tj`, `staging.havo.tj`) — section 13; SmartMet Server and SmartMet Alert run
+there too — section 14. Sections 1–2 describe installation on a clean server (for example, when moving). Environment:
+a single Ubuntu 24.04 LTS host or newer (`havo.tj` runs 26.04), Docker Compose
 (`infra/compose/compose.prod.yml`), services caddy, web, worker, migrate, postgres (TimescaleDB + PostGIS), redis,
 backup. Architecture — `docs/02-architecture.md`, security — `docs/security-checklist.md`, archive import —
 `docs/import-history.md`, working in the panel — `docs/manuals/admin/en.md`.
@@ -71,7 +74,7 @@ Check after start‑up (section 1.7): `curl -I https://portal.meteo.tj/` → `20
 
 | Variable | Value | Note |
 |---|---|---|
-| `SITE_ADDRESS` | `portal.meteo.tj` | domain for Caddy; `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` (`https://…`) derive from it |
+| `SITE_ADDRESS` | `havo.tj` | domain for Caddy; `BETTER_AUTH_URL` and `NEXT_PUBLIC_APP_URL` (`https://…`) derive from it. Canonical links, Open Graph, `sitemap.xml` and `robots.txt` depend on the public address — when the domain changes, update `SITE_ADDRESS`, restart web and rebuild the social image: `node apps/web/scripts/og-image.mjs https://<domain> <domain>` (files `apps/web/public/og/*`, then a new release) |
 | `POSTGRES_PASSWORD` | `openssl rand -hex 24` | password of the `meteo` role; hex only — it is part of `DATABASE_URL`, and `/ + =` from base64 break the URL |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 48` | session signing; changing it ends all sessions |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` | address and a password ≥ 10 characters | first administrator; used once by seed while the users table is empty |
@@ -80,12 +83,17 @@ Check after start‑up (section 1.7): `curl -I https://portal.meteo.tj/` → `20
 | `IMAGE_TAG` | `latest` or a commit SHA | image version from GHCR |
 | `IMAGE_REPO` | `ghcr.io/aminjon1065` (default) | registry and owner of the `meteoportal-*` images |
 
-Integrations (can be set later, section 9): `SMARTMET_URL`, `SMARTMET_PRODUCER`, `SMARTMET_API_KEY`,
-`SMARTMET_HOURLY_STEPS`, `SMARTMET_DAILY_DAYS`; `SILAM_NCSS_URL`, `SILAM_DATASET`, `SILAM_KEEP_RUNS`;
-`CAP_FEED_URL`, `CAP_TIMEOUT_MS`. Resilience and notifications: `INTEGRATION_ALERT_FAILURES` (3),
+Integrations (can be set later, sections 9 and 14): `SMARTMET_URL`, `SMARTMET_PRODUCER`, `SMARTMET_API_KEY`,
+`SMARTMET_HOURLY_STEPS`, `SMARTMET_DAILY_DAYS`, `SMARTMET_WMS_URL`, `SMARTMET_MAX_RUN_AGE_H` (18);
+`SILAM_NCSS_URL`, `SILAM_DATASET`, `SILAM_KEEP_RUNS`, `SILAM_FMI_URL`; `CAP_FEED_URL`, `CAP_TIMEOUT_MS`; `PUBLIC_URL`
+(address used in e‑mail links, defaults to `NEXT_PUBLIC_APP_URL`). Resilience and notifications: `INTEGRATION_ALERT_FAILURES` (3),
 `INTEGRATION_CIRCUIT_FAILURES` (3), `INTEGRATION_CIRCUIT_COOLDOWN_MIN` (30), `INTEGRATION_CIRCUIT_MAX_COOLDOWN_MIN` (240),
 `ADMIN_ALERT_EMAILS` (extra addresses, comma‑separated). Security: `RATE_LIMIT_API_PER_MINUTE` (120),
-`RATE_LIMIT_AUTH_PER_MINUTE` (30), `EMBED_FRAME_ANCESTORS` (who may embed the widgets).
+`RATE_LIMIT_AUTH_PER_MINUTE` (30), `RATE_LIMIT_TILES_PER_MINUTE` (1200, `/wms` tiles and `/silam-fmi` frames),
+`RATE_LIMIT_SUBSCRIBE_PER_MINUTE` (10), `RATE_LIMIT_INGEST_PER_MINUTE` (60), `EMBED_FRAME_ANCESTORS` (who may embed
+the widgets). better-auth additionally limits panel sign-in to 5 sign-in and 2FA code attempts per minute per IP
+(password-guessing protection); the `AUTH_SIGN_IN_PER_MINUTE` variable changes this number for tests only (E2E — 100)
+and is not passed through compose.
 Backups: `RESTIC_PASSWORD` (`openssl rand -base64 32`, **store it in the password manager separately from the server**),
 `RESTIC_REPOSITORY`, `RESTIC_AWS_ACCESS_KEY_ID`/`RESTIC_AWS_SECRET_ACCESS_KEY`, `BACKUP_TIME_UTC`, `BACKUP_KEEP_*`.
 The paths `SILAM_DIR`, `UPLOADS_DIR`, `TILES_DIR` are set by compose (volumes) in production — do not change them.
@@ -128,6 +136,27 @@ docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
   sh -c 'cp /src/tajikistan.pmtiles /t/ && ls -la /t'
 ```
 
+The "Relief" and "Satellite" basemaps (the "Map type" picker on the home page) are optional files in the same volume.
+Without them visitors are offered only "Map" and "Grey"; the map checks for the files itself (`HEAD /tiles/…`), no
+restart is needed. They are built from open data by a script (needs internet, Node 22 and Docker):
+
+```bash
+./infra/data/fetch-basemap-layers.sh   # terrain.pmtiles (~120 MB) and satellite.pmtiles (~120 MB) into infra/data/tiles
+docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
+  sh -c 'cp /src/terrain.pmtiles /src/satellite.pmtiles /src/*.json /t/ && ls -la /t'
+```
+
+| File | Source | Licence and map attribution |
+|---|---|---|
+| `terrain.pmtiles` | [Mapterhorn](https://mapterhorn.com) elevation tiles from Copernicus DEM GLO-30 (30 m), z0–10, copied byte for byte (`build-terrain.mjs`) | Copernicus licence (free, with attribution): "Copernicus DEM GLO-30 © DLR, Airbus (ESA), Mapterhorn" |
+| `satellite.pmtiles` | cloud-free Sentinel-2 2021 composite of the [ESA WorldCover](https://esa-worldcover.org) project (AWS Open Data); GDAL in Docker reads only the 40 m overview level over the network (~1.7 GB of traffic) and writes WebP up to z12 (≈ 30 m/pixel) | CC BY 4.0: "ESA WorldCover 2021 / Contains modified Copernicus Sentinel data (2021)" |
+
+The script can run on your own machine and the finished files can be copied to the server (`scp` to a directory, then
+into the volume as above). Image colours are tuned with `SAT_SCALE_MAX` and `SAT_GAMMA` without downloading again (the
+mosaic is cached in `MAP_TMP`). EOX Sentinel-2 cloudless, Esri, Google and Yandex imagery is not used: their licences
+forbid storing and serving the tiles or require an external service (TOR: no external services in the critical path,
+clause 10.2 of the contract).
+
 The volumes `silam` (forecast layers) and `uploads` (CMS files) are filled by the application; `backups` — by the backup service.
 Directory owners inside the volumes are set by the images (user `app`); no manual permission changes are needed.
 
@@ -156,6 +185,12 @@ PostgreSQL is not published: from a workstation open an SSH tunnel
 or temporarily publish the port on `127.0.0.1` only through a compose override file. Details and boundary sources —
 `infra/data/boundaries/README.md`.
 
+Seed is idempotent and runs on every deployment (`deploy.sh`, section 13.5): it adds what is missing and leaves the
+administrator's edits alone. Health advice texts for vulnerable groups are inserted once per database — after that the
+marker `seed.health_advice_groups` is written to the `settings` table, so a text the administrator cleared does not come
+back on deployment. To load the texts again: `dc exec postgres psql -U meteo -c "delete from settings where key = 'seed.health_advice_groups';"`,
+then run seed (empty and missing rows are filled, filled ones stay as they are).
+
 ### 1.7. First sign‑in
 
 1. Open `https://<domain>/admin`, sign in as `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
@@ -176,6 +211,13 @@ needs these DNS records:
 | DKIM (`TXT` on `<selector>._domainkey.meteo.tj`) | public key issued by the mail server/provider | message signature; the relay generates the selector and key |
 | DMARC (`TXT` on `_dmarc.meteo.tj`) | `v=DMARC1; p=quarantine; rua=mailto:dmarc@meteo.tj; adkim=s; aspf=s` | policy for mismatches and reports |
 | PTR | reverse record of the mail server IP → its name | required by most receivers |
+
+On `havo.tj` (since 23.10.2026): sending — Brevo (`smtp-relay.brevo.com:587`, free plan of 300 e‑mails a day; login and
+key in production `SMTP_URL`, staging has no SMTP), sender "Метеопортал <noreply@havo.tj>". In Cloudflare DNS:
+`TXT brevo-code`, `CNAME brevo1/brevo2._domainkey` → `b1/b2.havo-tj.dkim.brevo.com` (not proxied),
+`TXT _dmarc` `v=DMARC1; p=none`. Incoming mail — Cloudflare Email Routing (MX `route1-3.mx.cloudflare.net`, SPF
+`include:_spf.mx.cloudflare.net`), a rule forwards `admin@havo.tj` to the contractor. SMTP check without sending:
+`docker exec -w /app meteo-worker-1 node -e "require('nodemailer').createTransport(process.env.SMTP_URL).verify().then(()=>console.log('ok'))"`.
 
 Portal side: `SMTP_URL=smtp://<login>:<password>@<host>:587` (STARTTLS) or `smtps://…:465`, `MAIL_FROM` with an address
 on the same domain. Check: `dc up -d worker`, admin panel → "Settings" → "Send test e‑mail" → status "sent"; the message
@@ -201,7 +243,10 @@ In the admin panel: dashboard — background service "running", SmartMet/SILAM i
 ## 2. Upgrading
 
 Images are built by CI (GHCR, tags `latest` and commit SHA); before publishing they pass lint, unit/E2E, Lighthouse,
-`pnpm audit`, Trivy. An upgrade means ~1 minute of web downtime during the restart (Caddy returns 502 meanwhile).
+`pnpm audit`, Trivy. Tests that need a database run in the CI migrations job on a clean TimescaleDB: `@meteo/db` (CAP:
+supersede, cancel, expiry, feed reconciliation; variable `TEST_DATABASE_URL`) and the worker's `alerts-eval` (rule →
+event → e‑mail, cooldown, closing without data; `ALERTS_TEST_DATABASE_URL`). Without these variables they are skipped;
+locally: `TEST_DATABASE_URL=postgres://meteo:meteo@localhost:5432/meteo pnpm --filter @meteo/db test`. An upgrade means ~1 minute of web downtime during the restart (Caddy returns 502 meanwhile).
 
 ```bash
 cd /opt/meteoportal
@@ -229,11 +274,12 @@ The `backup` service (image `infra/backup/Dockerfile`: alpine + pg_dump 17 + res
 (21:00 UTC = 02:00 Dushanbe) and at start‑up:
 
 1. `pg_dump -Fc` of the whole database → volume `backups` (`/backups/db/meteo-<UTC>.dump`), kept for `BACKUP_KEEP_DAYS` (30).
-2. If `RESTIC_PASSWORD` is set — a restic snapshot of the dumps and the `uploads` (CMS files) and `silam` (raster layers)
-   volumes into `RESTIC_REPOSITORY` (local `/backups/restic` by default, encrypted), policy `--keep-daily 30 --keep-monthly 12`,
-   `prune`, `check`.
-3. Status in `/backups/last-backup.json` (`result`, `dump`, `sizeBytes`, `restic`); the container healthcheck turns red
-   if the file is older than 25 hours.
+2. If `RESTIC_PASSWORD` is set — a restic snapshot of the dumps, the `uploads` (CMS files and eco bulletins) and `silam`
+   (raster layers) volumes and, when SmartMet runs on this host, the SmartMet Alert editor archive (`/srv/smartalert`,
+   mounted by `compose.smartmet.yml`; on staging — the test feed, `SMARTALERT_DIR`) into `RESTIC_REPOSITORY` (local
+   `/backups/restic` by default, encrypted), policy `--keep-daily 30 --keep-monthly 12`, `prune`, `check`.
+3. Status in `/backups/last-backup.json` (`result`, `dump`, `sizeBytes`, `restic`). Any `pg_dump` or restic error is
+   written as `"result":"failed"`; the container healthcheck turns red if the last run failed or is older than 25 hours.
 
 Off‑site copy (mandatory in production): set `RESTIC_REPOSITORY=s3:https://<endpoint>/<bucket>` and
 `RESTIC_AWS_ACCESS_KEY_ID`/`RESTIC_AWS_SECRET_ACCESS_KEY` (any S3‑compatible storage, including MinIO in another Agency
@@ -249,34 +295,85 @@ procedure (`timescaledb_pre_restore()` → `pg_restore` → `timescaledb_post_re
 `measurements` hypertable, row counts of key tables (compared with the source) and the continuous‑aggregate refresh.
 Only Docker is needed.
 
+The environment is set by two variables (containers are named `<project>-<service>-1`, volumes `<project>_<volume>`):
+
 ```bash
-# on the server: a fresh dump from the stack's postgres container
-SOURCE_CONTAINER=meteo-postgres-1 sh infra/backup/restore-test.sh
-# or a specific file (e.g. restored from restic)
-dc exec backup restic restore latest --target /tmp/restore --include /backups/db   # inside the container
-sh infra/backup/restore-test.sh /path/to/meteo-20261017T210000Z.dump
+ENV=production; P=meteo              # staging: ENV=staging; P=meteo-staging
+DC=/opt/meteo/$ENV/dc
 ```
 
-Record the result in the operations log (date, file, `OK`). Local run on 17 October 2026 on the development database:
-see `docs/04-delivery-plan.md`, week 8. Per the M8 acceptance checklist the test is run on staging at hand‑over.
+```bash
+# a) the latest nightly dump from the backups volume
+F=$($DC exec -T backup ls -1t /backups/db | grep '\.dump$' | head -1)
+docker cp $P-backup-1:/backups/db/$F /root/$F
+sh /opt/meteo/$ENV/current/infra/backup/restore-test.sh /root/$F
+
+# b) a dump from restic (also checks the repository): restore into a temporary folder of the backups volume
+$DC run --rm --no-deps --entrypoint sh backup -c \
+  'restic restore latest --target /backups/restore --include /backups/db && ls -1t /backups/restore/backups/db | head -1'
+docker cp $P-backup-1:/backups/restore/backups/db/<file from the output> /root/restic.dump
+sh /opt/meteo/$ENV/current/infra/backup/restore-test.sh /root/restic.dump
+$DC run --rm --no-deps --entrypoint sh backup -c 'rm -rf /backups/restore'
+
+# c) a fresh dump straight from the running database
+SOURCE_CONTAINER=$P-postgres-1 sh /opt/meteo/$ENV/current/infra/backup/restore-test.sh
+```
+
+The script changes nothing in the environment: it restores into a separate temporary container and removes it. Delete
+`/root/*.dump` afterwards. Record the result in the operations log (date, file, `OK`).
+
+**Hand‑over check (M8 acceptance) — on staging:**
+
+1. To check restic, set `RESTIC_PASSWORD` in `/opt/meteo/staging/.env` (local repository in the staging `backups`
+   volume) and run `/opt/meteo/staging/dc up -d backup`.
+2. Fresh copy: `/opt/meteo/staging/dc exec backup sh -c 'BACKUP_ONCE=1 sh /backup/run.sh'`, then
+   `/opt/meteo/staging/dc exec backup cat /backups/last-backup.json` — `"result":"ok"`, `"restic":"ok"`.
+3. Items a) and b) above with `ENV=staging; P=meteo-staging` — `restore-test: OK`.
+4. A practice restore of staging per section 3.3 (same variables) from the step 2 copy; checks at the end of 3.3.
+5. Record the date, files and results in the operations log and the M8 acceptance record.
 
 ### 3.3. Restoring production from a backup
 
-Scenario: corrupted database / accidental deletion / move to a new server.
+Scenario: corrupted database / accidental deletion / move to a new server. Variables `ENV`, `P`, `DC` as in 3.2
+(for a practice restore — staging).
 
 ```bash
-dc stop web worker backup                              # stop writes
-# 1. Get the dump: local /backups/db/*.dump or from restic:
-dc run --rm backup sh -c 'restic restore latest --target /tmp/r --include /backups/db && ls /tmp/r/backups/db'
-# 2. Recreate the database (postgres container running)
-dc exec postgres psql -U meteo -d postgres -c "DROP DATABASE meteo WITH (FORCE);" -c "CREATE DATABASE meteo;"
-dc exec postgres psql -U meteo -d meteo -c "CREATE EXTENSION IF NOT EXISTS timescaledb;" -c "SELECT timescaledb_pre_restore();"
-docker cp meteo-YYYYMMDD.dump meteo-postgres-1:/tmp/restore.dump
-dc exec postgres pg_restore -U meteo -d meteo --no-owner --no-privileges /tmp/restore.dump   # "already exists" warnings are fine
-dc exec postgres psql -U meteo -d meteo -c "SELECT timescaledb_post_restore();"
-# 3. Files: restore the uploads/silam volumes from restic (restore --include /srv/uploads) into the volumes, then
-dc up -d migrate && dc up -d
+# 1. The dump. The latest nightly one from the backups volume…
+F=$($DC exec -T backup ls -1t /backups/db | grep '\.dump$' | head -1)
+docker cp $P-backup-1:/backups/db/$F /root/restore.dump
+#    …or from restic (together with the files needed in step 3):
+$DC run --rm --no-deps --entrypoint sh backup -c \
+  'restic restore latest --target /backups/restore && ls -1t /backups/restore/backups/db | head -3'
+docker cp $P-backup-1:/backups/restore/backups/db/<file> /root/restore.dump
+
+# 2. Stop writes and recreate the database (postgres container running)
+$DC stop web worker backup
+$DC exec -T postgres psql -U meteo -d postgres -v ON_ERROR_STOP=1 \
+  -c "DROP DATABASE meteo WITH (FORCE);" -c "CREATE DATABASE meteo;"
+$DC exec -T postgres psql -U meteo -d meteo -v ON_ERROR_STOP=1 \
+  -c "CREATE EXTENSION IF NOT EXISTS timescaledb;" -c "SELECT timescaledb_pre_restore();"
+docker cp /root/restore.dump $P-postgres-1:/tmp/restore.dump
+$DC exec -T postgres pg_restore -U meteo -d meteo --no-owner --no-privileges /tmp/restore.dump \
+  || true   # "already exists" warnings are fine
+$DC exec -T postgres psql -U meteo -d meteo -c "SELECT timescaledb_post_restore();"
+$DC exec -T postgres rm -f /tmp/restore.dump
+
+# 3. Files from restic (if step 1 used restic): uploads, SILAM layers, SmartMet Alert archive.
+#    restic restores files as the backup user — give them back the owner of the target folder.
+copy() { docker run --rm -v ${P}_backups:/b:ro -v "$2":/t alpine:3.22 \
+  sh -c "o=\$(stat -c %u:%g /t); cp -a /b/restore/srv/$1/. /t/ && chown -R \$o /t"; }
+copy uploads ${P}_uploads
+copy silam ${P}_silam
+copy smartalert /smartmet/editor/smartalert   # production only, and only if /smartmet was lost (server move)
+$DC run --rm --no-deps --entrypoint sh backup -c 'rm -rf /backups/restore'
+
+# 4. Migrations (in case the dump is from an older version) and start
+$DC up -d migrate && $DC up -d
+rm -f /root/restore.dump
 ```
+
+Without restic (`RESTIC_PASSWORD` not set) an `uploads-<UTC>.tar.gz` lies next to the dump: unpack it into the `uploads`
+volume — `docker run --rm -v ${P}_backups:/b:ro -v ${P}_uploads:/t alpine:3.22 tar -xzf /b/db/uploads-<UTC>.tar.gz -C /t --strip-components=1`.
 
 Verify: `/api/healthz`, a station page (history), admin panel → audit. The restored database contains user sessions —
 revoke them in "Users" if compromise is suspected.
@@ -286,9 +383,10 @@ dump, never `--data-only`.
 
 ### 3.4. Moving to another server
 
-1. On the new server perform sections 1.1–1.5 (same `.env`, same `RESTIC_PASSWORD`).
+1. On the new server perform sections 1.1–1.5 and 13 (same `.env`, same `RESTIC_PASSWORD`), then SmartMet — section
+   14.2 (`/opt/smartmet` from the repository, `/smartmet` is created anew, GFS downloads by itself) and the editor SFTP — 14.5.
 2. On the old one: `dc stop web worker`, final backup (`BACKUP_ONCE=1`), copy the `backups` volume (or use the off‑site restic repository).
-3. On the new one: restore the database and volumes per section 3.3, `dc up -d`, check per section 1.9.
+3. On the new one: restore the database, volumes and SmartMet Alert archive per section 3.3, `dc up -d`, check per sections 1.9 and 14.3.
 4. Point DNS to the new IP; Caddy issues the certificate automatically. Stop the old server a day later.
 
 ## 4. Secret rotation and access restriction
@@ -299,15 +397,15 @@ dump, never `--data-only`.
 | `BETTER_AUTH_SECRET` | `.env` | new `openssl rand -base64 48`, `dc up -d web` | all sessions and 2FA "trusted devices" become invalid — users sign in again (backup codes and TOTP keys remain) |
 | `RESTIC_PASSWORD` | `.env` + password manager | `dc exec backup restic key add` (new password), then `restic key remove <old-id>`, update `.env` | old snapshots readable with the new password |
 | `SMTP_URL`, `SMARTMET_API_KEY` | `.env` | update, `dc up -d worker web`; verify with a test e‑mail in "Settings" | — |
-| Station API keys | admin panel → station → "Generate key" | shown once; hand over to the sensor operator | the old key stops working immediately (API ingestion — next version) |
+| Station API keys | admin panel → station → "Generate key" | shown once; hand over to the sensor operator | the old key stops working immediately: the station agent and requests to `POST /api/v1/ingest/{code}` with the old key get 401 |
 | Administrator passwords | admin panel → "Users" → "Reset password" | the reset ends the user's sessions | — |
 | Administrator 2FA | "Users" → "Reset 2FA" | mandatory re‑setup at the next sign‑in | — |
 | TLS certificate | Caddy | automatic (Let's Encrypt, 30 days before expiry); check `dc logs caddy` | — |
 | GHCR token for `dc pull` | `docker login ghcr.io` on the server | personal token with `read:packages`, validity ≤ 1 year | — |
 
 Application role without DDL (planned): create a `meteo_app` role with `SELECT/INSERT/UPDATE/DELETE` on the `public`
-schema and use it in the `DATABASE_URL` of web/worker; `migrate` keeps the owner role. Do it after the first stable
-release on the Customer's server.
+schema and use it in the `DATABASE_URL` of web/worker; `migrate` keeps the owner role. Do it once production on `havo.tj`
+is stable (a separate task; requires updating `.env` of both environments).
 
 ### 4.1. Restricting `/admin` by IP (optional)
 
@@ -351,6 +449,10 @@ Routine:
 - Weekly: the whole table above, the admin dashboard, the QC queue (operator).
 - Monthly: restore test (3.2), `dc pull && dc up -d` when updates exist, CI reports (audit/Trivy), log rotation (automatic),
   free disk space.
+- SmartMet (section 14): weekly — `docker compose ps` in `/opt/smartmet` (all healthy), the latest GFS run time on the
+  dashboard (no older than 18 h), free space on `/smartmet` (`df -h /smartmet`); monthly — check for new FMI image and
+  loader package versions (section 14.2) and compare our `capfeed.php` patch with the file of the new image; the weekly
+  security check report (`security-weekly` in GitHub Actions: audit, Trivy, third‑party images).
 - Load and limits: `docs/perf.md`; if legitimate integrations get 429 — raise `RATE_LIMIT_API_PER_MINUTE` in `.env`
   or move the integration to a separate IP.
 
@@ -364,13 +466,17 @@ Statuses: "failure, in a row N" — the source returns errors; "paused until …
 
 | Symptom | Diagnostics | Action |
 |---|---|---|
-| No forecast / "forecast is stale" on `/weather` | dashboard → SmartMet; `dc logs worker \| grep smartmet`; from the server: `curl -fsS "$SMARTMET_URL/timeseries?format=json&producer=$SMARTMET_PRODUCER&latlon=38.56,68.79&param=Temperature&timesteps=2"` | the Agency's SmartMet Server is down — contact the SmartMet/FMI administrator; temporarily switch to the sandbox `SMARTMET_URL=https://opendata.fmi.fi` (`SMARTMET_PRODUCER=ecmwf`, no weather symbols); after recovery `dc up -d worker` and a manual `smartmet-sync` run |
+| No forecast / "forecast is stale" on `/weather` | dashboard → SmartMet; `dc logs worker \| grep smartmet`; from the server: `curl -fsS "$SMARTMET_URL/timeseries?format=json&producer=$SMARTMET_PRODUCER&latlon=38.56,68.79&param=Temperature&timesteps=2"` | SmartMet runs on this same server (section 14): `cd /opt/smartmet && docker compose ps` (all services healthy), log `docker compose logs --tail 100 server`, checks in 14.3; if the server is down — `docker compose up -d`; after recovery a manual `smartmet-sync` run (section 7). Last resort — the FMI sandbox `SMARTMET_URL=https://opendata.fmi.fi`, `SMARTMET_PRODUCER=ecmwf` (no weather symbols or WMS layers), `dc up -d worker web` |
+| Dashboard: "model run … older than 18 h", e‑mail "SmartMet forecast is not updating" | the `data` container is unhealthy (`docker compose -f /opt/smartmet/compose.yml ps`); `tail -50 /smartmet/logs/data/gfs_tajikistan_*.log`; NOMADS reachability: `curl -sI https://nomads.ncep.noaa.gov` | GFS loading has stopped and the server serves the old run: fix the cause from the log (network, disk space `df -h /smartmet`), extra download — 14.3; when a fresh run arrives the worker sends a recovery e‑mail. Threshold — `SMARTMET_MAX_RUN_AGE_H` (18 h) |
 | No SILAM layer / "SILAM forecast is stale" | dashboard → SILAM; `curl -fsS "${SILAM_NCSS_URL}${SILAM_DATASET}/dataset.xml" \| head`; free space of the `silam` volume (`docker system df -v`) | FMI THREDDS lagging 1–2 days is normal; if the dataset changed, fix `SILAM_DATASET`; if space is short, lower `SILAM_KEEP_RUNS`; manual `silam-sync` with `force` |
+| No "Weather · Forecast" maps on the home page ("Weather forecast maps are unavailable right now") | `curl -fsS "$SMARTMET_WMS_URL/wms?service=WMS&request=GetCapabilities&version=1.3.0" \| grep -c tajikistan` from the web container; dashboard → SmartMet | `SMARTMET_WMS_URL` is not set or web is not in the `smartmet` network (`compose.smartmet.yml`, section 14.6); the SmartMet server does not respond — 14.3. The time catalogue updates with the run; `/wms/…` tiles for times outside the catalogue return 404 — this is protection, not a failure |
+| `/air/silam` without maps ("FMI maps are unavailable right now") | from the server: `curl -sI https://silam.fmi.fi/roux/TAJ/` | the FMI site is down or moved — wait or fix `SILAM_FMI_URL`; `SILAM_FMI_URL=off` hides the maps and makes no requests to FMI. The SILAM layer on the home page does not depend on this (it comes from THREDDS) |
 | CAP warnings do not update | dashboard → CAP and `/admin/cap` → "Synchronisation" (parsing errors per file); `curl -fsS "$CAP_FEED_URL" \| head` | check `CAP_FEED_URL` (Atom/RSS/HTTP directory/`file://`), availability of the SmartMet Alert editor, certificate; errors in individual XML files — report to the issuer; manual `cap-sync` with `force` |
 | E‑mails not sent (queue "failed" grows) | dashboard → mail queue; `dc logs worker \| grep -i -E 'mail\|smtp'`; test in "Settings" | SMTP access (login/port/TLS), the domain's SPF/DKIM/DMARC, `MAIL_FROM`; after the fix `dc up -d worker` — the queue delivers pending messages itself (retries) |
 | Index "no data" although measurements exist | admin panel → QC queue; `select max(time) from station_index` | suspect/invalid values are excluded — decide in QC; measurements older than 6 h are stale; recalculation — `index-compute` every 10 min (manual run — section 7) |
 | Worker "not responding" on the dashboard | `dc ps worker`, `dc logs --since 30m worker`, Redis: `dc exec redis redis-cli ping` | `dc restart worker`; if Redis is down — `dc restart redis worker`; if Redis memory is full (`maxmemory 256mb`, `noeviction`) — `dc exec redis redis-cli info memory` |
 | Map without labels / grey | `curl -I https://<domain>/tiles/tajikistan.pmtiles` (206/200), `curl -I https://<domain>/basemaps/fonts/…` | the `tiles` volume is empty (section 1.5) or the web image was built without `basemaps` (section 1.4) |
+| "Relief" or "Satellite" missing from "Map type" | `curl -I https://<domain>/tiles/terrain.pmtiles`, `…/satellite.pmtiles` (200) | the files are not in the `tiles` volume — `fetch-basemap-layers.sh` and copying (section 1.5) |
 | 502 from Caddy | `dc ps web`, `dc logs --since 10m web` | web is restarting or crashed: `dc restart web`; check `.env` (`BETTER_AUTH_SECRET` ≥ 32 characters, `DATABASE_URL`) |
 | 429 for an integration/media outlet | `X-RateLimit-*` headers | raise `RATE_LIMIT_API_PER_MINUTE` (`dc up -d web`) or agree on client‑side caching |
 | Archive import | `docs/import-history.md` | `--dry-run` → report → import; the index is recalculated by the script (section 11) |
@@ -378,9 +484,10 @@ Statuses: "failure, in a row N" — the source returns errors; "paused until …
 ## 7. Running background jobs manually
 
 Worker jobs (BullMQ, queue `meteo-jobs`) and schedule: `heartbeat` 1 min; `mailer` 1 min; `index-compute` 10 min;
-`threshold-eval` 10 min; `station-pull` 10 min; `qc-batch` 15 min; `smartmet-sync` 15 min; `cap-sync` 5 min; `silam-sync` hourly at :20.
+`threshold-eval` 10 min; `station-pull` 10 min; `qc-batch` 15 min; `smartmet-sync` 15 min; `cap-sync` 5 min; `station-cities` 30 min; `silam-sync` hourly at :20;
+`eco-bulletin-draft` daily at 08:00 Dushanbe time (if the schedule is enabled in the eco-bulletin settings).
 Interval jobs also run right after the worker starts (`dc restart worker` is the simple way to "run everything now");
-the cron‑based `silam-sync` runs only on schedule or manually.
+the cron‑based `silam-sync` and `eco-bulletin-draft` run only on schedule or manually.
 
 On the server (the worker container has no `pnpm`, but it has `bullmq` and `ioredis`):
 
@@ -397,6 +504,8 @@ Replace `silam-sync '{"force":true}'` with the job and parameters you need:
 | `cap-sync` | `{"force":true}`; `{"url":"file:///…/feed.atom","force":true}` — one‑off source (e.g. the `infra/data/cap` fixtures) | after changing `CAP_FEED_URL`, for testing |
 | `station-pull` | `{}`; `{"sourceId":5,"force":true}` — one SFTP/FTP/HTTP source, even a disabled one, re-reading the newest file | after configuring a source in the station card (the "Check now" button does the same) |
 | `index-compute` | `{}` | after a bulk import or scale changes (the panel does it itself) |
+| `station-cities` | `{}` — stations farther than 15 km from every listed city get their own city (forecast point `kind = station` named after the district) | after creating stations in the database by hand (the admin panel and `import-wwcs` do it themselves); a disabled city (`active = false`) is not created again |
+| `eco-bulletin-draft` | `{}`; `{"force":true}` — even if the schedule is disabled in the settings | the draft did not appear at 08:00 (station data arrived later). PDF is built only when Chromium is available; the production image has none, so the PDF button in the panel opens a print view, while DOCX is always generated |
 | `qc-batch`, `threshold-eval`, `mailer` | `{}` | speed up queue processing (`mailer` runs under a lock: a concurrent run is skipped, no email is sent twice) |
 
 On a developer machine the same is done by `pnpm --filter @meteo/worker enqueue <job> '<json>'`. Results — in
@@ -474,6 +583,7 @@ from `forecast_locations` (or by `smartmet_place`).
 | `SILAM_NCSS_URL` | base address of the NetCDF Subset Service, default `https://thredds.silam.fmi.fi/thredds/ncss/grid/` |
 | `SILAM_DATASET` | dataset path, default global `silam_glob_v6_1_sfc/silam_glob_v6_1_sfc_best.ncd`; replace when a regional Central Asia domain becomes available (D4) |
 | `SILAM_KEEP_RUNS` | how many runs to keep in the `silam` volume (3; ~50–100 MB per run) |
+| `SILAM_FMI_URL` | FMI's ready-made maps for the `/air/silam` page (served through the `/silam-fmi` proxy); empty — `https://silam.fmi.fi/roux/TAJ`, `off` — the section without maps and without requests to FMI |
 
 Check: `curl -fsS "${SILAM_NCSS_URL}${SILAM_DATASET}/dataset.xml" | grep -o 'name="[^"]*"' | head`. The hourly job
 checks for a new run, downloads NetCDF for the Tajikistan bbox, renders PNG layers and computes point forecasts for cities
@@ -483,7 +593,7 @@ and stations.
 
 | Variable | Value |
 |---|---|
-| `CAP_FEED_URL` | the SmartMet Alert feed on the portal server — `http://smartalert/capfeed.php` (§14); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
+| `CAP_FEED_URL` | the SmartMet Alert feed on the portal server — `http://smartalert/capfeed.php` (§14); on staging — the test feed `http://smartalert-test/capfeed.php` (§14.6); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
 | `CAP_TIMEOUT_MS` | request timeout (15000) |
 
 Check: `curl -fsS "$CAP_FEED_URL" | head -20`; then a manual `cap-sync` run with `force` and `/admin/cap` →
@@ -662,48 +772,133 @@ Re‑running is idempotent; the index for the affected months is recalculated by
 
 ## 12. Acceptance and hand‑over
 
-At hand‑over to the Customer: `.env` and the restic password handed over by protocol through a password manager; at least two
+The portal stays on the contractor's VPS (`havo.tj`), so the secrets (`.env`, the restic password, deploy keys) are kept by the
+contractor in a password manager; the Agency receives the panel administrator accounts. At acceptance: at least two
 administrators with 2FA set up; the restore test (3.2) performed on staging with a log entry; external monitoring of
 `/api/healthz` configured; DNS/TLS and mail (SPF/DKIM/DMARC) verified with a test e‑mail from "Settings"; documentation —
 `docs/manuals` (HTML/PDF: `pnpm docs:build`).
 
 ## 13. Shared host and deployment from GitHub Actions
 
-The portal runs on a Hostinger KVM 4 VPS (`46.202.155.70`, Ubuntu 26.04) behind Cloudflare (`havo.tj`). Other
-applications share the host, so ports 80/443 belong to a shared reverse proxy (`/opt/edge`, see `infra/edge/README.md`);
-the portal has two environments, each with its own database and volumes:
+This is how the portal is deployed on a Hostinger KVM 4 VPS (`46.202.155.70`, Ubuntu 26.04, 4 vCPU / 16 GB / 200 GB),
+with the `havo.tj` domain in Cloudflare. Other applications live on the server too, so ports 80/443 belong to a shared
+reverse proxy (`/opt/edge`, `infra/edge/`), and the portal has two environments, each with its own database and volumes:
 
 | Environment | URL | Directory | Compose project | Name in the `edge` network |
 |---|---|---|---|---|
-| production | `https://havo.tj` | `/opt/meteo/production` | `meteo` | `meteo-prod` |
+| production | `https://havo.tj` (`www` → redirect) | `/opt/meteo/production` | `meteo` | `meteo-prod` |
 | staging | `https://staging.havo.tj` | `/opt/meteo/staging` | `meteo-staging` | `meteo-staging` |
 
-Request path: visitor → Cloudflare → shared Caddy (Cloudflare Origin Certificate, client IP from `CF-Connecting-IP`
-for Cloudflare addresses only) → the portal's Caddy (HTTP `:80` inside the `edge` network; `infra/compose/compose.edge.yml`)
-→ web.
+Request path: visitor → Cloudflare (TLS, cache, protection) → shared Caddy `edge-caddy-1` (Origin Certificate, real
+client IP from `CF-Connecting-IP`) → the portal's Caddy (HTTP `:80` only inside the `edge` network; serves tiles, SILAM
+and uploads) → web. The "behind the shared proxy" mode is enabled by `infra/compose/compose.edge.yml` on top of
+`compose.prod.yml`.
 
-- **Host setup (once, as root):** `sh infra/deploy/setup-host.sh aminjon1065/meteo` (user `deploy`,
-  `/usr/local/bin/meteo-deploy`, `/opt/meteo/*`, network `edge`); `sh infra/deploy/harden-host.sh` is run by the server
-  administrator (key‑only SSH, fail2ban, unattended upgrades). Firewall — in hPanel (TCP 22/80/443, UDP 443).
-- **Environment files:** `/opt/meteo/<environment>/.env` (owner `deploy`, mode 600) as in 1.3 plus `EDGE_ALIAS` and
-  `IMAGE_REPO`; `IMAGE_TAG` is managed by the deployment (`.deploy.env`). Use `/opt/meteo/<environment>/dc` instead of `dc`.
-- **GitHub:** environments `staging` and `production` (Required reviewers, branch `main` only), each with a secret
-  `DEPLOY_SSH_KEY`. The matching public keys sit in `/home/deploy/.ssh/authorized_keys` with a forced command
-  (`restrict,command="/usr/local/bin/meteo-deploy <environment>"`): a key can only deploy a commit to its own environment.
-- **Cloudflare:** proxied `A` records for `havo.tj`, `www`, `staging`; SSL/TLS **Full (strict)**; Origin Certificate
-  issued from the CSR generated on the server (`/opt/edge/certs/havo.tj.csr`; the key never leaves the server);
-  Rocket Loader and Email Obfuscation off (CSP); WAF Skip rule for `/api/v1/ingest/*` and `/api/healthz`.
-- **Flow:** push to `main` → CI → images `ghcr.io/aminjon1065/meteoportal-*:<sha>` → **Deploy → staging** automatically
-  → **Deploy → production** after approval. On the server `infra/deploy/deploy.sh` pulls images, backs up (production),
-  migrates, seeds, restarts, waits for health and rolls back to the previous version if the new one does not come up.
-  Re‑deploy or roll back: Actions → Deploy → Run workflow (environment + full commit SHA). The public Actions log only
-  shows the steps; service logs stay on the server (`/opt/meteo/<environment>/logs`).
+### 13.1. Host setup (once)
+
+```bash
+# from a repository copy on the server, as root
+sh infra/deploy/setup-host.sh aminjon1065/meteo   # user deploy, /usr/local/bin/meteo-deploy, /opt/meteo/*, network edge
+sh infra/deploy/harden-host.sh                    # server administrator: key-only SSH, fail2ban, unattended upgrades
+```
+
+`harden-host.sh` disables password login — check key login before running it (the command is in the script header).
+Firewall — in hPanel (VPS → Firewall: TCP 22, 80, 443, UDP 443): Docker publishes ports bypassing ufw.
+
+Shared proxy: the contents of `infra/edge/` → `/opt/edge` (`compose.yml`, `conf/Caddyfile`, `conf/sites/*.caddy`,
+`certs/` with mode 700), then `docker compose -f /opt/edge/compose.yml up -d`. How to connect another application —
+`infra/edge/README.md`.
+
+### 13.2. Portal environments
+
+`/opt/meteo/<environment>/.env` (owner `deploy`, mode 600) — as in 1.3, plus `EDGE_ALIAS` (the name in the `edge`
+network, table above) and `IMAGE_REPO`; `IMAGE_TAG` is not set — the deployment manages it. Map tiles go into the
+volumes `meteo_tiles` and `meteo-staging_tiles` (as in 1.5; on the server `SKIP_ASSETS=1 ./infra/data/fetch-map-assets.sh`
+is enough; the "Relief" and "Satellite" basemaps — `./infra/data/fetch-basemap-layers.sh` or ready files from a
+developer machine).
+
+| What | Where |
+|---|---|
+| Versions (only the commit's `infra/`) | `releases/<sha>/`; the current, the previous and three more are kept |
+| Current version | `current` → `releases/<sha>`, image tag — `.deploy.env` (`IMAGE_TAG`, `PREVIOUS_TAG`) |
+| Deployment history and logs | `deploy.log`, `logs/<time>-<sha>.log` (90 days) |
+| The environment's docker compose | `./dc` — instead of `dc` from the beginning of this document: `/opt/meteo/production/dc ps`, `… logs -f worker` |
+
+### 13.3. GitHub (once)
+
+1. Settings → Environments: `staging` (Deployment branches: `main` only) and `production` (Required reviewers — the
+   people responsible for releases; Deployment branches: `main` only).
+2. In each environment the secret `DEPLOY_SSH_KEY` — the private key of its own ed25519 pair. The public keys go to
+   `/home/deploy/.ssh/authorized_keys` with a forced command, so one environment's key cannot deploy the other:
+
+   ```
+   restrict,command="/usr/local/bin/meteo-deploy staging" ssh-ed25519 AAAA… gha-meteo-staging
+   restrict,command="/usr/local/bin/meteo-deploy production" ssh-ed25519 AAAA… gha-meteo-production
+   ```
+
+3. Optional: the variables `DEPLOY_HOST` and `DEPLOY_KNOWN_HOSTS` (defaults are in `deploy.yml`; set them when moving to
+   another server). The `meteoportal-*` packages in GHCR may stay private: the deployment logs in to the registry with
+   the job token.
+
+Deploy key rotation: a new pair → public key into `authorized_keys` (a line as above) → environment secret → remove
+the old line.
+
+### 13.4. Cloudflare and TLS
+
+- DNS: `A` for `havo.tj`, `www`, `staging` → `46.202.155.70`, proxied (orange cloud); `AAAA` →
+  `2a02:4780:41:1d30::1` — optional.
+- SSL/TLS → Overview: **Full (strict)**; Edge Certificates: Always Use HTTPS.
+- The certificate between Cloudflare and the server is an Origin Certificate (15 years). The key and CSR were created
+  on the server (`/opt/edge/certs/havo.tj.key`, `havo.tj.csr`); the key never leaves the server: SSL/TLS → Origin Server
+  → Create Certificate → "Use my private key and CSR" → paste the CSR, names `havo.tj`, `*.havo.tj` → save the issued
+  certificate to `/opt/edge/certs/havo.tj.pem` → `docker compose -f /opt/edge/compose.yml exec caddy caddy reload --force --config /etc/caddy/Caddyfile`
+  (`--force` is required: the Caddyfile did not change, and without it Caddy does not re-read certificate files).
+  Issued on 23.10.2026, valid until 19.10.2041; the temporary self-signed one is `havo.tj.selfsigned.pem`.
+- Turn off Rocket Loader and Email Address Obfuscation: they inject their own scripts, which the portal's CSP blocks.
+- Bot Fight Mode / WAF must not challenge station loggers and the health check: a Skip rule for `/api/v1/ingest/*` and
+  `/api/healthz` (otherwise API data intake and the external check in GitHub Actions get 403). Configured: Security
+  rules → "Skip: station ingest API and healthz (meteo portal)" — skips Browser Integrity Check, Security Level, User
+  Agent Blocking and Super Bot Fight Mode; Bot Fight Mode is off.
+- Free plan limits: request body ≤ 100 MB (CMS uploads, CSV import), response ≤ 100 s.
+
+### 13.5. Deployment, verification, rollback
+
+1. Push to `main` → CI (lint, typecheck, unit, E2E, Lighthouse, migrations, `pnpm audit`, Trivy) → images
+   `ghcr.io/aminjon1065/meteoportal-{web,worker,backup}:<sha>`.
+2. **Deploy → staging** — immediately; **Deploy → production** — the same image after Review deployments → Approve.
+3. On the server `deploy.sh`: pull images → backup (production) → postgres/redis → migrations → reference data →
+   restart → wait for healthy and `/api/healthz` through the portal's Caddy and the shared proxy. If the version does
+   not come up — automatic rollback to the previous one (migrations are not rolled back, see section 2). Then GitHub
+   checks `https://<address>/api/healthz` from outside, through Cloudflare.
+4. Re-deploy or roll back to an earlier version — Actions → Deploy → Run workflow: the environment and the full SHA of a
+   `main` commit (its images are already in GHCR).
+
+The GitHub Actions log of a public repository is open to everyone, so the deployment script prints only the steps,
+while migration and service logs are written on the server (`/opt/meteo/<environment>/logs`). Deployments of one
+environment never run at the same time (a lock on the server and `concurrency` in `deploy.yml`).
+
+### 13.6. After the first deployment
+
+1. Sign in at `https://havo.tj/admin` as the administrator from the environment's `.env` (`grep SEED_ADMIN /opt/meteo/production/.env`
+   on the server), set up 2FA, a second administrator (1.7); then remove `SEED_ADMIN_PASSWORD` from `.env`.
+2. Region and district boundaries (1.6) — from a workstation through an SSH tunnel to the environment's PostgreSQL:
+
+   ```bash
+   PG=$(ssh root@46.202.155.70 "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' meteo-postgres-1" | awk '{print $1}')
+   ssh -N -L 15432:$PG:5432 root@46.202.155.70 &
+   DATABASE_URL=postgres://meteo:<the environment's POSTGRES_PASSWORD>@127.0.0.1:15432/meteo pnpm --filter @meteo/db boundaries
+   kill %1
+   ```
+
+3. The restic password (`RESTIC_PASSWORD` from the production `.env`) — into the password manager; the off-site
+   repository — section 3.
 
 ## 14. SmartMet Server and SmartMet Alert
 
-Under the Terms of Reference (module 2), SmartMet Server and SmartMet Alert are installed in the Customer's
-infrastructure with FMI tooling. No separate AlmaLinux/Rocky Linux server was provided for SmartMet, so it runs on
-the portal server (Ubuntu) in FMI's official containers. Data processing uses FMI's standard RPMs
+Under the contract and the detailed Terms of Reference (module 2, clarified 29 October 2026), SmartMet Server and
+SmartMet Alert are installed by the contractor; the portal and SmartMet run permanently on the contractor's VPS
+(havo.tj). No separate AlmaLinux/Rocky Linux server was provided for SmartMet, so it runs on the portal server
+(Ubuntu) in FMI's official containers. Data processing uses FMI's standard RPMs
 (`smartmet-qdtools`, `smartmet-data-gfs` from the `smartmet-open` repository) inside a Rocky Linux 10 container.
 `/smartmet` has the same layout as an installation made with `fmidev/smartmet-install`, so FMI documentation
 applies. Decision and deviations from the Terms of Reference: `docs/adr/ADR-010-smartmet-server.md`.
@@ -714,21 +909,36 @@ applies. Decision and deviations from the Terms of Reference: `docs/adr/ADR-010-
 |---|---|---|---|
 | `server` | `fmidev/smartmetserver:26.08.01` | SmartMet Server: timeseries, WMS (`/wms`, `/wmts`, `/tiles`) | `http://smartmet:8080` on Docker network `smartmet`; from the host `http://127.0.0.1:8180` |
 | `data` | `smartmet-data:local` (built from `infra/smartmet/data`) | GFS 0.25° download for 58–82° E, 32–46° N, up to 240 h, at 03:15, 09:15, 15:15, 21:15 UTC; schedule — supercronic as the smartmet user (log: `docker compose logs data`) | — |
-| `alert-web` | `fmidev/smartmetalert:26.10.21` | warnings map and CAP feed `capfeed.php` (tg/ru/en) | `http://smartalert` on network `smartmet`; from the host `http://127.0.0.1:8181` |
+| `alert-web` | `fmidev/smartmetalert:26.10.21` | warnings map and CAP feed `capfeed.php` (tg/ru/en) for production; `capfeed.php` is our edit of the FMI file (see below) | `http://smartalert` on network `smartmet`; from the host `http://127.0.0.1:8181` |
+| `alert-web-test` | same | test feed for staging (M3 acceptance, editor trials): folder `/smartmet/editor/smartalert-test` | `http://smartalert-test`; from the host `http://127.0.0.1:8182` |
 
-Nothing is exposed publicly (ports are bound to `127.0.0.1` only).
+Nothing is exposed publicly (ports are bound to `127.0.0.1` only). All services run with `cap_drop: ALL` and
+`no-new-privileges`; healthchecks: `server` — WMS GetCapabilities, `data` — a GFS run younger than 18 h ("healthy"
+appears after the first download, up to 3 h after a fresh start), `alert-web*` — `capfeed.php`.
+
+**`capfeed.php` edit** (`infra/smartmet/alert/capfeed.php`, mounted over the image file; the image README allows
+customising this file). The 26.10.21 original lists only `*_ALERT_*` and `*_UPDATE_*` files, drops messages without
+`<expires>` and fails with HTTP 500 on a single broken XML. Our version adds `*_CANCEL_*`, does not treat messages
+without `<info>`/`<expires>` as expired and skips broken files with a log entry. Like the original, the feed takes only
+the **latest issue** of the editor (the folder with the greatest timestamp) — the complete list of active warnings.
+The portal reconciles the feed with its database: a warning that disappears from the issue is unpublished even
+without a CAP Cancel ("withdrawn" in the admin panel), and published again if it comes back. When updating the FMI
+image, compare the new image's `capfeed.php` with our edit (ADR‑010).
 
 | What | Where |
 |---|---|
 | Configuration (copy of `infra/smartmet` from the repository) | `/opt/smartmet` |
 | Model data (querydata) | `/smartmet/data/gfs/tajikistan/{surface,pressure}/querydata` |
 | Download logs | `/smartmet/logs/data/gfs_tajikistan_<run hour>.log` |
-| SmartMet Alert editor publications | `/smartmet/editor/smartalert/<source>/publishedCap/<date>/` |
+| SmartMet Alert editor publications (production) | `/smartmet/editor/smartalert/publishedCap/<year>/<month>/<YYYYMMDDHHmmss>/<stamp>_NNNN_{ALERT,UPDATE,CANCEL}_*.xml` |
+| Test feed (staging) | `/smartmet/editor/smartalert-test/…` (same layout) |
+| Editor SFTP | `infra/smartmet/sftp/setup-editor-sftp.sh`, `/etc/ssh/sshd_config.d/60-smartalert-sftp.conf` |
+| Test CAP chain generator | `infra/smartmet/alert/test-feed/cap-chain.mjs` |
 | GFS area and forecast steps | `infra/smartmet/cnf/data/gfs.cnf` |
 | Download schedule | `infra/smartmet/cnf/cron/cron.d/gfs.cron` |
 | Server data sources | `infra/smartmet/etc/engines/querydata.conf` |
 | Portal WMS layers | `infra/smartmet/wms/customers/tajikistan/products/*.json` |
-| Warnings map (centre, languages, hazards) | `infra/smartmet/alert/capmap-config.js`, `index.html` |
+| Warnings map (centre, languages, hazards) | `infra/smartmet/alert/capmap-config.js`, `index.html`, libraries — `alert/vendor/` (no external CDNs; the base map uses OSM tiles) |
 
 Resources: ~130 MB of memory at runtime; ~160 MB of data per run (4 surface and 2 pressure-level runs are kept),
 editor copies in `/smartmet/editor/in` (2 runs).
@@ -736,14 +946,22 @@ editor copies in `/smartmet/editor/in` (2 runs).
 ### 14.2. Installation and updates
 
 ```bash
-# from a workstation, repository root
+# from a workstation, repository root: configuration and a version record
 rsync -a --delete infra/smartmet/ root@46.202.155.70:/opt/smartmet/
+git rev-parse HEAD | ssh root@46.202.155.70 'cat > /opt/smartmet/REVISION'
 
 # on the server
-mkdir -p /smartmet/data /smartmet/logs /smartmet/tmp /smartmet/editor/smartalert
-chown -R 101010:101010 /smartmet
+mkdir -p /smartmet/data /smartmet/logs /smartmet/tmp /smartmet/editor/in \
+  /smartmet/editor/smartalert /smartmet/editor/smartalert-test
+chown -R 101010:101010 /smartmet/data /smartmet/logs /smartmet/tmp /smartmet/editor/in
+# /smartmet and /smartmet/editor stay owned by root: they are the SFTP chroot of the editor (14.5);
+# setup-editor-sftp.sh hands the feed folders to the smartalert user
 cd /opt/smartmet && docker compose build data && docker compose up -d
+# FMI package versions in the built image — for a reproducible rebuild (SMARTMET_PACKAGES in data/Dockerfile)
+docker compose run --rm data rpm -q smartmet-qdtools smartmet-data-gfs eccodes > /opt/smartmet/VERSIONS
 ```
+
+Note: `rsync --delete` also removes `REVISION`/`VERSIONS` — write them again as above.
 
 - New FMI image version: change the tag in `compose.yml`, then `docker compose pull && docker compose up -d`.
 - Configuration change: files are mounted one by one, so after `rsync` run
@@ -754,7 +972,8 @@ cd /opt/smartmet && docker compose build data && docker compose up -d
 
 ```bash
 cd /opt/smartmet
-docker compose ps                                   # server healthy, data and alert-web Up
+docker compose ps                                   # all services healthy (data — after the first GFS download)
+cat REVISION VERSIONS                               # deployed configuration and FMI package versions
 ls -l /smartmet/data/gfs/tajikistan/surface/querydata/
 tail -20 /smartmet/logs/data/gfs_tajikistan_*.log
 
@@ -765,9 +984,14 @@ curl -fsS "http://127.0.0.1:8180/timeseries?producer=gfs&latlon=38.56,68.78&para
 curl -fsS "http://127.0.0.1:8180/wms?service=WMS&request=GetCapabilities&version=1.3.0" | grep -o "<Name>tajikistan:[^<]*"
 curl -fsS -o /tmp/t.png "http://127.0.0.1:8180/wms?service=WMS&request=GetMap&version=1.3.0&layers=tajikistan:temperature&styles=&crs=EPSG:3857&bbox=7402746,4369641,8404622,5086374&width=800&height=572&format=image/png&transparent=true"
 
-# CAP feed
+# CAP feeds: production and test (staging)
 curl -fsS http://127.0.0.1:8181/capfeed.php | head -30
+curl -fsS http://127.0.0.1:8182/capfeed.php | grep -E "<id>|msgType"
 ```
+
+The portal checks the model run age itself: if `origintime` is older than `SMARTMET_MAX_RUN_AGE_H` (18 h), the admin
+dashboard shows "Model run … is older than 18 h" under SmartMet and administrators receive the e‑mail "SmartMet
+forecast is not updating" (one per run; a separate e‑mail on recovery).
 
 Out-of-schedule GFS download (for example after downtime):
 
@@ -790,10 +1014,39 @@ smoothing uses the layer parameters `subdivide` and `smoother`. Parameter refere
 ### 14.5. SmartMet Alert editor
 
 The CAP editor (Java, Liberica JRE 8 Full; FMI provides the package adapted for Tajikistan) is installed on an
-Agency workstation and publishes files into `/smartmet/editor/smartalert` on the server. Access is SFTP/SSHFS with
-a separate account restricted to that directory; Samba is not exposed to the internet. The account is created once
-the workstation and the FMI package are ready. Check: `*_ALERT_*.xml` files appear in `publishedCap/<date>/` and
-`capfeed.php` lists them.
+Agency workstation and publishes issues into `/smartmet/editor/smartalert` on the server. Samba from FMI's standard
+installation is not exposed to the internet: access is SFTP with a separate account `smartalert` (key only, SFTP
+only, chroot to `/smartmet/editor`, no forwarding or terminal, files with mode 644).
+
+**On the server** (once; re-running is safe):
+
+```bash
+# the forecaster's public key (ssh-keygen -t ed25519 on the workstation) — in /root/smartalert.pub
+sh /opt/smartmet/sftp/setup-editor-sftp.sh --key-file /root/smartalert.pub --from <Agency static IP>/32
+```
+
+The script creates a user without a password or shell, hands it the `smartalert/` (production) and
+`smartalert-test/` (staging) folders, makes `/smartmet` and `/smartmet/editor` owned by root (a chroot requirement),
+writes a `Match User smartalert` block to `/etc/ssh/sshd_config.d/60-smartalert-sftp.conf`, checks `sshd -t` and
+reloads `ssh`; other SSH logins are unchanged (fail2ban already protects sshd). `--from` accepts the key only from the
+Agency's address — omit it if there is no static IP. Port 22 is already open in the Hostinger firewall; it cannot be
+restricted by IP because administrators and deployments use it.
+
+**On the Agency workstation (Windows):**
+
+1. Install [WinFsp](https://winfsp.dev) and [SSHFS‑Win](https://github.com/winfsp/sshfs-win); the private key goes to
+   `C:\Users\<forecaster>\.ssh\id_ed25519`.
+2. Map a drive: Explorer → "Map network drive" → `\\sshfs.k\smartalert@havo.tj` (key login). The drive shows the
+   `smartalert` (live feed) and `smartalert-test` (staging trials) folders.
+3. In the SmartMet Alert editor settings set the publication folder to `<drive>:\smartalert` (for trial issues —
+   `<drive>:\smartalert-test`).
+4. Alternative without a mapped drive — WinSCP synchronising the editor's publication folder to the server
+   (`winscp.com /command "open sftp://smartalert@havo.tj/ -privatekey=…" "synchronize remote …" "exit"` from the
+   Windows Task Scheduler).
+
+**Check:** a trial issue in `smartalert-test` → `curl -fsS http://127.0.0.1:8182/capfeed.php` on the server lists the
+file → on staging (`https://staging.havo.tj/en/warnings`) the warning appears within 5 minutes. To revoke access,
+delete the key from `/etc/ssh/authorized_keys/smartalert`.
 
 ### 14.6. Connecting the portal
 
@@ -814,10 +1067,32 @@ layer. To go back to the FMI sandbox, remove the variables from `.env` and run `
 | `SMARTMET_URL` | `http://smartmet:8080` |
 | `SMARTMET_PRODUCER` | `gfs` |
 | `SMARTMET_WMS_URL` | `http://smartmet:8080` |
-| `CAP_FEED_URL` | `http://smartalert/capfeed.php` |
+| `CAP_FEED_URL` | production: `http://smartalert/capfeed.php`; staging: `http://smartalert-test/capfeed.php` |
+| `SMARTALERT_DIR` | staging only: `/smartmet/editor/smartalert-test` (which SmartMet Alert archive goes into the backup) |
+| `SMARTMET_MAX_RUN_AGE_H` | optional, 18 by default |
+
+Staging reads the **test** feed, so test messages never reach havo.tj and the forecasters' live warnings are not
+shown on staging.
+
+**M3 acceptance on staging** (the Alert → Update → Cancel chain and withdrawal without Cancel; fresh dates, tg/ru/en):
+
+```bash
+T=/smartmet/editor/smartalert-test
+gen() { docker run --rm -u "$(stat -c %u:%g $T)" -v $T:/out -v /opt/smartmet/alert/test-feed:/s:ro \
+  node:22-alpine node /s/cap-chain.mjs --out /out --step "$1"; }
+gen alert      # within 5 min on https://staging.havo.tj/en/warnings — "TEST: strong wind", Dushanbe, orange
+gen update     # replaced: red, Dushanbe + DRS (code RRP); the original is "superseded" in /admin/cap
+gen cancel     # disappears from the site, map and /embed/alerts widget; "cancelled" in /admin/cap
+gen reset; gen alert; gen withdraw   # empty issue: withdrawn without Cancel, "withdrawn" in /admin/cap
+```
+
+To speed it up, run `cap-sync` manually on staging (section 7). Old test issues can be removed:
+`rm -rf /smartmet/editor/smartalert-test/publishedCap/*`.
 
 ### 14.7. Backup
 
 Configuration lives in the repository (`infra/smartmet`); model data is restored by the next download. The editor
-publications in `/smartmet/editor/smartalert` must be kept. They are not yet part of the restic snapshots of the
-`backup` service (section 3): mount the directory into `backup` and add it to the paths in `infra/backup/run.sh`.
+publications (`/smartmet/editor/smartalert`) are part of the production restic snapshots: `compose.smartmet.yml`
+mounts the folder into the `backup` service as `/srv/smartalert` (on staging — the test feed via `SMARTALERT_DIR`).
+In addition, every message the portal loads is stored in full in the database (`cap_alerts.raw_xml`). Restore —
+section 3.3, step 3.

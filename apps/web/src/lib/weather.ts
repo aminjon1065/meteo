@@ -126,3 +126,10 @@ export async function loadWeatherOverview(
 export function currentTemperature(p: ForecastParams | null | undefined): number | null {
   return p?.t ?? null;
 }
+
+/** Прогноз SmartMet считается устаревшим, если синхронизации не было дольше 3 ч (задача — каждые 15 мин). */
+export const FORECAST_STALE_MS = 3 * 3_600_000;
+
+export function isForecastStale(fetchedAt: Date | null | undefined, now = Date.now()): boolean {
+  return !fetchedAt || now - fetchedAt.getTime() > FORECAST_STALE_MS;
+}

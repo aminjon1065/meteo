@@ -5,6 +5,7 @@ import { slugify } from "@meteo/core";
 import { isEnvSecret, sealSecret, secretKeyFromEnv } from "@meteo/core/secret-box";
 import { ensureStationCities, eq } from "@meteo/db";
 import {
+  districts,
   type StationSourceMapping,
   stationPollutants,
   stationSources,
@@ -73,6 +74,27 @@ async function syncPollutants(stationId: number, list: StationValues["pollutants
 }
 
 /**
+ * Район должен принадлежать выбранной области: форма фильтрует список, но server action можно
+ * вызвать и напрямую. Район без области — область берётся из района.
+ */
+async function checkDistrict(values: StationValues): Promise<StationActionResult | null> {
+  if (values.districtId === null || values.districtId === undefined) return null;
+  const [district] = await getDb()
+    .select({ regionId: districts.regionId })
+    .from(districts)
+    .where(eq(districts.id, values.districtId));
+  if (!district)
+    return { ok: false, message: "validation", fieldErrors: { districtId: ["notFound"] } };
+  if (values.regionId === null || values.regionId === undefined) {
+    values.regionId = district.regionId;
+    return null;
+  }
+  if (district.regionId !== values.regionId)
+    return { ok: false, message: "validation", fieldErrors: { districtId: ["regionMismatch"] } };
+  return null;
+}
+
+/**
  * Станция вне радиуса городов списка сразу получает свой город (выбор в шапке, сводка на главной).
  * Ошибка здесь не мешает сохранению станции — город заведёт задача worker'а station-cities.
  */
@@ -90,6 +112,8 @@ export async function createStation(locale: Locale, raw: unknown): Promise<Stati
   if (!parsed.success)
     return { ok: false, message: "validation", fieldErrors: fieldErrorsOf(parsed.error) };
   const values = parsed.data;
+  const districtError = await checkDistrict(values);
+  if (districtError) return districtError;
   const slug = deriveSlug(values);
   try {
     const [row] = await getDb()
@@ -122,6 +146,8 @@ export async function updateStation(
   if (!parsed.success)
     return { ok: false, message: "validation", fieldErrors: fieldErrorsOf(parsed.error) };
   const values = parsed.data;
+  const districtError = await checkDistrict(values);
+  if (districtError) return districtError;
   const slug = deriveSlug(values);
   const db = getDb();
   const before = await db.query.stations.findFirst({ where: eq(stations.id, id) });

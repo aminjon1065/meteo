@@ -1,4 +1,4 @@
-import { AQ_TINT_CLASS, AqDot, type AqLevelValue } from "@meteo/ui/components/aq-badge";
+import { AQ_TINT_CLASS, AqIcon, type AqLevelValue } from "@meteo/ui/components/aq-badge";
 import { LevelScale } from "@meteo/ui/components/level-scale";
 import { cn } from "@meteo/ui/lib/utils";
 import type { ReactNode } from "react";
@@ -78,12 +78,14 @@ export function StatusBand({
             className="level-word mt-2 mb-3 font-heading leading-none font-extrabold tracking-[-0.02em]"
             style={
               {
-                "--chars": levelLabel.length,
+                // +1,75 «символа» — значок уровня перед словом (≈ 1,05em при символе ≈ 0,6em).
+                "--chars": levelLabel.length + 1.75,
                 "--level-max": compact ? "clamp(2rem, 4.5vw, 3rem)" : "clamp(2.4rem, 6vw, 4rem)",
               } as React.CSSProperties
             }
             data-testid="status-level"
           >
+            <AqIcon level={level} className="mr-[0.2em] size-[0.85em] align-[-0.1em]" />
             {levelLabel}
           </p>
           <LevelScale level={level} levels={scaleLevels} label={scaleLabel} className="mb-4" />
@@ -98,7 +100,7 @@ export function StatusBand({
                   title={c.title}
                   className="inline-flex items-baseline gap-1.5 rounded-lg border bg-card px-2.5 py-1.5 text-sm"
                 >
-                  <AqDot level={c.level} className="self-center" />
+                  <AqIcon level={c.level} className="size-3.5 self-center" />
                   <b className="num font-semibold">{c.value}</b>
                   <small className="text-caption text-muted-foreground">
                     {c.label}

@@ -28,7 +28,14 @@ export async function ExceedanceNotice({
   ]);
   const visible = events.filter((e) => e.channels.includes("portal"));
   if (visible.length === 0) return null;
-  const time = (d: Date) => format.dateTime(d, { hour: "2-digit", minute: "2-digit" });
+  // «с 18:10» сегодня, иначе с датой — «с 20 окт., 18:10» (сутки — по Душанбе, как у форматтера).
+  const dayKey = (d: Date) =>
+    format.dateTime(d, { year: "numeric", month: "2-digit", day: "2-digit" });
+  const today = dayKey(new Date());
+  const time = (d: Date) =>
+    dayKey(d) === today
+      ? format.dateTime(d, { hour: "2-digit", minute: "2-digit" })
+      : format.dateTime(d, { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 
   type Line = { key: string; text: string; since: Date; station?: { slug: string; name: string } };
   const lines: Line[] = [];

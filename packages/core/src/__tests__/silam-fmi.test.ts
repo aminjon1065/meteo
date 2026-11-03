@@ -15,17 +15,27 @@ import {
 } from "../silam-fmi";
 
 describe("silam-fmi", () => {
-  it("прогон начинается в 00 UTC суток перед выпуском", () => {
+  it("ранний выпуск — прогон от 00 UTC предыдущих суток", () => {
     // Каталог 000 записан 29.10.2026 в 02:02 UTC, первый кадр подписан «28Oct2026 hour: 00Z».
     expect(fmiSilamOrigin(new Date("2026-10-29T02:02:56Z")).toISOString()).toBe(
       "2026-10-28T00:00:00.000Z",
     );
-    // Переход через месяц и год.
-    expect(fmiSilamOrigin(new Date("2026-11-01T02:03:00Z")).toISOString()).toBe(
-      "2026-10-31T00:00:00.000Z",
+    // 31.10.2026 02:03 UTC — «30Oct2026 hour: 00Z»; переход через год.
+    expect(fmiSilamOrigin(new Date("2026-10-31T02:03:08Z")).toISOString()).toBe(
+      "2026-10-30T00:00:00.000Z",
     );
-    expect(fmiSilamOrigin(new Date("2027-01-01T23:59:00Z")).toISOString()).toBe(
+    expect(fmiSilamOrigin(new Date("2027-01-01T03:59:00Z")).toISOString()).toBe(
       "2026-12-31T00:00:00.000Z",
+    );
+  });
+
+  it("поздний выпуск — прогон того же дня", () => {
+    // 01.11.2026 06:03 UTC — первый кадр подписан «01Nov2026 hour: 00Z».
+    expect(fmiSilamOrigin(new Date("2026-11-01T06:03:15Z")).toISOString()).toBe(
+      "2026-11-01T00:00:00.000Z",
+    );
+    expect(fmiSilamOrigin(new Date("2027-01-01T04:00:00Z")).toISOString()).toBe(
+      "2027-01-01T00:00:00.000Z",
     );
   });
 

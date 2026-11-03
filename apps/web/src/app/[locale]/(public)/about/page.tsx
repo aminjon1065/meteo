@@ -6,6 +6,7 @@ import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FmiLogo } from "@/components/site/fmi-logo";
 import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
+import { pageMetadata } from "@/lib/seo";
 import { getBrandingCached } from "@/lib/settings";
 
 export const dynamic = "force-dynamic";
@@ -17,7 +18,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "about" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/about",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 const SOURCES = [

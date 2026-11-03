@@ -137,6 +137,16 @@ describe("parseCapAlert", () => {
     expect(issues.some((i) => i.includes("polygon"))).toBe(true);
   });
 
+  it("не раскрывает «бомбу» сущностей из DOCTYPE, обычные сущности раскрывает", () => {
+    const head = `<?xml version="1.0"?><!DOCTYPE alert [<!ENTITY x "${"x".repeat(9_000)}">]>`;
+    const body = (note: string) =>
+      `<alert xmlns="urn:oasis:names:tc:emergency:cap:1.2"><identifier>e1</identifier><sender>s</sender>
+       <sent>2026-11-02T10:00:00+05:00</sent><status>Actual</status><msgType>Cancel</msgType>
+       <scope>Public</scope><note>${note}</note></alert>`;
+    expect(() => parseCapAlert(head + body("&x;".repeat(50)))).toThrow(CapParseError);
+    expect(parseCapAlert(body("A &amp; B &lt;C&gt;")).note).toBe("A & B <C>");
+  });
+
   it("требует info у Alert/Update и корневой <alert>", () => {
     expect(() =>
       parseCapAlert(
@@ -278,6 +288,16 @@ describe("parseCapFeed", () => {
       "http://smartalert/data/publishedCap/2026-10-29/TJ_ALERT_1.xml",
     ]);
   });
+  it("Atom SmartAlert с нашей правкой capfeed.php: в ленте и Update, и Cancel", () => {
+    // Снято с fmidev/smartmetalert:26.10.21 + infra/smartmet/alert/capfeed.php (выпуск с двумя файлами).
+    const feed = parseCapFeed(fixture("smartalert-capfeed.xml"), "http://smartalert/capfeed.php");
+    expect(feed.kind).toBe("atom");
+    expect(feed.links).toEqual([
+      "http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0000_UPDATE_Wind.xml",
+      "http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0001_CANCEL_Wind.xml",
+    ]);
+  });
+
   it("одиночный CAP, RSS и HTML‑листинг", () => {
     const single = parseCapFeed(fixture("wind-alert.xml"));
     expect(single.kind).toBe("alert");

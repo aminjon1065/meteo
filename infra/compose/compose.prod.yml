@@ -90,6 +90,7 @@ services:
       RATE_LIMIT_AUTH_PER_MINUTE: ${RATE_LIMIT_AUTH_PER_MINUTE:-30}
       RATE_LIMIT_INGEST_PER_MINUTE: ${RATE_LIMIT_INGEST_PER_MINUTE:-60}
       RATE_LIMIT_SUBSCRIBE_PER_MINUTE: ${RATE_LIMIT_SUBSCRIBE_PER_MINUTE:-10}
+      RATE_LIMIT_TILES_PER_MINUTE: ${RATE_LIMIT_TILES_PER_MINUTE:-1200}
       EMBED_FRAME_ANCESTORS: ${EMBED_FRAME_ANCESTORS:-https://meteo.tj https://*.meteo.tj}
       STATION_INGEST_STALE_MIN: ${STATION_INGEST_STALE_MIN:-180}
       # Ключ шифрования учётных данных источников станций — один и тот же у web (шифрует) и worker
@@ -99,6 +100,7 @@ services:
       SMTP_URL: ${SMTP_URL:-}
       # SmartMet Server с WMS для слоёв погоды на карте (runbook §14); пусто — слои не показываются.
       SMARTMET_WMS_URL: ${SMARTMET_WMS_URL:-}
+      SMARTMET_MAX_RUN_AGE_H: ${SMARTMET_MAX_RUN_AGE_H:-18}
       # Карты SILAM от FMI для /air/silam (пусто — silam.fmi.fi/roux/TAJ, off — выключить).
       SILAM_FMI_URL: ${SILAM_FMI_URL:-}
     volumes:
@@ -151,6 +153,7 @@ services:
       SMARTMET_API_KEY: ${SMARTMET_API_KEY:-}
       SMARTMET_HOURLY_STEPS: ${SMARTMET_HOURLY_STEPS:-}
       SMARTMET_DAILY_DAYS: ${SMARTMET_DAILY_DAYS:-}
+      SMARTMET_MAX_RUN_AGE_H: ${SMARTMET_MAX_RUN_AGE_H:-18}
       SILAM_NCSS_URL: ${SILAM_NCSS_URL:-}
       SILAM_DATASET: ${SILAM_DATASET:-}
       SILAM_KEEP_RUNS: ${SILAM_KEEP_RUNS:-}

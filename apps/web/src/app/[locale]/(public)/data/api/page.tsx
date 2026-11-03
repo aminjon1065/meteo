@@ -7,6 +7,7 @@ import { SchemaTree } from "@/components/data/schema-tree";
 import { PageHeader } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { listEndpoints } from "@/lib/api/openapi";
+import { pageMetadata } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -17,7 +18,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "apiDocs" });
-  return { title: t("title"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/data/api",
+    title: t("title"),
+    description: t("intro"),
+  });
 }
 
 const method =

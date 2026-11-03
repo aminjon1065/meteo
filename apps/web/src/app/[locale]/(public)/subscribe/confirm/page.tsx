@@ -2,11 +2,15 @@ import { eq } from "@meteo/db";
 import { subscribers } from "@meteo/db/schema";
 import { isLocale, type Locale } from "@meteo/i18n";
 import { Button } from "@meteo/ui/components/button";
+import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { Link } from "@/i18n/navigation";
 import { getDb } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+
+/** Служебная страница по ссылке из письма (с токеном): поисковикам не нужна. */
+export const metadata: Metadata = { robots: { index: false, follow: false } };
 
 export default async function ConfirmPage({
   params,

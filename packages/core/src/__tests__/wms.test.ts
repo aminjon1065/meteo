@@ -4,6 +4,7 @@ import {
   buildWmsGetMapUrl,
   compactTime,
   isValidTile,
+  isWmsRequestAllowed,
   parseCompactTime,
   parseDataTimes,
   tileBbox3857,
@@ -116,5 +117,55 @@ describe("сроки прогноза из timeseries", () => {
       "2026-10-29T09:00:00.000Z",
     ]);
     expect(parseDataTimes({ error: "x" })).toEqual({ originTime: null, times: [] });
+  });
+});
+
+describe("isWmsRequestAllowed", () => {
+  const origin = new Date("2026-11-02T06:00:00Z");
+  const catalog = {
+    originTime: origin,
+    times: [0, 3, 6].map((h) => new Date(origin.getTime() + h * 3_600_000)),
+  };
+  const at = (iso: string) => new Date(iso);
+  it("текущий прогон — только сроки каталога", () => {
+    expect(isWmsRequestAllowed({ run: origin, time: at("2026-11-02T09:00:00Z") }, catalog)).toBe(
+      true,
+    );
+    expect(isWmsRequestAllowed({ run: origin, time: at("2026-11-02T10:00:00Z") }, catalog)).toBe(
+      false,
+    );
+    expect(isWmsRequestAllowed({ run: origin, time: at("2026-11-03T06:00:00Z") }, catalog)).toBe(
+      false,
+    );
+  });
+  it("предыдущие прогоны — на сетке 6 ч, не дальше 4 назад, сроки по 3 ч", () => {
+    const prev = at("2026-11-02T00:00:00Z");
+    expect(isWmsRequestAllowed({ run: prev, time: at("2026-11-02T21:00:00Z") }, catalog)).toBe(
+      true,
+    );
+    expect(isWmsRequestAllowed({ run: prev, time: at("2026-11-02T22:00:00Z") }, catalog)).toBe(
+      false,
+    );
+    expect(isWmsRequestAllowed({ run: prev, time: at("2026-11-01T21:00:00Z") }, catalog)).toBe(
+      false,
+    );
+    expect(
+      isWmsRequestAllowed(
+        { run: at("2026-11-01T00:00:00Z"), time: at("2026-11-01T03:00:00Z") },
+        catalog,
+      ),
+    ).toBe(false);
+    expect(
+      isWmsRequestAllowed(
+        { run: at("2026-11-02T03:00:00Z"), time: at("2026-11-02T06:00:00Z") },
+        catalog,
+      ),
+    ).toBe(false);
+    expect(
+      isWmsRequestAllowed(
+        { run: at("2026-11-02T12:00:00Z"), time: at("2026-11-02T12:00:00Z") },
+        catalog,
+      ),
+    ).toBe(false);
   });
 });

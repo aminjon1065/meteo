@@ -129,6 +129,10 @@ const ARRAY_TAGS = new Set([
   "item",
 ]);
 
+// Сущности XML оставлены включёнными (processEntities по умолчанию): без них &amp; и &lt; в текстах
+// не раскрываются. От «бомбы» сущностей из DOCTYPE защищают встроенные пределы fast-xml-parser 5
+// (сущность ≤ 10 000 символов, раскрытое содержимое ≤ 100 000; вложенные ссылки не раскрываются) —
+// проверяется тестом в __tests__/cap.test.ts.
 const parser = new XMLParser({
   ignoreAttributes: false,
   attributeNamePrefix: "@_",

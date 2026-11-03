@@ -1,5 +1,10 @@
 import "server-only";
-import type { IntegrationName, IntegrationState } from "@meteo/core";
+import {
+  type IntegrationName,
+  type IntegrationState,
+  isModelRunStale,
+  SMARTMET_MAX_RUN_AGE_HOURS,
+} from "@meteo/core";
 import {
   and,
   type CapSyncState,
@@ -60,6 +65,12 @@ export function ingestStaleAfterMin(): number {
   return Number.isFinite(raw) && raw > 0 ? Math.floor(raw) : 180;
 }
 
+/** Допустимый возраст прогона модели SmartMet, ч (SMARTMET_MAX_RUN_AGE_H, как у worker). */
+function modelMaxAgeHours(): number {
+  const raw = Number(process.env.SMARTMET_MAX_RUN_AGE_H);
+  return Number.isFinite(raw) && raw > 0 ? raw : SMARTMET_MAX_RUN_AGE_HOURS;
+}
+
 export interface IntegrationRow {
   key: IntegrationName;
   state: IntegrationState;
@@ -68,6 +79,9 @@ export interface IntegrationRow {
   originTime: Date | null;
   /** Данные старше допустимого возраста. */
   stale: boolean;
+  /** Прогон модели «застрял»: синхронизация идёт, но originTime старше SMARTMET_MAX_RUN_AGE_H. */
+  modelStale?: boolean;
+  modelMaxAgeHours?: number;
   /** Источник не настроен (CAP без CAP_FEED_URL). */
   disabled: boolean;
   cap?: CapSyncState | null;
@@ -286,6 +300,8 @@ export async function loadDashboard(now = new Date()): Promise<DashboardData> {
       lastSuccessAt: smartmet?.fetchedAt ?? null,
       originTime: smartmet?.originTime ?? null,
       stale: !smartmet || now.getTime() - smartmet.fetchedAt.getTime() > MAX_AGE.smartmet,
+      modelStale: isModelRunStale(smartmet?.originTime, now, modelMaxAgeHours()),
+      modelMaxAgeHours: modelMaxAgeHours(),
       disabled: false,
     },
     {

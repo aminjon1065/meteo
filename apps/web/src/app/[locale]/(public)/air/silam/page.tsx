@@ -15,6 +15,7 @@ import type { ReactNode } from "react";
 import { FmiSilamViewer } from "@/components/air/fmi-silam-viewer";
 import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
+import { pageMetadata } from "@/lib/seo";
 import { loadFmiSilamCatalog } from "@/lib/silam-fmi";
 
 export const dynamic = "force-dynamic";
@@ -75,7 +76,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "silamPage" });
-  return { title: t("metaTitle"), description: t("intro") };
+  return pageMetadata({
+    locale: locale as Locale,
+    path: "/air/silam",
+    title: t("metaTitle"),
+    description: t("intro"),
+  });
 }
 
 const TZ = "Asia/Dushanbe";

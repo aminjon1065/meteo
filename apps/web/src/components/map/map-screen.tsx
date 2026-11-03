@@ -1,5 +1,5 @@
-import { CAP_SEVERITIES, CAP_SEVERITY_STYLES, symbolPath } from "@meteo/core";
-import { getLatestSilamRun, getSilamLayers } from "@meteo/db";
+import { CAP_SEVERITIES, CAP_SEVERITY_RANK, CAP_SEVERITY_STYLES, symbolPath } from "@meteo/core";
+import { getLastForecastRun, getLatestSilamRun, getSilamLayers } from "@meteo/db";
 import { pollutants } from "@meteo/db/schema";
 import type { Locale } from "@meteo/i18n";
 import { getFormatter, getTranslations } from "next-intl/server";
@@ -11,12 +11,24 @@ import {
   summarizeCityAir,
 } from "@/lib/city-air";
 import { getDb } from "@/lib/db";
+import { loadActiveExceedances } from "@/lib/exceedances";
 import { name } from "@/lib/format";
-import { type LocalizedWarning, loadLocalizedWarnings } from "@/lib/warnings";
+import {
+  type LocalizedWarning,
+  loadLocalizedWarnings,
+  loadWarningsFreshness,
+} from "@/lib/warnings";
 import { type LocationOverview, loadWeatherOverview, symbolLabel } from "@/lib/weather";
 import { loadWeatherCatalog } from "@/lib/weather-catalog";
 import { CityAirCard, CityWeatherCard, LevelGauge, shortTime } from "./home-cards";
-import { type HomeStation, MapView, type SilamCatalog } from "./map-view";
+import { loadMapUiStrings } from "./map-ui-strings";
+import {
+  type ExceedancesSummary,
+  type HomeStation,
+  MapView,
+  type SilamCatalog,
+  type WarningLegendItem,
+} from "./map-view";
 import type { CityMarker } from "./station-map";
 
 /** Каталог слоёв последнего прогона SILAM, сгруппированный по веществам (в порядке справочника). */
@@ -63,12 +75,19 @@ async function loadSilamCatalog(): Promise<SilamCatalog> {
   }
 }
 
+/** Прогноз SmartMet старше 3 ч считается устаревшим (как на /weather). */
+const WEATHER_STALE_MS = 3 * 3_600_000;
+/** Прогон SILAM старше 36 ч — новый не загружен (как на /weather/{slug}). */
+const SILAM_STALE_MS = 36 * 3_600_000;
+
 /**
  * Карта на весь экран под шапкой — главная страница портала (по просьбе Заказчика, как у
  * гидрометслужб соседних стран): одна тема за раз — «Воздух» (станции) или «Погода» (города), у
  * каждой «Сейчас» и «Прогноз» (SILAM / карты SmartMet); карточка города из шапки отвечает на
- * главный вопрос, предупреждения появляются, только когда действуют.
- * `layer` — что открыть (ссылки вида `/?layer=silam`).
+ * главный вопрос. Предупреждения — слоем и плашкой: действующие и ожидаемые в ближайшие сутки;
+ * плашка «предупреждений нет» видна и без них, при сбое ленты CAP — с оговоркой. Превышения
+ * порогов на станциях — второй плашкой.
+ * `layer` — что открыть (ссылки вида `/?layer=silam`, `/?layer=warnings`).
  */
 export async function MapScreen({ locale, layer }: { locale: Locale; layer?: string }) {
   const [
@@ -100,17 +119,87 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
     resolveCity(),
     loadStationSummaries().catch(() => null),
   ]);
+  const [tw, tex, freshness, exceedanceEvents, lastWeatherRun, mapUi] = await Promise.all([
+    getTranslations("warnings"),
+    getTranslations("exceedances"),
+    loadWarningsFreshness(),
+    loadActiveExceedances().catch(() => [] as Awaited<ReturnType<typeof loadActiveExceedances>>),
+    getLastForecastRun(getDb(), "smartmet").catch(() => null),
+    loadMapUiStrings(),
+  ]);
+  const nowMs = Date.now();
   const localePrefix = locale === "tg" ? "" : `/${locale}`;
 
-  // Предупреждения: только действующие; цвет плашки — по самому серьёзному.
+  // Предупреждения: действующие и начинающиеся в ближайшие сутки (horizonDays: 1); цвет плашки —
+  // по самому серьёзному действующему, иначе ожидаемому.
   const active = warningList.filter((w) => w.active);
-  const worst = CAP_SEVERITIES.find((s) => active.some((w) => w.severity === s));
+  const upcoming = warningList.filter((w) => !w.active && w.upcoming);
+  const shown = [...active, ...upcoming];
+  const worst =
+    CAP_SEVERITIES.find((s) => active.some((w) => w.severity === s)) ??
+    CAP_SEVERITIES.find((s) => upcoming.some((w) => w.severity === s));
+  const legend: WarningLegendItem[] = CAP_SEVERITIES.filter(
+    (s) => s !== "Unknown" && shown.some((w) => w.severity === s),
+  )
+    .reverse()
+    .map((s) => ({
+      severity: s,
+      number: String(CAP_SEVERITY_RANK[s]),
+      label: tw(`severity.${s}`),
+      color: CAP_SEVERITY_STYLES[s].color,
+      foreground: CAP_SEVERITY_STYLES[s].foreground,
+    }));
   const warnings = {
     count: active.length,
-    url: `/api/v1/alerts?format=geojson&active=1&lang=${locale}`,
+    upcoming: upcoming.length,
+    url: `/api/v1/alerts?format=geojson&days=1&lang=${locale}`,
     href: `${localePrefix}/warnings`,
     color: worst ? CAP_SEVERITY_STYLES[worst].color : null,
+    stale: freshness.stale,
+    legend,
+    severityLabels: Object.fromEntries(CAP_SEVERITIES.map((s) => [s, tw(`severity.${s}`)])),
+    focus: layer === "warnings" && shown.length > 0,
   };
+
+  // Превышения порогов (уведомление портала): строка первого вещества, как на странице станции.
+  const portalEvents = exceedanceEvents.filter((e) => e.channels.includes("portal"));
+  let exceedances: ExceedancesSummary | null = null;
+  if (portalEvents.length > 0) {
+    const groups = new Map<string, typeof portalEvents>();
+    for (const e of portalEvents) {
+      const key =
+        e.kind === "pollutant"
+          ? (e.pollutantCode ?? e.pollutant ?? "?")
+          : `index-${e.level ?? e.threshold}`;
+      groups.set(key, [...(groups.get(key) ?? []), e]);
+    }
+    const [first] = [...groups.values()];
+    const head = first?.[0];
+    if (first && head) {
+      const label =
+        head.kind === "pollutant"
+          ? (head.pollutant ?? "")
+          : tex("index", { level: head.level ?? head.threshold });
+      const stationCount = new Set(first.map((e) => e.stationId)).size;
+      const line =
+        stationCount === 1
+          ? tex("noticeOne", { pollutant: label, station: name(head.stationName, locale) })
+          : tex("notice", { pollutant: label, count: stationCount });
+      exceedances = {
+        text:
+          groups.size > 1 ? `${line} ${t("exceedancesMore", { count: groups.size - 1 })}` : line,
+        href: `${localePrefix}/air#exceedances`,
+      };
+    }
+  }
+
+  // Устаревание: прогноз SmartMet и прогон SILAM — те же правила, что на страницах погоды.
+  const weatherHasData = overview.some((o) => o.now || o.today);
+  const weatherStale =
+    weatherHasData &&
+    (!lastWeatherRun || nowMs - lastWeatherRun.fetchedAt.getTime() > WEATHER_STALE_MS);
+  const silamStale =
+    catalog.run !== null && nowMs - new Date(catalog.run.fetchedAt).getTime() > SILAM_STALE_MS;
 
   // Станции для карты: выведенные и приостановленные не показываются — у них нет данных.
   const stations: HomeStation[] = (aqData?.stations ?? [])
@@ -158,7 +247,9 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
         lat: o.location.geom.y,
         temp,
         symbol: light && dark && label ? { light, dark, label } : null,
-        details: [label, maxMin].filter((d): d is string => Boolean(d)),
+        details: [label, maxMin, weatherStale ? t("dataStale") : null].filter((d): d is string =>
+          Boolean(d),
+        ),
         href: `${localePrefix}/weather/${o.location.slug}`,
         featured: o.location.featured,
       },
@@ -184,7 +275,7 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
       ? ({ topic: "air", view: "forecast" } as const)
       : layer === "weather"
         ? ({ topic: "weather", view: "now" } as const)
-        : ({ topic: "air", view: "now" } as const);
+        : ({ topic: "air", view: "now" } as const); // и ?layer=warnings: воздух, «Сейчас»
 
   return (
     <div className="relative h-[calc(100dvh-4rem-1px)] w-full">
@@ -195,6 +286,8 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
         catalog={catalog}
         weather={weather}
         warnings={warnings}
+        exceedances={exceedances}
+        silamStale={silamStale}
         stations={stations}
         cities={cities}
         selectedCity={city?.slug ?? null}
@@ -211,7 +304,12 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
             />
           ) : null,
           weather: city ? (
-            <CityWeatherCard cityName={cityName} overview={cityWeather} locale={locale} />
+            <CityWeatherCard
+              cityName={cityName}
+              overview={cityWeather}
+              locale={locale}
+              stale={weatherStale}
+            />
           ) : null,
         }}
         forecastLegend={<LevelGauge levels={scaleLevels} />}
@@ -240,6 +338,19 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
           maxInDomain: tsl("maxInDomain", { value: "{value}", unit: "{unit}" }),
           warningsActive: t("warningsActive", { count: warnings.count }),
           warningsOpen: t("warningsOpen"),
+          warningsUpcoming: t("warningsUpcoming", { count: warnings.upcoming }),
+          warningsUpcomingMore: t("warningsUpcomingMore", { count: warnings.upcoming }),
+          warningsNone: t("warningsNone"),
+          warningsStale: t("warningsStale"),
+          warningsStaleShort: t("warningsStaleShort"),
+          warningUpcoming: t("warningUpcoming"),
+          warningsLegend: tw("legend"),
+          warningsLegendUpcoming: t("warningsLegendUpcoming"),
+          mapRegion: t("mapRegion"),
+          stationList: t("stationList"),
+          weatherForecastNone: t("weatherForecastNone"),
+          silamStale: twx("silamStale"),
+          mapUi,
           unsupported: t("webglUnsupported"),
           weatherParam: t("weatherParam"),
           weatherRun: t("weatherRun", { time: "{time}" }),

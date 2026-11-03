@@ -2,12 +2,14 @@
  * Фикстуры сценариев E2E. Данные помечены префиксом E2E и живут только в базе `<db>_e2e`.
  * Времена привязаны к моменту запуска, чтобы «текущий индекс», прогноз и предупреждение были актуальны.
  */
+import { randomUUID } from "node:crypto";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { parseCapAlert } from "@meteo/core";
 import { computeStationIndexes, createDb, eq, ingestCapAlert, sql } from "@meteo/db";
 import * as s from "@meteo/db/schema";
+import { hashPassword } from "better-auth/crypto";
 
 export const E2E = {
   station: { code: "E2E-DU-01", slug: "e2e-dushanbe-center" },
@@ -35,6 +37,11 @@ export const E2E = {
   suspectPollutant: "PM25",
   /** Станция Душанбе измеряет NO₂ и SO₂ — для суммации по методике Агентства на странице станции. */
   summationPollutants: ["NO2", "SO2"],
+  /** Пользователи с ограниченными ролями — для негативных тестов прав (FR7.1); 2FA им не нужна. */
+  users: {
+    operator: { email: "e2e-operator@meteo.tj", password: "E2E-operator-password-2026" },
+    editor: { email: "e2e-editor@meteo.tj", password: "E2E-editor-password-2026" },
+  },
 } as const;
 
 const HOUR = 3_600_000;
@@ -514,6 +521,26 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
       authorId: adminUser?.id ?? null,
       updatedBy: adminUser?.id ?? null,
     });
+
+    // --- оператор и редактор (негативные тесты ролей) -----------------------------------------
+    for (const role of ["operator", "editor"] as const) {
+      const userId = randomUUID();
+      await db.insert(s.users).values({
+        id: userId,
+        name: `E2E ${role}`,
+        email: E2E.users[role].email,
+        emailVerified: true,
+        role,
+        locale: "ru",
+      });
+      await db.insert(s.accounts).values({
+        id: randomUUID(),
+        accountId: userId,
+        providerId: "credential",
+        userId,
+        password: await hashPassword(E2E.users[role].password),
+      });
+    }
 
     const counts = await db.execute<{ measurements: number; index: number }>(sql`
       select (select count(*) from measurements)::int as measurements,

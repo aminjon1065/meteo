@@ -2,6 +2,7 @@ import { getForecastLocation, getLocationForecast } from "@meteo/db";
 import { type NextRequest, NextResponse } from "next/server";
 import { cachedJson } from "@/lib/cache";
 import { getDb } from "@/lib/db";
+import { isForecastStale } from "@/lib/weather";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,8 @@ async function loadForecast(slug: string, hours: number, days: number) {
     producer: forecast.producer,
     originTime: forecast.originTime?.toISOString() ?? null,
     fetchedAt: forecast.fetchedAt?.toISOString() ?? null,
+    // Синхронизации с SmartMet не было дольше 3 ч — показывать прогноз с пометкой «устарело».
+    stale: isForecastStale(forecast.fetchedAt),
     timeZone: "Asia/Dushanbe",
     hourly: forecast.hourly.map((p) => ({ time: p.time.toISOString(), ...p.params })),
     daily: forecast.daily.map((p) => ({ date: p.time.toISOString(), ...p.params })),

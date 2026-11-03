@@ -98,6 +98,8 @@ export function serverEnv(e2e) {
     // Lighthouse и параллельные тесты ходят в API с одного IP — лимит выше боевого (120/мин).
     RATE_LIMIT_API_PER_MINUTE: process.env.RATE_LIMIT_API_PER_MINUTE ?? "600",
     RATE_LIMIT_AUTH_PER_MINUTE: process.env.RATE_LIMIT_AUTH_PER_MINUTE ?? "120",
+    // Тесты ролей входят под разными учётными записями подряд; в бою better-auth пускает 5 попыток в минуту.
+    AUTH_SIGN_IN_PER_MINUTE: process.env.AUTH_SIGN_IN_PER_MINUTE ?? "100",
     NEXT_TELEMETRY_DISABLED: "1",
   };
 }

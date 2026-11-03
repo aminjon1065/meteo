@@ -36,11 +36,35 @@ test("страница станции: текущий индекс, график
   const weekResponse = page.waitForResponse((r) => r.url().includes("range=7d") && r.ok());
   await page.getByRole("tab", { name: t("ru", "index.ranges.7d") }).click();
   expect((await weekResponse).status()).toBe(200);
+  // Осреднение: за неделю — по часам или по суткам; за год — по суткам или по месяцам.
+  const dailyResponse = page.waitForResponse(
+    (r) => r.url().includes("range=7d") && r.url().includes("agg=day") && r.ok(),
+  );
+  await page.getByRole("tab", { name: t("ru", "index.aggDay") }).click();
+  expect((await dailyResponse).status()).toBe(200);
+  const monthlyResponse = page.waitForResponse(
+    (r) => r.url().includes("range=1y") && r.url().includes("agg=month") && r.ok(),
+  );
+  await page.getByRole("tab", { name: t("ru", "index.ranges.1y") }).click();
+  await page.getByRole("tab", { name: t("ru", "index.aggMonth") }).click();
+  expect((await monthlyResponse).status()).toBe(200);
+  // Текстовая альтернатива графику — таблица значений.
+  await page.getByText(t("ru", "index.dataTable"), { exact: true }).click();
+  await expect(page.getByRole("columnheader", { name: t("ru", "index.colTime") })).toBeVisible();
+  await page.getByRole("tab", { name: t("ru", "index.ranges.7d") }).click();
   await expect(page.getByRole("link", { name: t("ru", "index.downloadCsv") })).toHaveAttribute(
     "href",
     /format=csv/,
   );
   await expect(page.getByRole("heading", { name: t("ru", "station.about") })).toBeVisible();
+  // FR1.6: рекомендации и для уязвимых групп, ссылка — на уровень на странице «Здоровье».
+  const groups = page.getByTestId("station-group-advice");
+  await expect(groups).toBeVisible();
+  await groups.getByText(t("ru", "station.vulnerableGroups")).click();
+  await expect(groups.getByText(t("ru", "health.audience.children"))).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: new RegExp(t("ru", "station.allGroups")) }),
+  ).toHaveAttribute("href", /\/health#level-[1-6]$/);
   // Плитки веществ с мини‑графиками за сутки и пустые состояния для неизмеряемых веществ.
   await expect(page.getByTestId("pollutant-tiles")).toBeVisible();
   await expect(page.getByTestId("tile-PM10")).toContainText(
@@ -91,4 +115,25 @@ test("страница станции: кратность ПДК по метод
   expect(station?.indicators?.extremeHighPollution).toBe(false);
   expect(station?.indicators?.maxSingle.NO2?.ratio).toBeGreaterThan(0);
   expect(station?.subIndices.NO2?.index).toBeGreaterThan(0.4);
+});
+
+test("«Здоровье»: на каждом уровне — рекомендации для всех и пяти уязвимых групп (FR1.6)", async ({
+  page,
+}) => {
+  for (const locale of ["ru", "tg", "en"] as const) {
+    await page.goto(locale === "tg" ? "/health" : `/${locale}/health`);
+    for (let level = 1; level <= 5; level++) {
+      const section = page.locator(`#level-${level}`);
+      for (const audience of ["children", "pregnant", "elderly", "respiratory", "cardio"]) {
+        await expect(
+          section.getByText(
+            t(locale, `health.audience.${audience}` as "health.audience.children"),
+            {
+              exact: true,
+            },
+          ),
+        ).toBeVisible();
+      }
+    }
+  }
 });

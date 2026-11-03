@@ -182,3 +182,20 @@ export function ecoBulletinTitle(data: EcoBulletinData, lang: BulletinLang): str
     ? `Экологический бюллетень г. ${city} за ${date}`
     : `Бюллетени экологии ш. ${city} барои ${date}`;
 }
+
+/**
+ * Заголовок страницы бюллетеня на языке портала. Документы выходят только на tg и ru, но у
+ * английской версии страницы заголовок (<title>, og:title) — английский.
+ */
+export function ecoBulletinPageTitle(data: EcoBulletinData, locale: "tg" | "ru" | "en"): string {
+  if (locale !== "en") return ecoBulletinTitle(data, locale);
+  const city = data.city.name.en ?? data.city.name.ru ?? data.city.name.tg ?? data.station.code;
+  const [y = "", m = "1", d = "1"] = data.date.split("-");
+  const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d))).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  return `Environmental bulletin: ${city}, ${date}`;
+}

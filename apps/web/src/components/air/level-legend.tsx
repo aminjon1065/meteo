@@ -1,10 +1,10 @@
 import { AQ_LEVELS_FIVE, type AqLevel } from "@meteo/core";
-import { AqDot } from "@meteo/ui/components/aq-badge";
+import { AqIcon } from "@meteo/ui/components/aq-badge";
 import { cn } from "@meteo/ui/lib/utils";
 import { getTranslations } from "next-intl/server";
 
 /**
- * Легенда уровней качества воздуха: точка цвета + подпись. По умолчанию — пять уровней основной
+ * Легенда уровней качества воздуха: значок уровня (цвет + «лицо») + подпись. По умолчанию — пять уровней основной
  * шкалы; страницы, знающие публичную шкалу, передают её уровни (шесть у US AQI).
  */
 export async function LevelLegend({
@@ -30,7 +30,7 @@ export async function LevelLegend({
               "rounded-full border bg-card/95 px-2.5 py-1 text-caption font-medium backdrop-blur",
           )}
         >
-          <AqDot level={level} />
+          <AqIcon level={level} />
           {t(`${level}`)}
         </li>
       ))}

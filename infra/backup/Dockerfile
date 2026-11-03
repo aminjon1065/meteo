@@ -8,6 +8,8 @@ RUN apk add --no-cache postgresql17-client restic tzdata ca-certificates \
 COPY --chown=backup:backup run.sh /backup/run.sh
 USER backup
 ENV RESTIC_CACHE_DIR=/tmp/restic-cache TZ=UTC
+# Здоров, если последний прогон успешен и был не позже чем 25 ч назад.
 HEALTHCHECK --interval=5m --timeout=10s --start-period=2m \
-  CMD test -n "$(find /backups/last-backup.json -mmin -1500 2>/dev/null)" || exit 1
+  CMD grep -q '"result":"ok"' /backups/last-backup.json \
+   && test -n "$(find /backups/last-backup.json -mmin -1500 2>/dev/null)" || exit 1
 ENTRYPOINT ["/bin/sh", "/backup/run.sh"]

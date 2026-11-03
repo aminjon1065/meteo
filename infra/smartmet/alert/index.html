@@ -8,10 +8,9 @@
   <link rel="apple-touch-icon" href="cap-logo.png">
   <meta name="viewport" content="initial-scale=1.0,
 				   maximum-scale=1.0, user-scalable=0" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-400-normal.min.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-500-normal.min.css" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/fontsource/fonts/roboto@latest/latin-600-normal.min.css" />
-  <script type="text/javascript" src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
+  <!-- Без внешних CDN: библиотеки лежат в vendor/ (версии закреплены, sha256 — в infra/smartmet/README.md).
+       Шрифт Roboto с CDN не подключается: в нём нет таджикской кириллицы, работает системный sans-serif. -->
+  <script type="text/javascript" src="vendor/jquery-1.9.1.min.js"></script>
 
   <link rel="stylesheet" href="css/leaflet.css" />
   <link rel="stylesheet" href="css/capmap.css?v=2" />
@@ -21,12 +20,11 @@
   <script type="text/javascript" src="locations.js"></script>
   <script type="text/javascript" src="js/capmap.js?v=2"></script>
   <script type="text/javascript" src="ethiopian_calendar.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@latest"></script>
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.10.7/plugin/utc.js"></script>
-  <!-- Include Timezone plugin from CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.10.7/plugin/timezone.js"></script>
-  <!-- Include CustomParseFormat plugin for parsing YYYYMMDDHHmmss timestamps -->
-  <script src="https://cdn.jsdelivr.net/npm/dayjs@1.10.7/plugin/customParseFormat.js"></script>
+  <script src="vendor/dayjs-1.11.23.min.js"></script>
+  <script src="vendor/dayjs-plugin-utc-1.10.7.js"></script>
+  <script src="vendor/dayjs-plugin-timezone-1.10.7.js"></script>
+  <!-- CustomParseFormat: разбор меток YYYYMMDDHHmmss -->
+  <script src="vendor/dayjs-plugin-customParseFormat-1.10.7.js"></script>
   <script>
     // Extend dayjs with the plugins
     dayjs.extend(dayjs_plugin_utc);

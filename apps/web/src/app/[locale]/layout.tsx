@@ -11,6 +11,7 @@ import { hasLocale, NextIntlClientProvider } from "next-intl";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { ThemeProvider } from "@/components/theme-provider";
 import { routing } from "@/i18n/routing";
+import { DEFAULT_OG_IMAGE, ogLocale, siteUrl } from "@/lib/seo";
 
 /*
  * Inter — текст, Inter Tight — заголовки и крупные числа (docs/03-design-system.md §5).
@@ -50,11 +51,22 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale } = await params;
   const t = await getTranslations({ locale: locale as Locale, namespace: "common" });
+  const image = { ...DEFAULT_OG_IMAGE, alt: t("siteName") };
   return {
-    metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"),
+    metadataBase: new URL(siteUrl()),
     title: { default: t("siteName"), template: `%s · ${t("siteName")}` },
     description: t("siteTagline"),
     applicationName: t("siteName"),
+    // Запасной вариант для страниц без pageMetadata() (lib/seo.ts): без canonical и og:url.
+    openGraph: {
+      type: "website",
+      siteName: t("siteName"),
+      title: t("siteName"),
+      description: t("siteTagline"),
+      locale: ogLocale[locale as Locale],
+      images: [image],
+    },
+    twitter: { card: "summary_large_image", images: [image.url] },
   };
 }
 
