@@ -103,7 +103,7 @@ export default async function BulletinsPage({ params }: { params: Promise<{ loca
                   <TableCell className="text-muted-foreground">
                     {b.sentAt
                       ? format.dateTime(b.sentAt, { dateStyle: "medium", timeStyle: "short" })
-                      : "—"}
+                      : "-"}
                   </TableCell>
                 </TableRow>
               ))

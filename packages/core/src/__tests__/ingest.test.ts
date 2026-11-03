@@ -136,7 +136,7 @@ describe("normalizeIngestRecords", () => {
     expect(r.pollutantCodes.sort()).toEqual(["CO", "NO2", "PM25"]);
   });
 
-  it("отклоняет ошибки по строкам с причинами, дубликаты — последняя запись", () => {
+  it("отклоняет ошибки по строкам с причинами, дубликаты - последняя запись", () => {
     const r = normalizeIngestRecords(
       [
         { time: "not a time", pollutant: "PM25", value: 1 },

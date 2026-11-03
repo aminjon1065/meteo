@@ -278,8 +278,8 @@ await db
         "Operational air quality index",
       ),
       description: t(
-        "Панҷ сатҳ аз рӯи консентратсияҳои соатӣ; индекси истгоҳ — бадтарин зериндекс.",
-        "Пять уровней по часовым концентрациям; индекс станции — худший из под‑индексов. Пороги по умолчанию — по образцу индекса FMI/HSY.",
+        "Панҷ сатҳ аз рӯи консентратсияҳои соатӣ; индекси истгоҳ - бадтарин зериндекс.",
+        "Пять уровней по часовым концентрациям; индекс станции - худший из под‑индексов. Пороги по умолчанию - по образцу индекса FMI/HSY.",
         "Five levels from hourly concentrations; station index is the worst sub‑index. Default thresholds follow the FMI/HSY index.",
       ),
       levels: fiveLevels,
@@ -328,9 +328,9 @@ await db
       kind: "breakpoints",
       name: t("Индекси US AQI (EPA)", "Индекс US AQI (EPA)", "US AQI (EPA)"),
       description: t(
-        "Шаш категорияи AQI‑и Агентии ҳифзи муҳити зисти ИМА: PM2.5 ва PM10 — миёнаи 24 соат, O3 ва CO — 8 соат, NO2 ва SO2 — 1 соат. Ҳудудҳо — EPA 2024 дар воҳидҳои портал.",
-        "Шесть категорий AQI Агентства по охране окружающей среды США: PM2.5 и PM10 — среднее за 24 ч, O3 и CO — 8 ч, NO2 и SO2 — 1 ч. Пороги — EPA 2024 в единицах портала (ppb/ppm переведены при 25 °C).",
-        "Six US EPA AQI categories: PM2.5 and PM10 — 24‑hour mean, O3 and CO — 8‑hour, NO2 and SO2 — 1‑hour. Thresholds — EPA 2024 in portal units (ppb/ppm converted at 25 °C).",
+        "Шаш категорияи AQI‑и Агентии ҳифзи муҳити зисти ИМА: PM2.5 ва PM10 - миёнаи 24 соат, O3 ва CO - 8 соат, NO2 ва SO2 - 1 соат. Ҳудудҳо - EPA 2024 дар воҳидҳои портал.",
+        "Шесть категорий AQI Агентства по охране окружающей среды США: PM2.5 и PM10 - среднее за 24 ч, O3 и CO - 8 ч, NO2 и SO2 - 1 ч. Пороги - EPA 2024 в единицах портала (ppb/ppm переведены при 25 °C).",
+        "Six US EPA AQI categories: PM2.5 and PM10 - 24‑hour mean, O3 and CO - 8‑hour, NO2 and SO2 - 1‑hour. Thresholds - EPA 2024 in portal units (ppb/ppm converted at 25 °C).",
       ),
       levels: [
         { level: 1, lo: 0, hi: 50, color: "#00E400", label: t("Хуб", "Хороший", "Good") },
@@ -532,7 +532,7 @@ const advice: Array<{ level: number; title: I18nText; text: I18nText }> = [
     level: 4,
     title: t("Ҳаво бад аст", "Воздух плохой", "Air quality is poor"),
     text: t(
-      "Вақти буданро дар беруни бино кам кунед, тирезаҳоро пӯшед. Гурӯҳҳои осебпазир — дар дохили бино бимонанд.",
+      "Вақти буданро дар беруни бино кам кунед, тирезаҳоро пӯшед. Гурӯҳҳои осебпазир - дар дохили бино бимонанд.",
       "Сократите время на улице, закройте окна. Уязвимым группам лучше оставаться в помещении; при симптомах обратитесь к врачу.",
       "Limit time outdoors and keep windows closed. Vulnerable groups should stay indoors; seek medical advice if symptoms appear.",
     ),
@@ -584,8 +584,8 @@ const usAqiAdvice: Array<{ level: number; title: I18nText; text: I18nText }> = [
     level: 4,
     title: t("Зарарнок", "Вредно для здоровья", "Unhealthy"),
     text: t(
-      "Баъзе одамон метавонанд оқибатҳои саломатиро ҳис кунанд; гурӯҳҳои ҳассос — ҷиддитар. Ба ҳама лозим аст машқи тӯлонӣ ва шадидро дар беруни бино кам кунанд, гурӯҳҳои ҳассос — аз онҳо худдорӣ кунанд.",
-      "Некоторые люди могут ощущать последствия для здоровья; чувствительные группы — более серьёзные. Всем стоит сократить длительные и интенсивные нагрузки на улице, чувствительным группам — избегать их.",
+      "Баъзе одамон метавонанд оқибатҳои саломатиро ҳис кунанд; гурӯҳҳои ҳассос - ҷиддитар. Ба ҳама лозим аст машқи тӯлонӣ ва шадидро дар беруни бино кам кунанд, гурӯҳҳои ҳассос - аз онҳо худдорӣ кунанд.",
+      "Некоторые люди могут ощущать последствия для здоровья; чувствительные группы - более серьёзные. Всем стоит сократить длительные и интенсивные нагрузки на улице, чувствительным группам - избегать их.",
       "Some members of the general public may experience health effects; sensitive groups may experience more serious effects. Everyone should reduce prolonged or heavy exertion outdoors; sensitive groups should avoid it.",
     ),
   },
@@ -593,8 +593,8 @@ const usAqiAdvice: Array<{ level: number; title: I18nText; text: I18nText }> = [
     level: 5,
     title: t("Хеле зарарнок", "Очень вредно для здоровья", "Very unhealthy"),
     text: t(
-      "Огоҳӣ дар бораи хатар ба саломатӣ: оқибатҳо дар ҳама имконпазиранд. Аз машқи тӯлонӣ ва шадид дар беруни бино худдорӣ кунед; гурӯҳҳои ҳассос — дар дохили бино бимонанд.",
-      "Предупреждение о рисках для здоровья: последствия возможны у всех. Избегайте длительных и интенсивных нагрузок на улице; чувствительным группам — оставаться в помещении.",
+      "Огоҳӣ дар бораи хатар ба саломатӣ: оқибатҳо дар ҳама имконпазиранд. Аз машқи тӯлонӣ ва шадид дар беруни бино худдорӣ кунед; гурӯҳҳои ҳассос - дар дохили бино бимонанд.",
+      "Предупреждение о рисках для здоровья: последствия возможны у всех. Избегайте длительных и интенсивных нагрузок на улице; чувствительным группам - оставаться в помещении.",
       "Health alert: the risk of health effects is increased for everyone. Avoid prolonged or heavy exertion outdoors; sensitive groups should stay indoors.",
     ),
   },
@@ -899,7 +899,7 @@ if (usersCount === 0) {
   const password = process.env.SEED_ADMIN_PASSWORD;
   if (!email || !password) {
     console.warn(
-      "[seed] SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD не заданы — администратор не создан",
+      "[seed] SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD не заданы - администратор не создан",
     );
   } else if (password.length < 10) {
     throw new Error("[seed] SEED_ADMIN_PASSWORD должен быть не короче 10 символов");

@@ -81,7 +81,7 @@ export function handleSummary(data) {
   const total = data.metrics.http_reqs ? data.metrics.http_reqs.values.rate : 0;
   const failed = data.metrics.http_req_failed ? data.metrics.http_req_failed.values.rate : 0;
   const summary = [
-    `# k6 summary — ${new Date().toISOString()} — VUS=${VUS} DURATION=${DURATION} BASE=${BASE}`,
+    `# k6 summary - ${new Date().toISOString()} - VUS=${VUS} DURATION=${DURATION} BASE=${BASE}`,
     `total RPS=${total.toFixed(1)} failed=${(failed * 100).toFixed(2)}%`,
     ...lines,
     "",

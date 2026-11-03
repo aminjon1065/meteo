@@ -128,7 +128,7 @@ describe("dateFormatter: браузер без данных Intl для tg", () 
   });
 });
 
-describe("dateFormatter: ru и en — Intl", () => {
+describe("dateFormatter: ru и en - Intl", () => {
   it("по умолчанию время Душанбе", () => {
     const options = { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" } as const;
     const at = new Date("2026-10-29T12:00:00Z");
@@ -143,7 +143,7 @@ describe("dateFormatter: ru и en — Intl", () => {
 });
 
 describe("calendarNames", () => {
-  it("tg — как у Node", () => {
+  it("tg - как у Node", () => {
     const names = calendarNames("tg");
     const month = (options: Intl.DateTimeFormatOptions) =>
       Array.from({ length: 12 }, (_, i) =>
@@ -163,7 +163,7 @@ describe("calendarNames", () => {
     expect(names.dayOfWeekAbbr).toEqual(weekday({ weekday: "short" }));
   });
 
-  it("ru и en — от Intl, с воскресенья", () => {
+  it("ru и en - от Intl, с воскресенья", () => {
     expect(calendarNames("ru").monthAbbr[9]).toBe("окт.");
     expect(calendarNames("en").dayOfWeekAbbr[0]).toBe("Sun");
     expect(calendarNames("ru").dayOfWeek[0]).toBe("воскресенье");
@@ -177,7 +177,7 @@ describe("formatRelativeTime", () => {
     1_209_600, -2_628_000, 5_256_000, -31_536_000, 63_072_000,
   ];
 
-  it("tg — как Intl.RelativeTimeFormat у Node с правилами next-intl", () => {
+  it("tg - как Intl.RelativeTimeFormat у Node с правилами next-intl", () => {
     for (const s of offsets) {
       const date = now + s * 1000;
       // Те же единица и число, что выбирает next-intl, через Intl Node.
@@ -203,7 +203,7 @@ describe("formatRelativeTime", () => {
     }
   });
 
-  it("ru и en — Intl", () => {
+  it("ru и en - Intl", () => {
     expect(formatRelativeTime("ru", now - 5 * 60_000, now)).toBe("5 минут назад");
     expect(formatRelativeTime("en", now + 2 * 3_600_000, now)).toBe("in 2 hours");
     expect(formatRelativeTime("en", now, now)).toBe("now");

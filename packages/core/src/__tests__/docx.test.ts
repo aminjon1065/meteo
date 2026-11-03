@@ -51,7 +51,7 @@ describe("docx", () => {
   const parts = unzip(bytes);
   const xml = new TextDecoder().decode(parts.get("word/document.xml"));
 
-  it("пакет содержит обязательные части, первая — [Content_Types].xml", () => {
+  it("пакет содержит обязательные части, первая - [Content_Types].xml", () => {
     expect([...parts.keys()][0]).toBe("[Content_Types].xml");
     for (const name of [
       "_rels/.rels",

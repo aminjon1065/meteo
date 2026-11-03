@@ -49,7 +49,7 @@ describe("MemoryRateLimitStore + checkRateLimit", () => {
     expect(rateLimitHeaders(r)).toEqual({});
   });
 
-  it("при ошибке основного хранилища считает через fallback, без него — пропускает", async () => {
+  it("при ошибке основного хранилища считает через fallback, без него - пропускает", async () => {
     const broken: RateLimitStore = {
       hit: async () => {
         throw new Error("redis down");

@@ -52,21 +52,21 @@ const TEXT = {
     event: "Шамоли сахт",
     headline: (sev) => `ТЕСТ: шамоли сахт (${sev})`,
     description: "Паёми санҷишӣ барои қабули модули M3. Ба он аҳамият надиҳед.",
-    instruction: "Амал лозим нест — ин санҷиш аст.",
+    instruction: "Амал лозим нест - ин санҷиш аст.",
   },
   ru: {
     language: "ru-RU",
     event: "Сильный ветер",
     headline: (sev) => `ТЕСТ: сильный ветер (${sev})`,
     description: "Тестовое сообщение для приёмки модуля M3. Не обращайте внимания.",
-    instruction: "Действий не требуется — это проверка.",
+    instruction: "Действий не требуется - это проверка.",
   },
   en: {
     language: "en-US",
     event: eventEn,
     headline: (sev) => `TEST: strong wind (${sev})`,
     description: "Test message for M3 acceptance. Please ignore.",
-    instruction: "No action needed — this is a test.",
+    instruction: "No action needed - this is a test.",
   },
 };
 

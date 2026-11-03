@@ -56,7 +56,7 @@ export async function StationFeed({
                     ? format.number(s.dominantValue, {
                         maximumFractionDigits: s.dominant?.decimals ?? 1,
                       })
-                    : "—"}
+                    : "-"}
                 </b>
                 {s.dominant ? (
                   <small className="text-caption text-muted-foreground">

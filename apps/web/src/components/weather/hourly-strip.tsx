@@ -38,7 +38,7 @@ export async function HourlyStrip({ points }: { points: ForecastPoint[] }) {
             ) : null}
             <span className="num font-heading text-base font-bold">
               {p.params.t === null || p.params.t === undefined
-                ? "—"
+                ? "-"
                 : `${format.number(p.params.t, { maximumFractionDigits: 0 })}°`}
             </span>
             <span className="text-[11px] text-muted-foreground tabular-nums">

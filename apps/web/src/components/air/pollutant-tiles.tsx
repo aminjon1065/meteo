@@ -55,7 +55,7 @@ export async function PollutantTiles({
     getFormatter(),
   ]);
   const num = (v: number | null, decimals: number) =>
-    v === null ? "—" : format.number(v, { maximumFractionDigits: decimals });
+    v === null ? "-" : format.number(v, { maximumFractionDigits: decimals });
   const hint = (code: string) => (tp.has(code as "PM10") ? tp(code as "PM10") : undefined);
   const tileClass = "grid content-start gap-1 rounded-xl border bg-card px-3.5 py-3";
   return (

@@ -23,7 +23,7 @@ describe("stationsOfCity", () => {
     expect(codes(stationsOfCity(hisor, stations, cities))).toEqual(["HIS003_ECO"]);
   });
 
-  it("без списка городов — прежнее правило радиуса", () => {
+  it("без списка городов - прежнее правило радиуса", () => {
     expect(codes(stationsOfCity(vahdat, stations))).toEqual(["DYU012_ECO", "VAH001_ECO"]);
   });
 

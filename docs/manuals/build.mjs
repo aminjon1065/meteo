@@ -320,9 +320,9 @@ writeFileSync(
   `<!doctype html>
 <html lang="ru">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Метеопортал — документация</title><style>${CSS}</style></head>
+<title>Метеопортал - документация</title><style>${CSS}</style></head>
 <body><main>
-<h1>Метеопортал FINTAJ — документация / Ҳуҷҷатҳо / Documentation</h1>
+<h1>Метеопортал FINTAJ - документация / Ҳуҷҷатҳо / Documentation</h1>
 <p class="note">Собрано ${new Date().toISOString().slice(0, 10)} из <code>docs/</code> (pnpm docs:build).</p>
 <h2>Руководства · Дастурҳо · Manuals</h2>
 <table><thead><tr><th>Документ</th><th>HTML</th><th>PDF</th></tr></thead><tbody>

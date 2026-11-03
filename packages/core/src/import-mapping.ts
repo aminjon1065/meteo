@@ -122,7 +122,7 @@ export interface ImportTable {
 }
 
 const MAX_ERRORS = 500;
-const DEFAULT_MISSING = ["", "-", "—", "–", "n/a", "na", "nan", "null", "н/д", "нд", "нет", "*"];
+const DEFAULT_MISSING = ["", "-", "-", "–", "n/a", "na", "nan", "null", "н/д", "нд", "нет", "*"];
 
 export function normalizeHeader(h: string): string {
   return h.trim().toLowerCase().replace(/\s+/g, " ");

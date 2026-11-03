@@ -19,7 +19,7 @@ const station = (over: Partial<StationForCity> & Pick<StationForCity, "id" | "lo
   }) satisfies StationForCity;
 
 describe("cityNameFromArea", () => {
-  it("город в границах — без слова «город» на всех языках", () => {
+  it("город в границах - без слова «город» на всех языках", () => {
     expect(cityNameFromArea({ tg: "Шаҳри Ҳисор", ru: "Город Гиссар", en: "Hisor city" })).toEqual({
       tg: "Ҳисор",
       ru: "Гиссар",
@@ -59,7 +59,7 @@ describe("planStationCities", () => {
     ]);
   });
 
-  it("соседние станции за радиусом делят один город; без района — название станции", () => {
+  it("соседние станции за радиусом делят один город; без района - название станции", () => {
     const a = station({
       id: 7,
       lon: 70.0,

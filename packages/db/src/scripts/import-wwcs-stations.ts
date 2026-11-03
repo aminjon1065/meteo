@@ -190,7 +190,7 @@ try {
     .from(s.pollutants);
   const pid = new Map(pollutantRows.map((p) => [p.code, p.id]));
   for (const code of ["PM25", "PM10"])
-    if (!pid.has(code)) throw new Error(`нет вещества ${code} — выполните seed`);
+    if (!pid.has(code)) throw new Error(`нет вещества ${code} - выполните seed`);
 
   const existing = await db
     .select({ id: s.stations.id, code: s.stations.code, slug: s.stations.slug })
@@ -235,8 +235,8 @@ try {
     if (slugs.has(slug)) slug = `${slug}-${slugify(code)}`.slice(0, 64);
     slugs.add(slug);
     console.info(
-      `[wwcs] + ${code} «${name.ru}» (${st.latitude.toFixed(4)}, ${st.longitude.toFixed(4)}, ${elevation ?? "—"} м) ` +
-        `регион ${geo?.region_id ?? "—"}, район ${geo?.district_id ?? "—"}${isSuspended ? ", приостановлена" : ""}`,
+      `[wwcs] + ${code} «${name.ru}» (${st.latitude.toFixed(4)}, ${st.longitude.toFixed(4)}, ${elevation ?? "-"} м) ` +
+        `регион ${geo?.region_id ?? "-"}, район ${geo?.district_id ?? "-"}${isSuspended ? ", приостановлена" : ""}`,
     );
     if (dryRun) {
       created.push(code);
@@ -324,7 +324,7 @@ try {
           enabled: !args.disabled,
         },
       });
-      sourceNote = `создан источник json id ${src?.id} в карточке ${anchorCode} (${args.disabled ? "выключен (--disabled)" : "включён — worker опросит API в ближайшем цикле"})`;
+      sourceNote = `создан источник json id ${src?.id} в карточке ${anchorCode} (${args.disabled ? "выключен (--disabled)" : "включён - worker опросит API в ближайшем цикле"})`;
     }
   }
 

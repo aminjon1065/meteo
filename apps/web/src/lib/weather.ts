@@ -13,7 +13,7 @@ import { translateOr } from "@/lib/i18n-utils";
 
 /** Подпись символа погоды по коду FMI SmartSymbol (ночные коды приводятся к дневным). */
 export function symbolLabel(t: unknown, code: number | null | undefined): string {
-  return translateOr(t, symbolKey(code), "—");
+  return translateOr(t, symbolKey(code), "-");
 }
 
 /** Название модели прогноза по producer'у SmartMet (для подписей «на основе модели …»). */

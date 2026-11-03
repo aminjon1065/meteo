@@ -87,7 +87,7 @@ export default async function AuditPage({
             {t("entity")}
           </label>
           <NativeSelect id="f-entity" name="entity" defaultValue={sp.entity ?? ""}>
-            <NativeSelectOption value="">—</NativeSelectOption>
+            <NativeSelectOption value="">-</NativeSelectOption>
             {entities.map((e) => (
               <NativeSelectOption key={e.entity} value={e.entity}>
                 {e.entity}
@@ -137,7 +137,7 @@ export default async function AuditPage({
                     {format.dateTime(r.at, { dateStyle: "short", timeStyle: "medium" })}
                   </TableCell>
                   <TableCell>
-                    <span>{r.actorEmail ?? "—"}</span>
+                    <span>{r.actorEmail ?? "-"}</span>
                     {r.actorRole ? (
                       <span className="block text-xs text-muted-foreground">{r.actorRole}</span>
                     ) : null}
@@ -150,7 +150,7 @@ export default async function AuditPage({
                     ) : null}
                   </TableCell>
                   <TableCell className="font-mono text-xs text-muted-foreground">
-                    {r.ip ?? "—"}
+                    {r.ip ?? "-"}
                   </TableCell>
                   <TableCell className="text-right">
                     <AuditDetails

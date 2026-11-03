@@ -60,7 +60,7 @@ export function SchemaTree({
       return (
         <p className="text-xs text-muted-foreground">
           {`{ [key: string]: ${typeLabel(additional)} }`}
-          {typeof schema.description === "string" ? ` — ${schema.description}` : ""}
+          {typeof schema.description === "string" ? ` - ${schema.description}` : ""}
           {child ? (
             <SchemaTree schema={child} depth={depth + 1} requiredLabel={requiredLabel} />
           ) : null}
@@ -90,7 +90,7 @@ export function SchemaTree({
               </span>
             ) : null}
             {typeof prop.description === "string" ? (
-              <span className="text-xs text-muted-foreground"> — {prop.description}</span>
+              <span className="text-xs text-muted-foreground"> - {prop.description}</span>
             ) : null}
           </>
         );

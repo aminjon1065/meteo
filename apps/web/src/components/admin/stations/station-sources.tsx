@@ -146,9 +146,9 @@ export function StationSources({
 
   // Не useFormatter: он форматирует через Intl, а в браузере нет его данных для tg.
   // «N секунд назад» сервер и браузер считают в разные моменты — у этих <dd> suppressHydrationWarning.
-  const rel = (d: Date | null) => (d ? formatRelativeTime(locale, d) : "—");
+  const rel = (d: Date | null) => (d ? formatRelativeTime(locale, d) : "-");
   const dt = (d: Date | null) =>
-    d ? dateFormatter(locale, { dateStyle: "short", timeStyle: "short" }).format(d) : "—";
+    d ? dateFormatter(locale, { dateStyle: "short", timeStyle: "short" }).format(d) : "-";
   const errorText = (field: string): string | undefined => {
     const message = errors[field]?.[0];
     if (!message) return undefined;

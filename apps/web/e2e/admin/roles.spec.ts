@@ -52,7 +52,7 @@ const ADMIN_ONLY_PAGES = [
   "/ru/admin/qc-rules",
 ];
 
-test("оператор: ввод и QC данных доступны, контент и администрирование — запрет", async ({
+test("оператор: ввод и QC данных доступны, контент и администрирование - запрет", async ({
   page,
 }) => {
   await signInAs(page, "operator");
@@ -82,7 +82,7 @@ test("оператор: ввод и QC данных доступны, конте
   expect(upload.status()).toBe(403);
 });
 
-test("редактор: контент доступен, данные мониторинга и администрирование — запрет", async ({
+test("редактор: контент доступен, данные мониторинга и администрирование - запрет", async ({
   page,
 }) => {
   await signInAs(page, "editor");
@@ -101,7 +101,7 @@ test("редактор: контент доступен, данные монит
   expect((await page.request.get("/api/admin/cap/1/xml")).status()).toBe(403);
 });
 
-test("без входа: /api/admin — 401, страницы админки — на вход", async ({ page }) => {
+test("без входа: /api/admin - 401, страницы админки - на вход", async ({ page }) => {
   expect((await page.request.get("/api/admin/subscribers.csv")).status()).toBe(401);
   await page.goto("/ru/admin/users");
   await expect(page).toHaveURL(/\/ru\/admin\/login/);

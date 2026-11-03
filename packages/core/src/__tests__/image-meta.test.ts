@@ -104,7 +104,7 @@ describe("detectFileType: поддерживаемые форматы", () => {
     expect(detectFileType(withDht)).toMatchObject({ mime: "image/jpeg", width: 32, height: 16 });
   });
 
-  it("JPEG без SOF в переданном префиксе — тип известен, размеры нет", () => {
+  it("JPEG без SOF в переданном префиксе - тип известен, размеры нет", () => {
     const truncated = JPEG_640x480.slice(0, 20);
     expect(detectFileType(truncated)).toEqual({
       mime: "image/jpeg",
@@ -180,7 +180,7 @@ describe("detectFileType: отрицательные случаи", () => {
     expect(detectFileType(bytes("%PD"))).toBeNull();
   });
 
-  it("обрезанный PNG — null, а не исключение", () => {
+  it("обрезанный PNG - null, а не исключение", () => {
     expect(detectFileType(PNG_120x80.slice(0, 8))).toBeNull();
     expect(detectFileType(PNG_120x80.slice(0, 16))).toBeNull();
     expect(detectFileType(PNG_120x80.slice(0, 22))).toBeNull();

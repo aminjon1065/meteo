@@ -19,7 +19,7 @@ const level = z
   .int()
   .min(0)
   .max(6)
-  .describe("Air quality level 1–5 (1–6 for six-category scales such as US AQI); 0 — no data");
+  .describe("Air quality level 1–5 (1–6 for six-category scales such as US AQI); 0 - no data");
 
 export const ErrorSchema = z.object({ error: z.string() }).describe("Error response");
 
@@ -59,7 +59,7 @@ export const measurementsQuery = z.object({
     .enum(["hour", "day", "month", "raw"])
     .optional()
     .describe(
-      "Aggregation: 24h — hour; 7d — hour|day; 30d — day|hour; 1y — day|month; all — month|day. raw — every value with its QC flag (CSV only, up to 30d)",
+      "Aggregation: 24h - hour; 7d - hour|day; 30d - day|hour; 1y - day|month; all - month|day. raw - every value with its QC flag (CSV only, up to 30d)",
     ),
   pollutant: z
     .string()
@@ -195,7 +195,7 @@ export const IndexCurrentResponseSchema = z
             level: z.int(),
             index: z
               .number()
-              .describe("Continuous sub-index; for RATIO_TO_LIMIT — ratio to the daily limit"),
+              .describe("Continuous sub-index; for RATIO_TO_LIMIT - ratio to the daily limit"),
           }),
         ),
         indicators: AgencyIndicatorsSchema.nullable(),
@@ -239,7 +239,7 @@ const forecastParams = {
   dew: z.number().nullable().optional().describe("Dew point, °C"),
   precip: z.number().nullable().optional().describe("Precipitation, mm/h"),
   cloud: z.number().nullable().optional().describe("Total cloud cover, %"),
-  symbol: z.int().nullable().optional().describe("FMI SmartSymbol code (1xx — night variant)"),
+  symbol: z.int().nullable().optional().describe("FMI SmartSymbol code (1xx - night variant)"),
 };
 
 export const ForecastResponseSchema = z
@@ -283,7 +283,7 @@ export const ForecastLocationsResponseSchema = z
         lon: z.number(),
         kind: z
           .enum(["city", "district", "station"])
-          .describe("station — a point next to a monitoring station far from cities"),
+          .describe("station - a point next to a monitoring station far from cities"),
         region: I18nTextSchema.nullable(),
         regionCode: z.string().nullable(),
         featured: z.boolean().describe("Major city (shown first on the portal)"),
@@ -466,7 +466,7 @@ const BoundaryPropertiesSchema = z.object({
     .int()
     .min(0)
     .max(6)
-    .describe("Worst current index level among the unit's stations; 0 — no data or stale"),
+    .describe("Worst current index level among the unit's stations; 0 - no data or stale"),
 });
 
 const MultiPolygonSchema = z.object({
@@ -497,7 +497,7 @@ export const RegionsOutlineResponseSchema = z
   .object({
     type: z.literal("Feature"),
     properties: z.object({}),
-    geometry: MultiPolygonSchema.nullable().describe("null — boundaries are not loaded yet"),
+    geometry: MultiPolygonSchema.nullable().describe("null - boundaries are not loaded yet"),
   })
   .describe(
     "Outline of Tajikistan: union of the simplified regions (same 0.002° tolerance), exterior rings only; enclaves are separate polygons",
@@ -552,7 +552,7 @@ export const IngestRecordSchema = z
       .nullable()
       .optional()
       .describe(
-        "Input unit: µg/m³, mg/m³, ppb or ppm; default — the station's input unit for the pollutant",
+        "Input unit: µg/m³, mg/m³, ppb or ppm; default - the station's input unit for the pollutant",
       ),
     flag: z
       .union([z.string().max(32), z.int().min(0).max(5)])

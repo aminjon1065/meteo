@@ -237,7 +237,7 @@ export function MeasurementChart({
               | { data?: [number, number | null] }
               | undefined;
             const [ts, v] = p?.data ?? [0, null];
-            return `${fmt.format(new Date(ts))}<br/><b>${v === null ? "—" : numFmt.format(v)}</b> ${pollutant.unit}`;
+            return `${fmt.format(new Date(ts))}<br/><b>${v === null ? "-" : numFmt.format(v)}</b> ${pollutant.unit}`;
           },
         },
         xAxis: {
@@ -447,7 +447,7 @@ function DataTable({
 }) {
   const fmt = pointFormatter(locale, aggregation);
   const numFmt = numberFormatter(locale, { maximumFractionDigits: decimals });
-  const n = (v: number | null) => (v === null ? "—" : numFmt.format(v));
+  const n = (v: number | null) => (v === null ? "-" : numFmt.format(v));
   return (
     <div className="mt-2 max-h-80 overflow-auto rounded-lg border">
       <table className="w-full text-left text-sm">

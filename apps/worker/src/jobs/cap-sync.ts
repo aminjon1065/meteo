@@ -178,7 +178,7 @@ async function syncCap(data: CapSyncData) {
   const url = data.url ?? env.CAP_FEED_URL;
   if (!url) {
     await setCapSyncState(db, { at, status: "disabled", message: "CAP_FEED_URL не задан" });
-    logger.info("CAP_FEED_URL не задан — cap-sync пропущен");
+    logger.info("CAP_FEED_URL не задан - cap-sync пропущен");
     return { skipped: true, reason: "not-configured" };
   }
   const previous = await getCapSyncState(db);

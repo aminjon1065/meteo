@@ -98,7 +98,7 @@ export interface JsonFeedParseResult {
 export const JSON_FEED_FORMAT = "json";
 const MAX_ERRORS = 500;
 const MAX_HISTORY_HOURS = 168;
-const DEFAULT_MISSING = ["", "-", "—", "n/a", "na", "nan", "null"];
+const DEFAULT_MISSING = ["", "-", "-", "n/a", "na", "nan", "null"];
 
 /** Маппинг типа json (в отличие от FeedMapping файлов, у которого есть layout). */
 export function isJsonFeedMapping(m: unknown): m is JsonFeedMapping {

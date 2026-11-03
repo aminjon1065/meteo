@@ -228,7 +228,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ local
           <CardDescription>
             {t("branding.hint")}
             {brandingRow
-              ? ` ${t("branding.updatedAt", { time: dt(brandingRow.updatedAt), by: updatedBy ?? "—" })}`
+              ? ` ${t("branding.updatedAt", { time: dt(brandingRow.updatedAt), by: updatedBy ?? "-" })}`
               : ""}
           </CardDescription>
         </CardHeader>

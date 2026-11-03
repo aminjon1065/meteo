@@ -200,7 +200,7 @@ test("главная: попап станции с уровнем словом, 
   expect(violations()).toEqual([]);
 });
 
-test("главная: тема «Погода» — значки и температура в городах вместо станций", async ({ page }) => {
+test("главная: тема «Погода» - значки и температура в городах вместо станций", async ({ page }) => {
   await page.goto("/ru");
   await expect(page.locator(".maplibregl-canvas").first()).toBeVisible({ timeout: 30_000 });
   await page.getByRole("radio", { name: t("ru", "map.topics.weather") }).check();
@@ -217,7 +217,7 @@ test("главная: тема «Погода» — значки и темпер
   );
 });
 
-test("главная: тип карты — схема и серая всегда, рельеф и спутник при наличии файлов, выбор запоминается", async ({
+test("главная: тип карты - схема и серая всегда, рельеф и спутник при наличии файлов, выбор запоминается", async ({
   page,
 }) => {
   await page.goto("/ru");

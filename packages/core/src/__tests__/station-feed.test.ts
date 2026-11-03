@@ -29,7 +29,7 @@ describe("validateFeedMapping", () => {
       }),
     ).toEqual([
       "time.timezone: часовой пояс «Mars/Olympus» не поддерживается (Asia/Dushanbe, UTC или смещение +HH:MM)",
-      "headerRow: 0 — без заголовка все колонки задаются индексами",
+      "headerRow: 0 - без заголовка все колонки задаются индексами",
     ]);
     expect(
       validateFeedMapping({

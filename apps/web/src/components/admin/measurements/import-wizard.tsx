@@ -161,7 +161,7 @@ export function ImportWizard({ stations, preview, apply, reject }: ImportWizardP
                   <TableBody>
                     {result.report.errors.slice(0, 50).map((e, i) => (
                       <TableRow key={`${e.row}-${i}`}>
-                        <TableCell className="tabular-nums">{e.row || "—"}</TableCell>
+                        <TableCell className="tabular-nums">{e.row || "-"}</TableCell>
                         <TableCell>{describeError(e.message)}</TableCell>
                       </TableRow>
                     ))}

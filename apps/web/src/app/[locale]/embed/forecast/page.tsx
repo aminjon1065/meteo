@@ -59,7 +59,7 @@ export default async function EmbedForecastPage({
   const fetchedAt = forecast?.fetchedAt ?? null;
   const stale = isForecastStale(fetchedAt);
   const deg = (v: number | null | undefined) =>
-    v === null || v === undefined ? "—" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
+    v === null || v === undefined ? "-" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
 
   return (
     <div className="flex flex-col gap-2 rounded-lg border bg-card p-3 text-sm">
@@ -87,7 +87,7 @@ export default async function EmbedForecastPage({
           {t("embedStale", {
             time: fetchedAt
               ? format.dateTime(fetchedAt, { dateStyle: "short", timeStyle: "short" })
-              : "—",
+              : "-",
           })}
         </p>
       ) : null}

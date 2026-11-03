@@ -67,7 +67,7 @@ export default async function CapAlertDetailPage({
         .orderBy(asc(capAreas.id))
     : [];
   const dt = (d: Date | null) =>
-    d ? format.dateTime(d, { dateStyle: "medium", timeStyle: "short" }) : "—";
+    d ? format.dateTime(d, { dateStyle: "medium", timeStyle: "short" }) : "-";
 
   return (
     <>
@@ -131,13 +131,13 @@ export default async function CapAlertDetailPage({
                   alert.sourceUrl
                 )
               ) : (
-                (alert.source ?? "—")
+                (alert.source ?? "-")
               )}
             </dd>
           </div>
           <div>
             <dt className="text-xs text-muted-foreground">{t("references")}</dt>
-            <dd className="font-mono text-xs break-all">{alert.references ?? "—"}</dd>
+            <dd className="font-mono text-xs break-all">{alert.references ?? "-"}</dd>
           </div>
           {supersededBy ? (
             <div>

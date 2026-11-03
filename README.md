@@ -1,8 +1,8 @@
 # Метеопортал FINTAJ
 
-Публичный портал качества воздуха и погоды, административная панель и фоновые интеграции (SmartMet, SmartMet Alert, SILAM) для Агентства по гидрометеорологии Республики Таджикистан. Проект FINTAJ, донор — Финский метеорологический институт (FMI).
+Публичный портал качества воздуха и погоды, административная панель и фоновые интеграции (SmartMet, SmartMet Alert, SILAM) для Агентства по гидрометеорологии Республики Таджикистан. Проект FINTAJ, донор - Финский метеорологический институт (FMI).
 
-Документация: [docs/](docs/README.md) — требования, архитектура, дизайн‑система, план поставки, ADR; руководства и runbook — раздел [«Документация»](#документация) ниже.
+Документация: [docs/](docs/README.md) - требования, архитектура, дизайн‑система, план поставки, ADR; руководства и runbook - раздел [«Документация»](#документация) ниже.
 
 ## Стек
 
@@ -14,7 +14,7 @@ Next.js 16 · React 19 · TypeScript · Tailwind CSS 4 + shadcn/ui · next-intl 
 apps/web        Next.js: публичный портал, /admin, /api/v1, /embed
 apps/worker     фоновые задачи (BullMQ): синхронизации, расчёт индекса, рассылки
 apps/station-agent  агент станционного компьютера: один файл Node 22, отправка измерений на /api/v1/ingest
-packages/core   доменная логика без I/O (RBAC, уровни, позже — индекс и QC)
+packages/core   доменная логика без I/O (RBAC, уровни, позже - индекс и QC)
 packages/db     схема Drizzle, миграции, TimescaleDB/PostGIS SQL, seed
 packages/i18n   локали и сообщения интерфейса
 packages/ui     дизайн‑система: токены, компоненты shadcn/ui, доменные компоненты
@@ -22,7 +22,7 @@ infra/compose   docker-compose (dev), compose.prod.yml (prod), compose.edge.yml 
 infra/edge      общий обратный прокси хоста с несколькими приложениями (Caddy, /opt/edge на сервере)
 infra/deploy    выкатка из GitHub Actions: подготовка хоста, meteo-deploy, deploy.sh, dc
 infra/backup    скрипт резервного копирования
-infra/data      fetch-map-assets.sh: экстракт тайлов Protomaps (OSM) и ассеты стиля; tiles/ — гитигнорируется
+infra/data      fetch-map-assets.sh: экстракт тайлов Protomaps (OSM) и ассеты стиля; tiles/ - гитигнорируется
 docs/           проектная документация и ADR
 ```
 
@@ -42,7 +42,7 @@ pnpm dev                        # web: http://localhost:3000, worker: healthz н
 # или по отдельности: pnpm --filter @meteo/web dev / pnpm --filter @meteo/worker dev
 ```
 
-Админка: http://localhost:3000/admin (логин из `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`). Для роли admin обязательна двухфакторная аутентификация: при первом входе откроется `/admin/two-factor` — отсканируйте QR‑код приложением‑аутентификатором и сохраните резервные коды. Пользователей создаёт администратор в `/admin/users`; проверка SMTP, адреса интеграций и брендинг — в `/admin/settings`.
+Админка: http://localhost:3000/admin (логин из `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`). Для роли admin обязательна двухфакторная аутентификация: при первом входе откроется `/admin/two-factor` - отсканируйте QR‑код приложением‑аутентификатором и сохраните резервные коды. Пользователей создаёт администратор в `/admin/users`; проверка SMTP, адреса интеграций и брендинг - в `/admin/settings`.
 
 ## Команды
 
@@ -61,8 +61,8 @@ pnpm dev                        # web: http://localhost:3000, worker: healthz н
 
 Один хост с Docker: `docker compose --env-file .env -f infra/compose/compose.prod.yml up -d`.
 Хост с другими приложениями (общий прокси `infra/edge`, `compose.edge.yml`) и выкатка из GitHub Actions на
-staging/production (`.github/workflows/deploy.yml`, `infra/deploy/`) — [docs/runbook.md](docs/runbook.md) §13.
-Подробности — в [docs/runbook.md](docs/runbook.md) (развёртывание, DNS/TLS/SMTP, обновление, бэкап, инциденты) и в [docs/02-architecture.md](docs/02-architecture.md) §11.
+staging/production (`.github/workflows/deploy.yml`, `infra/deploy/`) - [docs/runbook.md](docs/runbook.md) §13.
+Подробности - в [docs/runbook.md](docs/runbook.md) (развёртывание, DNS/TLS/SMTP, обновление, бэкап, инциденты) и в [docs/02-architecture.md](docs/02-architecture.md) §11.
 
 ## Документация
 
@@ -75,29 +75,29 @@ staging/production (`.github/workflows/deploy.yml`, `infra/deploy/`) — [docs/r
 | Проектная документация: требования, архитектура, дизайн‑система, план, ADR, безопасность, производительность, импорт архивов | команда разработки | [docs/README.md](docs/README.md) |
 
 Сборка HTML и PDF (оглавление, переключатель языков, стили печати): `pnpm docs:build` → `docs/manuals/dist/index.html`;
-PDF печатается через Chromium Playwright (`pnpm --filter @meteo/web exec playwright install chromium`), без него —
+PDF печатается через Chromium Playwright (`pnpm --filter @meteo/web exec playwright install chromium`), без него -
 «Печать → Сохранить как PDF» из браузера. Проверка ссылок и якорей: `pnpm docs:check`. Скриншоты для руководств
 снимаются скриптом `node docs/manuals/screenshots.mjs capture` с запущенной production‑сборки (см. шапку скрипта).
-Таджикские версии — машинный черновик, требуют проверки носителем языка.
+Таджикские версии - машинный черновик, требуют проверки носителем языка.
 
 ## Прогнозы (SmartMet, SILAM)
 
 - Погода: worker забирает прогноз из SmartMet Server (плагин timeseries) каждые 15 минут. Без настроек используется песочница `https://opendata.fmi.fi` (глобальная модель ECMWF, producer `ecmwf`, без символов погоды). Для сервера Заказчика задайте `SMARTMET_URL` (и при необходимости `SMARTMET_PRODUCER`, `SMARTMET_API_KEY`).
-- Качество воздуха: `silam-sync` раз в час проверяет новый прогон SILAM на THREDDS FMI (`SILAM_NCSS_URL`, `SILAM_DATASET`), качает NetCDF‑3 по bbox Таджикистана, рисует PNG‑слои в `SILAM_DIR` (по умолчанию `data/silam`; в продакшене — общий том `silam` web/worker) и считает точечные прогнозы для городов и станций.
+- Качество воздуха: `silam-sync` раз в час проверяет новый прогон SILAM на THREDDS FMI (`SILAM_NCSS_URL`, `SILAM_DATASET`), качает NetCDF‑3 по bbox Таджикистана, рисует PNG‑слои в `SILAM_DIR` (по умолчанию `data/silam`; в продакшене - общий том `silam` web/worker) и считает точечные прогнозы для городов и станций.
 - Символы погоды FMI SmartSymbol лежат в `apps/web/public/weather-symbols` (обновление: `infra/data/fetch-weather-symbols.sh`).
 - Ручной запуск любой фоновой задачи: `pnpm --filter @meteo/worker enqueue silam-sync '{"force":true}'` (`force` также обходит circuit breaker).
-- Устойчивость: запросы к SmartMet/SILAM/CAP повторяются при сбоях; после `INTEGRATION_CIRCUIT_FAILURES` неудач подряд синхронизация приостанавливается на `INTEGRATION_CIRCUIT_COOLDOWN_MIN`, администраторы (и `ADMIN_ALERT_EMAILS`) получают письмо; состояние — на дашборде админки.
+- Устойчивость: запросы к SmartMet/SILAM/CAP повторяются при сбоях; после `INTEGRATION_CIRCUIT_FAILURES` неудач подряд синхронизация приостанавливается на `INTEGRATION_CIRCUIT_COOLDOWN_MIN`, администраторы (и `ADMIN_ALERT_EMAILS`) получают письмо; состояние - на дашборде админки.
 - Открытые данные и API: `/data`, документация `/data/api`, спецификация `GET /api/v1/openapi.json?lang=ru`; `sitemap.xml` и `robots.txt` генерируются приложением.
 
 ## Карты (ADR-003)
 
-Карта работает полностью на своих ресурсах: векторные тайлы `infra/data/tiles/tajikistan.pmtiles` отдаются маршрутом `/tiles/*` с поддержкой Range‑запросов (в продакшене — тем же каталогом через Caddy), шрифты и спрайты стиля Protomaps лежат в `apps/web/public/basemaps`, worker MapLibre копируется в `apps/web/public/maplibre` при `pnpm dev`/`pnpm build`. Переменные: `TILES_DIR` (каталог тайлов), `IMPORTS_DIR` (временные файлы импорта CSV).
+Карта работает полностью на своих ресурсах: векторные тайлы `infra/data/tiles/tajikistan.pmtiles` отдаются маршрутом `/tiles/*` с поддержкой Range‑запросов (в продакшене - тем же каталогом через Caddy), шрифты и спрайты стиля Protomaps лежат в `apps/web/public/basemaps`, worker MapLibre копируется в `apps/web/public/maplibre` при `pnpm dev`/`pnpm build`. Переменные: `TILES_DIR` (каталог тайлов), `IMPORTS_DIR` (временные файлы импорта CSV).
 
-Тип карты на главной выбирает посетитель: «Схема» и «Серая» — из тех же векторных тайлов, «Рельеф» (затенение по Copernicus DEM GLO-30, Mapterhorn) и «Спутник» (безоблачный композит Sentinel-2 2021, ESA WorldCover, CC BY 4.0) — из файлов `terrain.pmtiles` и `satellite.pmtiles`, которые собирает `./infra/data/fetch-basemap-layers.sh` (нужны Node и Docker; без файлов варианты просто не предлагаются, docs/runbook.md §1.5).
+Тип карты на главной выбирает посетитель: «Схема» и «Серая» - из тех же векторных тайлов, «Рельеф» (затенение по Copernicus DEM GLO-30, Mapterhorn) и «Спутник» (безоблачный композит Sentinel-2 2021, ESA WorldCover, CC BY 4.0) - из файлов `terrain.pmtiles` и `satellite.pmtiles`, которые собирает `./infra/data/fetch-basemap-layers.sh` (нужны Node и Docker; без файлов варианты просто не предлагаются, docs/runbook.md §1.5).
 
 ## Соглашения
 
-- Все пользовательские строки — через next-intl на трёх языках; CI проверяет полноту ключей.
-- Время в БД — UTC; отображение — Asia/Dushanbe.
-- Изменения схемы — только через миграции Drizzle; объекты TimescaleDB/PostGIS — в `packages/db/sql/*.sql` (идемпотентно).
+- Все пользовательские строки - через next-intl на трёх языках; CI проверяет полноту ключей.
+- Время в БД - UTC; отображение - Asia/Dushanbe.
+- Изменения схемы - только через миграции Drizzle; объекты TimescaleDB/PostGIS - в `packages/db/sql/*.sql` (идемпотентно).
 - Права проверяются на сервере через `can(role, permission)` из `@meteo/core`.

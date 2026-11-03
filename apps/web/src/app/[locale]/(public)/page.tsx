@@ -18,7 +18,7 @@ export async function generateMetadata({
   ]);
   const meta = await pageMetadata({ locale, path: "/", description: ts("homeDescription") });
   // На главной — «Метеопортал — подзаголовок» без шаблона «… · Метеопортал».
-  const title = `${t("siteName")} — ${t("siteTagline")}`;
+  const title = `${t("siteName")} - ${t("siteTagline")}`;
   return {
     ...meta,
     title: { absolute: title },

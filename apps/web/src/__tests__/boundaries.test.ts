@@ -132,7 +132,7 @@ describe("buildBoundaryCollection", () => {
     });
   });
 
-  it("без геометрии отдаёт пустую коллекцию — карта не ломается", () => {
+  it("без геометрии отдаёт пустую коллекцию - карта не ломается", () => {
     const collection = buildBoundaryCollection(
       "region",
       regions.map((r) => ({ ...r, geometry: null })),

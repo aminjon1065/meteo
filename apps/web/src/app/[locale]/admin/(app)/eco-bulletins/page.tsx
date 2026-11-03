@@ -133,7 +133,7 @@ export default async function EcoBulletinsPage({
                             dateStyle: "medium",
                             timeStyle: "short",
                           })
-                        : "—"}
+                        : "-"}
                     </TableCell>
                   </TableRow>
                 ))

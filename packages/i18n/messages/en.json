@@ -115,7 +115,7 @@
     "back": "Back to sign-in",
     "invalidCode": "Invalid or expired code",
     "banned": "This account is blocked. Contact an administrator.",
-    "tooManyAttempts": "Too many attempts — try again later",
+    "tooManyAttempts": "Too many attempts - try again later",
     "twoFactorSetup": "Security and 2FA"
   },
   "roles": {
@@ -188,7 +188,7 @@
     "outbox": {
       "title": "Mail queue",
       "smtpConfigured": "SMTP is configured; the worker delivers mail",
-      "smtpDev": "SMTP_URL is not set — mail is written to the worker log (development mode)",
+      "smtpDev": "SMTP_URL is not set - mail is written to the worker log (development mode)",
       "pending": "pending",
       "failed": "failed",
       "sent24h": "sent 24 h",
@@ -287,7 +287,7 @@
       "names": "Fill in at least the Tajik name; other languages fall back via tg → ru → en.",
       "location": "Click the map or drag the marker; coordinates can also be typed.",
       "noDistricts": "Districts appear after boundaries are loaded.",
-      "sampling": "Discrete — posts sampling 3–4 times a day; continuous — automatic sensors.",
+      "sampling": "Discrete - posts sampling 3–4 times a day; continuous - automatic sensors.",
       "pollutants": "Tick pollutants and the incoming unit; storage is always in the pollutant's unit.",
       "new": "Fill in the station passport and its region."
     },
@@ -310,7 +310,7 @@
       "exists": "A key exists. A new key replaces the old one.",
       "generate": "Generate key",
       "rotate": "Rotate key",
-      "rotated": "Key created — save it now",
+      "rotated": "Key created - save it now",
       "copied": "Copied",
       "hint": "The key is shown once; only its hash is stored."
     },
@@ -369,8 +369,8 @@
         "sftp": "SFTP (SSH)",
         "ftp": "FTP",
         "ftps": "FTPS (FTP over TLS)",
-        "http": "HTTP(S) — file by URL",
-        "json": "JSON API — sensor network (several stations)"
+        "http": "HTTP(S) - file by URL",
+        "json": "JSON API - sensor network (several stations)"
       },
       "fields": {
         "kind": "Type",
@@ -395,9 +395,9 @@
       "hints": {
         "filePattern": "For example *.csv or DU-01_*.txt; new and changed files are processed.",
         "passwordKeep": "leave empty to keep; “-” to remove",
-        "secret": "Stored encrypted (STATION_SOURCES_KEY). You can enter env:NAME — an environment variable of the worker.",
-        "hostFingerprint": "SHA256:… from ssh-keyscan host | ssh-keygen -lf -. Empty — no host key check.",
-        "mappingJson": "Path to the record array, station code field (stationField; codes match portal station codes or are mapped in stations), time field with its time zone, pollutant fields and units, averagingMin and, if available, history — the URL of the series for the past hours to backfill gaps. The template above is the wwcs.tj API (the Agency's PM sensor network).",
+        "secret": "Stored encrypted (STATION_SOURCES_KEY). You can enter env:NAME - an environment variable of the worker.",
+        "hostFingerprint": "SHA256:… from ssh-keyscan host | ssh-keygen -lf -. Empty - no host key check.",
+        "mappingJson": "Path to the record array, station code field (stationField; codes match portal station codes or are mapped in stations), time field with its time zone, pollutant fields and units, averagingMin and, if available, history - the URL of the series for the past hours to backfill gaps. The template above is the wwcs.tj API (the Agency's PM sensor network).",
         "mapping": "Same format as the station agent config: delimiter, time column and format, pollutant columns or long layout. The templates above are starting points.",
         "staleAfterMin": "E-mail to administrators when the source delivers no values within this time."
       },
@@ -411,7 +411,7 @@
         "validation": "Check the form fields",
         "notFound": "Source not found",
         "insert": "Could not save",
-        "noKey": "Encryption key STATION_SOURCES_KEY (or BETTER_AUTH_SECRET) is not set — the password cannot be stored",
+        "noKey": "Encryption key STATION_SOURCES_KEY (or BETTER_AUTH_SECRET) is not set - the password cannot be stored",
         "queueUnavailable": "Job queue unavailable (Redis). The job will run on schedule.",
         "required": "Required field",
         "max": "Too long",
@@ -477,7 +477,7 @@
     "warningsStale": "No recent warning data",
     "warningsStaleShort": "data may be out of date",
     "warningUpcoming": "Expected",
-    "warningsLegendUpcoming": "Dashed outline — expected",
+    "warningsLegendUpcoming": "Dashed outline - expected",
     "weatherForecastNone": "Weather forecast maps are unavailable right now",
     "dataStale": "Data are out of date",
     "controls": {
@@ -542,7 +542,7 @@
     "m": "m",
     "km": "km",
     "scaleLabel": "Level {level} of {total}: {label}",
-    "determines": "Driven by {pollutant}: {value} {unit} — this level starts at {threshold}.",
+    "determines": "Driven by {pollutant}: {value} {unit} - this level starts at {threshold}.",
     "determinesNoThreshold": "Driven by {pollutant}: {value} {unit}.",
     "dayMax": "Daily maximum {value} {unit} at {time}.",
     "staleSince": "Data is stale: last updated {time}.",
@@ -567,7 +567,7 @@
     "about": "About the station",
     "address": "Address",
     "subscribe": "Subscribe to alerts for this station",
-    "determinesGood": "Driven by {pollutant}: {value} {unit} — below the {threshold} threshold."
+    "determinesGood": "Driven by {pollutant}: {value} {unit} - below the {threshold} threshold."
   },
   "measurements": {
     "title": "Measurements",
@@ -609,7 +609,7 @@
       "save": "Save measurements",
       "saved": "Values saved: {count}",
       "invalidTitle": "Out-of-range values were saved with the “invalid” flag",
-      "noPollutants": "No active station has measured pollutants configured — set them in the station registry.",
+      "noPollutants": "No active station has measured pollutants configured - set them in the station registry.",
       "pasteHint": "You can paste a row of values from a spreadsheet: tab or semicolon separated.",
       "unitHint": "Input units are set on the station card; storage uses the pollutant's unit."
     },
@@ -627,7 +627,7 @@
       "defaultStation": "Default station",
       "anyStation": "Given in the file (station column)",
       "template": "Download CSV template",
-      "format": "Columns: time, station, pollutant, value, unit (optional). Time — ISO 8601 or “YYYY-MM-DD HH:MM” Dushanbe time; decimal separator — dot or comma.",
+      "format": "Columns: time, station, pollutant, value, unit (optional). Time - ISO 8601 or “YYYY-MM-DD HH:MM” Dushanbe time; decimal separator - dot or comma.",
       "preview": "Check file",
       "reportTitle": "Validation result",
       "row": "Row",
@@ -663,7 +663,7 @@
         "tooLarge": "File is larger than 20 MB",
         "notFound": "Batch not found",
         "alreadyApplied": "Batch already processed",
-        "expired": "Validation expired — upload the file again",
+        "expired": "Validation expired - upload the file again",
         "insert": "Could not save the batch"
       }
     },
@@ -820,7 +820,7 @@
     "ecoBulletinDraft": {
       "subject": "Eco-bulletin drafts for {date} are ready: {count}",
       "body": "Drafts of the daily ecological bulletin for {date} were prepared automatically for the stations below. Review the data, enter the gamma background if needed and publish the bulletin.",
-      "exceedances": "limit exceedances — {list}",
+      "exceedances": "limit exceedances - {list}",
       "none": "no limit exceedances",
       "noData": "no valid measurements for the day",
       "open": "open",
@@ -830,7 +830,7 @@
   "qc": {
     "title": "Quality control",
     "subtitle": "{count, plural, one {# value} other {# values}} awaiting a decision",
-    "subtitleValid": "{count, plural, one {# value has} other {# values have}} passed QC — find a wrong one and correct it (the original value is kept)",
+    "subtitleValid": "{count, plural, one {# value has} other {# values have}} passed QC - find a wrong one and correct it (the original value is kept)",
     "context": "Before → after",
     "reason": "Reason",
     "actions": "Actions",
@@ -939,7 +939,7 @@
       "title": "Limit values and hazard classes",
       "subtitle": "Daily (MPCd), maximum single (MPCs) and annual limit values in the pollutant's unit; hazard class for IZA",
       "table": "Limit values",
-      "hint": "Empty field — no limit set. Default values are the Agency for Hydrometeorology limit values (daily bulletin of 19 October 2026, mg/m³ converted to the pollutant's unit); values edited here are kept on portal updates.",
+      "hint": "Empty field - no limit set. Default values are the Agency for Hydrometeorology limit values (daily bulletin of 19 October 2026, mg/m³ converted to the pollutant's unit); values edited here are kept on portal updates.",
       "daily": "Daily MPC",
       "maxSingle": "Single MPC",
       "annual": "Annual MPC",
@@ -968,7 +968,7 @@
   },
   "health": {
     "title": "Health and air quality",
-    "intro": "What to do at each pollution level: advice for everyone and for vulnerable groups — children, pregnant and breastfeeding women, the elderly, people with chronic respiratory and cardiovascular diseases.",
+    "intro": "What to do at each pollution level: advice for everyone and for vulnerable groups - children, pregnant and breastfeeding women, the elderly, people with chronic respiratory and cardiovascular diseases.",
     "disclaimer": "The advice is general and does not replace medical consultation.",
     "noAdvice": "Advice for this level has not been filled in yet.",
     "audience": {
@@ -1308,7 +1308,7 @@
       "Test": "Test",
       "Draft": "Draft"
     },
-    "period": "{from} — {to}",
+    "period": "{from} - {to}",
     "from": "from {time}",
     "until": "until {time}",
     "validUntil": "Valid until {time}",
@@ -1324,7 +1324,7 @@
     "bannerTitle": "{count, plural, one {# warning in force} other {# warnings in force}}",
     "forLocation": "Warnings for this area",
     "noneForLocation": "No warnings for this area",
-    "colorHint": "Colour and number show the danger level: 1 — minor (yellow), 2 — moderate (orange), 3 — severe and 4 — extreme (red)",
+    "colorHint": "Colour and number show the danger level: 1 - minor (yellow), 2 - moderate (orange), 3 - severe and 4 - extreme (red)",
     "sourceNote": "Warnings are issued by the Agency for Hydrometeorology in CAP format (SmartMet Alert)",
     "dayNav": "Choose a day",
     "mapCount": "{count, plural, one {# active} other {# active}}",
@@ -1345,7 +1345,7 @@
     "eventPlaceholder": "e.g. Strong wind",
     "saved": "Saved",
     "deleted": "Deleted",
-    "eventsEmpty": "No events yet — they appear after the first sync",
+    "eventsEmpty": "No events yet - they appear after the first sync",
     "fields": {
       "identifier": "Identifier",
       "sender": "Sender",
@@ -1394,7 +1394,7 @@
       "not-modified": "not modified",
       "inserted": "new messages: {count}",
       "errors": "Errors of the last run",
-      "runHint": "The cap-sync job runs every 5 minutes; manual run — pnpm --filter @meteo/worker enqueue cap-sync (force flag described in infra/data/cap/README.md)",
+      "runHint": "The cap-sync job runs every 5 minutes; manual run - pnpm --filter @meteo/worker enqueue cap-sync (force flag described in infra/data/cap/README.md)",
       "source": "Source"
     },
     "back": "Back to list",
@@ -1442,9 +1442,9 @@
       "archived": "Archived"
     },
     "hints": {
-      "slug": "Latin letters, digits and hyphens; empty — from the title",
+      "slug": "Latin letters, digits and hyphens; empty - from the title",
       "body": "Markdown: # headings, lists, **bold**, *italic*, [link](https://…), ![image](/uploads/…)",
-      "publishedAt": "Empty — current time when published; a future date — scheduled publication",
+      "publishedAt": "Empty - current time when published; a future date - scheduled publication",
       "languages": "The Tajik version is required; other languages fall back",
       "new": "Fill in the title and text in at least one language"
     },
@@ -1534,7 +1534,7 @@
       "queued": "Queued",
       "sent": "Sent"
     },
-    "noPost": "— no related post —",
+    "noPost": "- no related post -",
     "send": "Send to subscribers",
     "sendTitle": "Send the bulletin?",
     "sendConfirm": "{count} subscribers will receive the e-mail in their subscription language. Sending cannot be cancelled once started.",
@@ -1567,10 +1567,10 @@
       "title": "Mail (SMTP)",
       "hint": "The background worker sends mail from the email_outbox queue every minute. A test message checks the whole path: queue → SMTP → mailbox.",
       "configured": "configured ({host})",
-      "dev": "SMTP_URL is not set — mail is written to the worker log (development mode)",
+      "dev": "SMTP_URL is not set - mail is written to the worker log (development mode)",
       "to": "Recipient address",
       "send": "Send test message",
-      "queued": "Message queued — it will be sent within a minute",
+      "queued": "Message queued - it will be sent within a minute",
       "lastTest": "Last test",
       "status": {
         "pending": "queued",
@@ -1623,8 +1623,8 @@
       "hint": "Unit of mass concentrations on station pages, in the API and CSV. Data is stored in the pollutant's unit and converted on output; ppm and ppb are not affected.",
       "concentrationUnit": "Concentrations",
       "options": {
-        "native": "µg/m³ — pollutant unit (CO — mg/m³), default",
-        "mg": "mg/m³ — as in the Agency's bulletins"
+        "native": "µg/m³ - pollutant unit (CO - mg/m³), default",
+        "mg": "mg/m³ - as in the Agency's bulletins"
       },
       "saved": "Display units saved"
     }
@@ -1664,7 +1664,7 @@
     "block": "Block",
     "blockHint": "{email} will not be able to sign in; their sessions will be terminated.",
     "blockReason": "Reason (visible to administrators only)",
-    "blockDays": "Duration, days (empty — indefinitely)",
+    "blockDays": "Duration, days (empty - indefinitely)",
     "unblock": "Unblock",
     "revokeSessions": "Sign out everywhere",
     "revokeSessionsHint": "{email} will be signed out on all devices.",
@@ -1729,9 +1729,9 @@
     "disableForbidden": "Administrators cannot disable 2FA: it is mandatory",
     "errors": {
       "password": "Wrong password",
-      "invalidCode": "Invalid code — check the time on your phone and try again",
+      "invalidCode": "Invalid code - check the time on your phone and try again",
       "alreadyEnabled": "2FA is already enabled",
-      "tooManyAttempts": "Too many attempts — try again later",
+      "tooManyAttempts": "Too many attempts - try again later",
       "unknown": "The operation failed"
     }
   },
@@ -1827,7 +1827,7 @@
       "level3": "Sensitive groups should reduce prolonged outdoor exertion.",
       "level4": "Pollution is noticeable for everyone: limit time outdoors, especially for children and the elderly.",
       "level5": "Very high pollution: stay indoors if possible and keep windows closed.",
-      "level6": "Hazardous (sixth level of scales such as the US AQI): extremely high pollution — everyone should stay indoors and avoid physical activity outside.",
+      "level6": "Hazardous (sixth level of scales such as the US AQI): extremely high pollution - everyone should stay indoors and avoid physical activity outside.",
       "level0": "No data, or the data is stale (measurement older than 6 hours).",
       "accessibility": "Colour is never the only carrier of meaning: a level label is always shown next to it and a number on the map. Colours are chosen for a text contrast of at least 4.5:1 in light and dark themes."
     },
@@ -1850,7 +1850,7 @@
     "quality": {
       "title": "Data quality",
       "text": "Every measurement is checked: physical range, spikes, stuck sensors and outliers relative to the station's history. Suspect values are reviewed by an operator; only valid and corrected values are published.",
-      "stale": "If the measurement is older than 6 hours the index is considered stale and shown as grey “no data” — an honest gap is better than an outdated number."
+      "stale": "If the measurement is older than 6 hours the index is considered stale and shown as grey “no data” - an honest gap is better than an outdated number."
     },
     "more": {
       "title": "See also",
@@ -1871,7 +1871,7 @@
       },
       "cases": {
         "title": "High and extremely high pollution",
-        "text": "High pollution (HP) means the maximum single concentration reached 10 single MPCs, extremely high pollution (EHP) — 50 single MPCs. The flags are shown on the station page and returned by the API."
+        "text": "High pollution (HP) means the maximum single concentration reached 10 single MPCs, extremely high pollution (EHP) - 50 single MPCs. The flags are shown on the station page and returned by the API."
       },
       "compare": "Bulletins assess the change against the previous day; on the portal the measurement chart shows the dynamics, and the ratios are recalculated every 10 minutes over a sliding 24-hour window.",
       "units": "Bulletins publish concentrations in mg/m³; the display unit of the portal (µg/m³ or mg/m³) is chosen by the administrator, and the API and CSV state the unit in the unit field."
@@ -1879,7 +1879,7 @@
   },
   "data": {
     "title": "Open data",
-    "intro": "Measurements, the index, forecasts and warnings are available in machine-readable form — for researchers, the media, app developers and the meteo.tj website.",
+    "intro": "Measurements, the index, forecasts and warnings are available in machine-readable form - for researchers, the media, app developers and the meteo.tj website.",
     "apiDocs": "API documentation",
     "updates": "Updated",
     "onPortal": "View on the portal",
@@ -1939,10 +1939,10 @@
     },
     "formats": {
       "title": "Formats",
-      "json": "JSON — the primary format of all endpoints",
-      "geojson": "GeoJSON — stations, boundaries, warning polygons",
-      "csv": "CSV (UTF-8 with BOM) — measurement series for spreadsheets and analysis",
-      "xml": "CAP XML and RSS 2.0 — warnings and news"
+      "json": "JSON - the primary format of all endpoints",
+      "geojson": "GeoJSON - stations, boundaries, warning polygons",
+      "csv": "CSV (UTF-8 with BOM) - measurement series for spreadsheets and analysis",
+      "xml": "CAP XML and RSS 2.0 - warnings and news"
     },
     "widgets": {
       "title": "Widgets for websites",
@@ -1952,7 +1952,7 @@
   },
   "apiDocs": {
     "title": "API for developers",
-    "intro": "Public REST API version 1: reads without keys, JSON by default; station data intake — POST with a station key. The OpenAPI 3.1 specification is generated from the same schemas that validate server requests and responses.",
+    "intro": "Public REST API version 1: reads without keys, JSON by default; station data intake - POST with a station key. The OpenAPI 3.1 specification is generated from the same schemas that validate server requests and responses.",
     "download": "Download OpenAPI 3.1 (JSON)",
     "backToData": "← Open data",
     "baseUrl": "Base URL",
@@ -1979,7 +1979,7 @@
       "badRequest": "Invalid parameters",
       "notFound": "Object not found",
       "ingestOk": "At least one record accepted (reasons for rejected ones in errors)",
-      "ingestRejected": "No record accepted — see errors",
+      "ingestRejected": "No record accepted - see errors",
       "unauthorized": "Missing Authorization header or the key does not match the station code",
       "stationInactive": "Station is suspended or decommissioned",
       "payloadTooLarge": "Body larger than 2 MB",
@@ -1988,7 +1988,7 @@
     "licenseNote": "Data is licensed under CC BY 4.0 with attribution; FMI forecasts must credit the Finnish Meteorological Institute.",
     "embedNote": "For websites without development there are iframe widgets /embed/aqi, /embed/forecast and /embed/alerts (see Open data).",
     "info": {
-      "title": "Meteoportal of Tajikistan — public API",
+      "title": "Meteoportal of Tajikistan - public API",
       "description": "Air quality, weather and air quality forecasts, CAP warnings and news of the Agency for Hydrometeorology of the Republic of Tajikistan. Times are UTC (ISO 8601); local time is Asia/Dushanbe (UTC+5).",
       "license": "CC BY 4.0"
     },
@@ -2011,14 +2011,14 @@
         "params": {
           "slug": "Station address (the slug field from the station list)",
           "range": "Period: 24h, 7d, 30d, 1y or all (whole history, up to 10 years)",
-          "agg": "Aggregation: 24h — hour; 7d — hour or day; 30d — day or hour; 1y — day or month; all — month or day; raw — original values with their quality flag (CSV only)",
+          "agg": "Aggregation: 24h - hour; 7d - hour or day; 30d - day or hour; 1y - day or month; all - month or day; raw - original values with their quality flag (CSV only)",
           "pollutant": "Pollutant code (PM25, PM10, NO2, SO2, CO, O3, NO, CH2O, C6H5OH, HF, TSP, CO2, TVOC); all pollutants when omitted",
           "format": "json or csv"
         }
       },
       "indexCurrent": {
         "summary": "Current index by station",
-        "description": "The latest computed index of every public station: level, value, dominant pollutant, sub-indices and a stale flag (older than 6 hours). For the RATIO_TO_LIMIT scale the response includes the Agency method indicators: NO₂+SO₂ summation, maximum single concentrations with the ratio to the single MPC, high/extremely high pollution flags; units — display units per pollutant.",
+        "description": "The latest computed index of every public station: level, value, dominant pollutant, sub-indices and a stale flag (older than 6 hours). For the RATIO_TO_LIMIT scale the response includes the Agency method indicators: NO₂+SO₂ summation, maximum single concentrations with the ratio to the single MPC, high/extremely high pollution flags; units - display units per pollutant.",
         "params": {
           "scale": "Scale code: NATIONAL_OPERATIONAL (default), WHO_24H or IZA"
         }
@@ -2049,13 +2049,13 @@
       },
       "silamLayers": {
         "summary": "Catalogue of SILAM raster layers",
-        "description": "Grid bounds and PNG frames by pollutant and hour of the latest run — for map overlays."
+        "description": "Grid bounds and PNG frames by pollutant and hour of the latest run - for map overlays."
       },
       "alerts": {
         "summary": "CAP warnings",
         "description": "Normalised list of SmartMet Alert warnings in the selected language (with fallback) or GeoJSON polygons for maps.",
         "params": {
-          "active": "1 — only warnings active now",
+          "active": "1 - only warnings active now",
           "region": "Warning region code (DU, SU, KT, GB, RRP)",
           "lang": "Text language: tg, ru or en",
           "days": "Horizon in days (1–14)",
@@ -2088,11 +2088,11 @@
       },
       "regions": {
         "summary": "Administrative boundaries: regions",
-        "description": "Regions, Dushanbe and the RRP with simplified polygons, centroids, station counts and the worst current index level (0 — no data). Cached for 10 minutes, ETag."
+        "description": "Regions, Dushanbe and the RRP with simplified polygons, centroids, station counts and the worst current index level (0 - no data). Cached for 10 minutes, ETag."
       },
       "regionsOutline": {
         "summary": "Country outline",
-        "description": "Outline of Tajikistan as a single GeoJSON object (MultiPolygon): union of the simplified regions, exterior boundaries only, enclaves as separate polygons. The home map dims everything outside the outline. Cached for a day, ETag; without loaded boundaries — geometry: null."
+        "description": "Outline of Tajikistan as a single GeoJSON object (MultiPolygon): union of the simplified regions, exterior boundaries only, enclaves as separate polygons. The home map dims everything outside the outline. Cached for a day, ETag; without loaded boundaries - geometry: null."
       },
       "districts": {
         "summary": "Administrative boundaries: districts",
@@ -2100,7 +2100,7 @@
       },
       "ingest": {
         "summary": "Measurement intake from a station",
-        "description": "A logger, the station agent or vendor software sends a JSON array of measurements (up to 1000 per request). Time — ISO 8601 with offset or local (Asia/Dushanbe); pollutants — codes PM25, PM10, NO2, SO2, CO, O3 or synonyms; the default unit is the station's input unit. Values are converted to the pollutant unit, pass the QC range rule and are stored by the time/pollutant/averaging key — re-sending is idempotent and operator decisions are kept. The response lists accepted and rejected counts with per-record reasons. After storing, the index and alert rules are recomputed.",
+        "description": "A logger, the station agent or vendor software sends a JSON array of measurements (up to 1000 per request). Time - ISO 8601 with offset or local (Asia/Dushanbe); pollutants - codes PM25, PM10, NO2, SO2, CO, O3 or synonyms; the default unit is the station's input unit. Values are converted to the pollutant unit, pass the QC range rule and are stored by the time/pollutant/averaging key - re-sending is idempotent and operator decisions are kept. The response lists accepted and rejected counts with per-record reasons. After storing, the index and alert rules are recomputed.",
         "params": {
           "code": "Station code from the registry (e.g. DU-01)"
         }
@@ -2163,7 +2163,7 @@
       "print": "Print"
     },
     "downloadTitle": "Download documents",
-    "pdfHint": "PDF is rendered by Chromium on the server; if unavailable, a print version opens — save it as PDF from the print dialog",
+    "pdfHint": "PDF is rendered by Chromium on the server; if unavailable, a print version opens - save it as PDF from the print dialog",
     "preview": "Preview",
     "saveGamma": "Save",
     "gammaSaved": "Gamma background saved",
@@ -2180,8 +2180,8 @@
     "empty": "No bulletins yet",
     "journal": "Bulletin log",
     "warnings": {
-      "noData": "No valid measurements for the station on the selected day — the table is empty",
-      "noYesterday": "No data for the previous day — the day-to-day comparison was skipped",
+      "noData": "No valid measurements for the station on the selected day - the table is empty",
+      "noYesterday": "No data for the previous day - the day-to-day comparison was skipped",
       "missing": "No data for: {list}"
     },
     "summary": {
@@ -2201,14 +2201,14 @@
       "schedule": "Prepare a draft daily at 08:00 (Dushanbe) for the previous day",
       "notify": "E-mail operators and administrators when a draft is ready",
       "stations": "Stations for the automatic draft",
-      "stationsHint": "Empty — all public stations with continuous measurements",
+      "stationsHint": "Empty - all public stations with continuous measurements",
       "department": "Department signature",
-      "departmentHint": "Empty — from the template (ОИ УМОС / ШИ РММЗ)",
+      "departmentHint": "Empty - from the template (ОИ УМОС / ШИ РММЗ)",
       "causes": "Exceedance causes phrase",
-      "causesHint": "Inserted into the sentence about exceedance cases; empty — from the template",
+      "causesHint": "Inserted into the sentence about exceedance cases; empty - from the template",
       "summation": "NO2+SO2 summation",
-      "summationMaxSingle": "relative to the max single limit — Agency method (0,66 in the sample)",
-      "summationDaily": "relative to the daily limit — summation rule of RD 52.04.186-89",
+      "summationMaxSingle": "relative to the max single limit - Agency method (0,66 in the sample)",
+      "summationDaily": "relative to the daily limit - summation rule of RD 52.04.186-89",
       "saved": "Settings saved"
     },
     "public": {
@@ -2247,23 +2247,23 @@
     }
   },
   "pollutantHints": {
-    "PM25": "PM2.5 — fine particulate matter (up to 2.5 µm): smoke, exhaust, soot",
-    "PM10": "PM10 — dust, coarse particulate matter (up to 10 µm)",
-    "NO2": "NO₂ — nitrogen dioxide: vehicle exhaust, boilers",
-    "SO2": "SO₂ — sulphur dioxide: burning coal and fuel oil",
-    "CO": "CO — carbon monoxide: incomplete fuel combustion",
-    "O3": "O₃ — ground-level ozone: forms in hot sunny weather",
-    "NO": "NO — nitric oxide: exhaust and industry",
-    "CH2O": "CH₂O — formaldehyde: industry, building materials",
-    "C6H5OH": "C₆H₅OH — phenol: industrial emissions",
-    "HF": "HF — hydrogen fluoride: aluminium production",
-    "TSP": "TSP — total suspended particles of all sizes",
-    "CO2": "CO₂ — carbon dioxide: an indicator of ventilation",
-    "TVOC": "TVOC — volatile organic compounds: solvents, fuel"
+    "PM25": "PM2.5 - fine particulate matter (up to 2.5 µm): smoke, exhaust, soot",
+    "PM10": "PM10 - dust, coarse particulate matter (up to 10 µm)",
+    "NO2": "NO₂ - nitrogen dioxide: vehicle exhaust, boilers",
+    "SO2": "SO₂ - sulphur dioxide: burning coal and fuel oil",
+    "CO": "CO - carbon monoxide: incomplete fuel combustion",
+    "O3": "O₃ - ground-level ozone: forms in hot sunny weather",
+    "NO": "NO - nitric oxide: exhaust and industry",
+    "CH2O": "CH₂O - formaldehyde: industry, building materials",
+    "C6H5OH": "C₆H₅OH - phenol: industrial emissions",
+    "HF": "HF - hydrogen fluoride: aluminium production",
+    "TSP": "TSP - total suspended particles of all sizes",
+    "CO2": "CO₂ - carbon dioxide: an indicator of ventilation",
+    "TVOC": "TVOC - volatile organic compounds: solvents, fuel"
   },
   "silamPage": {
     "title": "SmartMet (SILAM)",
-    "metaTitle": "SmartMet (SILAM) — air quality forecast",
+    "metaTitle": "SmartMet (SILAM) - air quality forecast",
     "intro": "Air pollution forecast maps for Tajikistan and neighbouring countries from the SILAM model. The Finnish Meteorological Institute (FMI) computes them every day under the FINTAJ project.",
     "linkMap": "SILAM layer on the map",
     "linkStations": "Station measurements",
@@ -2349,7 +2349,7 @@
       "caption": "FMI air quality index thresholds by pollutant, µg/m³",
       "level": "Level",
       "legend": "FMI legend",
-      "note": "By default the portal's operational scale uses the same thresholds (modelled on the FMI/HSY index) — <link>more about the index</link>.",
+      "note": "By default the portal's operational scale uses the same thresholds (modelled on the FMI/HSY index) - <link>more about the index</link>.",
       "source": "Thresholds: <link>FMI air quality index</link>."
     },
     "portal": {
@@ -2366,7 +2366,7 @@
   "seo": {
     "homeDescription": "Air quality and weather map of Tajikistan: monitoring stations, weather and air quality forecasts, warnings of the Agency for Hydrometeorology.",
     "stationDescription": "Air quality at {station}: current level, pollutant concentrations, charts for a day, week, month and year, CSV download.",
-    "cityWeatherDescription": "Weather forecast — {city}: now, hourly for 24 hours and for 10 days — temperature, precipitation, wind; air quality forecast."
+    "cityWeatherDescription": "Weather forecast - {city}: now, hourly for 24 hours and for 10 days - temperature, precipitation, wind; air quality forecast."
   },
   "errorPage": {
     "title": "Something went wrong",

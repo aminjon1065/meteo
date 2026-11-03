@@ -143,7 +143,7 @@ describe("форматирование чисел", () => {
     expect(formatNumber(3, 2)).toBe("3");
     expect(formatNumber(0.1 + 0.2, 2)).toBe("0,3");
   });
-  it("кратности: два знака, малые — две значащие цифры", () => {
+  it("кратности: два знака, малые - две значащие цифры", () => {
     expect(formatRatio(1.3166)).toBe("1,32");
     expect(formatRatio(1.3)).toBe("1,3");
     expect(formatRatio(0.038)).toBe("0,04");
@@ -221,7 +221,7 @@ describe("статистика суток", () => {
     expect(st.ratioDaily).toBeNull();
     expect(st.ratioSingle).toBeNull();
   });
-  it("сравнение по напечатанным кратностям: 1,30 и 1,3 — на уровне", () => {
+  it("сравнение по напечатанным кратностям: 1,30 и 1,3 - на уровне", () => {
     expect(ratioChange(1.3, 1.304)).toEqual({ kind: "same", from: 1.304, to: 1.3 });
     expect(ratioChange(1.32, 1.2)?.kind).toBe("up");
     expect(ratioChange(0.57, 0.71)?.kind).toBe("down");
@@ -230,7 +230,7 @@ describe("статистика суток", () => {
 });
 
 describe("суммация NO2+SO2", () => {
-  it("по методике Агентства — к ПДКм.р.: 0,055/0,085 + 0,006/0,5 ≈ 0,66", () => {
+  it("по методике Агентства - к ПДКм.р.: 0,055/0,085 + 0,006/0,5 ≈ 0,66", () => {
     const stats = new Map([
       [P.NO2.id, dayStats(P.NO2, { single: [55], daily: [] })],
       [P.SO2.id, dayStats(P.SO2, { single: [6], daily: [] })],
@@ -238,7 +238,7 @@ describe("суммация NO2+SO2", () => {
     expect(summationRatio(stats, pollutants)).toBeCloseTo(0.659, 2);
     expect(summationRatio(stats, pollutants, { limitKind: "daily" })).toBeCloseTo(1.495, 2);
   });
-  it("нет одного из веществ — суммации нет", () => {
+  it("нет одного из веществ - суммации нет", () => {
     const stats = new Map([[P.NO2.id, dayStats(P.NO2, { single: [55], daily: [] })]]);
     expect(summationRatio(stats, pollutants)).toBeNull();
   });
@@ -279,7 +279,7 @@ describe("buildBulletinStats", () => {
     const pm25 = stats.rows.find((r) => r.pollutant.code === "PM25");
     expect(pm25?.change?.kind).toBe("down");
   });
-  it("группы превышений: NO2 по обеим ПДК, PM10 и O3 — только среднесуточная", () => {
+  it("группы превышений: NO2 по обеим ПДК, PM10 и O3 - только среднесуточная", () => {
     expect(stats.exceedances.both).toEqual([P.NO2.id]);
     expect(stats.exceedances.dailyOnly).toEqual([P.PM10.id, P.O3.id]);
     expect(stats.exceedances.singleOnly).toEqual([]);
@@ -291,7 +291,7 @@ describe("buildBulletinStats", () => {
     expect(rows.find((r) => r.pollutant.code === "NO2")?.singleExceeds).toBe(true);
     expect(rows.find((r) => r.pollutant.code === "PM10")?.singleExceeds).toBe(false);
   });
-  it("onlyWithData убирает вещества без данных, hasYesterday без вчерашних данных — false", () => {
+  it("onlyWithData убирает вещества без данных, hasYesterday без вчерашних данных - false", () => {
     const partial = buildBulletinStats([P.PM10, P.CO2], day([[P.PM10, [50]]]), null, {
       onlyWithData: true,
     });
@@ -349,7 +349,7 @@ describe("текст бюллетеня", () => {
     );
   });
 
-  it("ru: документ города — шапка, таблица, превышения, гамма‑фон, примечания, подпись", () => {
+  it("ru: документ города - шапка, таблица, превышения, гамма‑фон, примечания, подпись", () => {
     const doc = buildCityDocument(stats, ctx, "ru");
     const text = docToText(doc);
     expect(doc.title).toBe("Экологический бюллетень г. Душанбе за 19 октября 2026");
@@ -375,7 +375,7 @@ describe("текст бюллетеня", () => {
     expect(text).toContain("20.10.2026 г.");
   });
 
-  it("tg: документ города — таблица с нумерацией, сравнение, примечания «Эзоҳ»", () => {
+  it("tg: документ города - таблица с нумерацией, сравнение, примечания «Эзоҳ»", () => {
     const doc = buildCityDocument(stats, { ...ctx, automatic: true }, "tg");
     const text = docToText(doc);
     expect(text).toContain("Шарҳи ҳолати ифлосшавии ҳаво дар шаҳри Душанбе");
@@ -414,7 +414,7 @@ describe("текст бюллетеня", () => {
     expect(text).not.toContain("γ-фон");
   });
 
-  it("без превышений и без данных за вчера — соответствующие фразы", () => {
+  it("без превышений и без данных за вчера - соответствующие фразы", () => {
     const clean = buildBulletinStats([P.PM25], day([[P.PM25, hours(10, 12)]]), null);
     const text = docToText(buildCityDocument(clean, ctx, "ru"));
     expect(text).toContain(

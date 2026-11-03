@@ -58,11 +58,11 @@ unreachable after retries.
 | `filePattern` | file mask: `*.csv`, `DU-01_*.txt`, `????-??-??.csv` | `*.csv` |
 | `recursive` | also look into sub-folders | `false` |
 | `mapping` | file format (see below) | required |
-| `pollIntervalSec` | polling interval in daemon mode; `0` — one pass and exit | `60` |
+| `pollIntervalSec` | polling interval in daemon mode; `0` - one pass and exit | `60` |
 | `batchSize` | records per request (max 1000) | `500` |
 | `timeoutMs`, `retries` | request timeout and number of retries (network errors, 5xx, 429) | `30000`, `5` |
 | `maxFileMb` | larger files are skipped | `20` |
-| `lookbackDays` | on the first run only files modified within N days are sent; `0` — all | `7` |
+| `lookbackDays` | on the first run only files modified within N days are sent; `0` - all | `7` |
 | `settleSec` | files modified less than N seconds ago are left for the next pass (still being written) | `5` |
 | `stateFile` | journal of sent rows | `station-agent.state.json` next to the config |
 | `logFile`, `logMaxMb` | optional log file with rotation (`.1` copy) | stdout only, `5` |
@@ -71,14 +71,14 @@ unreachable after retries.
 
 | Field | Meaning |
 |---|---|
-| `delimiter` | `;`, `,`, `tab`, `pipe`; omitted — auto-detected from the header line |
+| `delimiter` | `;`, `,`, `tab`, `pipe`; omitted - auto-detected from the header line |
 | `encoding` | `utf-8` (default), `windows-1251`, `utf-16le` … |
-| `headerRow` | header line number (1); `0` — no header, columns are referenced by index from 0 |
+| `headerRow` | header line number (1); `0` - no header, columns are referenced by index from 0 |
 | `skipRows` | extra lines after the header to skip (units, descriptions) |
 | `commentPrefix` | lines starting with it are ignored (`#`) |
-| `layout` | `wide` — a column per pollutant; `long` — pollutant / value / unit in each row |
+| `layout` | `wide` - a column per pollutant; `long` - pollutant / value / unit in each row |
 | `time` | `{ "column", "format", "timezone" }` or `{ "dateColumn", "timeColumn", "format", "timeFormat", "defaultTime", "timezone" }`. Format tokens: `YYYY MM DD HH mm ss` (`DD.MM.YYYY HH:mm`); without a format ISO 8601, `DD.MM.YYYY HH:mm` and `YYYY-MM-DD HH:mm` are recognised. `timezone`: `Asia/Dushanbe` (default), `UTC` or `+05:00` |
-| `pollutants` (wide) | `{ "PM2.5": { "column": "PM2.5 (ug/m3)", "unit": "µg/m³", "scale": 1, "flagColumn": "PM2.5 Status" } }` — the key is a pollutant code or any synonym (`pm2.5`, `Ozone`, `NO₂`, `Диоксид серы` …) |
+| `pollutants` (wide) | `{ "PM2.5": { "column": "PM2.5 (ug/m3)", "unit": "µg/m³", "scale": 1, "flagColumn": "PM2.5 Status" } }` - the key is a pollutant code or any synonym (`pm2.5`, `Ozone`, `NO₂`, `Диоксид серы` …) |
 | `pollutantColumn`, `valueColumn`, `unitColumn`, `flagColumn`, `defaultUnit` (long) | columns of the long layout |
 | `pollutantAliases` | extra synonyms: `{ "Ch1": "PM25", "Ozone 1h": "O3" }` |
 | `missingValues` | strings meaning "no value": `["", "-", "-999", "NaN"]` |
@@ -99,20 +99,20 @@ Example configs in `examples/`: `config.wide-semicolon.json` (Russian-locale exp
 
 - Every pass lists files matching the mask. A file is processed when it is new or its size/mtime
   changed. If the file was only appended (same first line, larger size), only rows after the last
-  sent row are sent; if it was rewritten, the whole file is sent again — the portal stores by the
+  sent row are sent; if it was rewritten, the whole file is sent again - the portal stores by the
   key "time + pollutant + averaging", so re-sending never creates duplicates.
 - Records go in batches (`batchSize`). The portal answers with the number of accepted and rejected
   records and a reason per record (`unknownPollutant:X`, `pollutantNotConfigured:PM10`, `time`,
   `unit:x`, `futureTime` …); the agent logs the reasons with file line numbers.
 - Network errors, 5xx and 429 are retried with exponential back-off (2, 4, 8 … s, `Retry-After`
   is honoured); after `retries` attempts the pass stops and resumes at the next poll. 401/403 means a
-  wrong key or station code — fix the config. 413 splits the batch in half.
+  wrong key or station code - fix the config. 413 splits the batch in half.
 - The journal (`stateFile`) is written after every batch; delete it to resend everything within
   `lookbackDays`.
 
 ## Run as a service
 
-### Windows — Task Scheduler (recommended, `--once` every 5 minutes)
+### Windows - Task Scheduler (recommended, `--once` every 5 minutes)
 
 Run `service\install-task.cmd` as Administrator from the agent folder, or create the task by hand:
 
@@ -124,13 +124,13 @@ schtasks /Create /F /SC MINUTE /MO 5 /TN "Meteoportal station agent" /RU SYSTEM 
 Set `pollIntervalSec: 0` in the config (or keep `--once`). To pass the key through the environment
 of the task, store it with `apiKeyEnv` and set the system variable (`setx /M METEO_STATION_API_KEY mst_…`).
 
-### Windows — NSSM (permanent service)
+### Windows - NSSM (permanent service)
 
 Download NSSM (<https://nssm.cc>), put `nssm.exe` next to the agent and run `service\nssm-install.cmd`
 as Administrator. The service restarts the agent on failure; logs go to `service-stdout.log`.
 `nssm edit MeteoStationAgent` opens the settings, `nssm remove MeteoStationAgent confirm` removes it.
 
-### Linux — systemd
+### Linux - systemd
 
 ```bash
 sudo useradd -r -s /usr/sbin/nologin meteo-agent
@@ -144,7 +144,7 @@ journalctl -u meteo-station-agent -f
 
 The service account must be able to read the export folder (`ReadWritePaths` in the unit covers the
 agent folder only; add the export folder there if the vendor software writes it elsewhere and the
-unit's `ProtectSystem=strict` blocks it — reading does not need it).
+unit's `ProtectSystem=strict` blocks it - reading does not need it).
 
 ## Troubleshooting
 

@@ -59,7 +59,7 @@ describe("computeBreakpointIndex", () => {
     expect(r.subIndices["1"]?.level).toBe(3);
     expect(r.value).toBeCloseTo(4.2, 1);
   });
-  it("без данных — уровень 0", () => {
+  it("без данных - уровень 0", () => {
     expect(computeBreakpointIndex([{ pollutantId: 1, value: null }], pm25).level).toBe(0);
     expect(computeBreakpointIndex([{ pollutantId: 99, value: 5 }], pm25).level).toBe(0);
   });
@@ -90,7 +90,7 @@ describe("computeRatioIndex", () => {
     expect(r.dominantPollutantId).toBe(1);
     expect(r.subIndices["3"]?.index).toBe(0.5);
   });
-  it("levelForBands: за пределами последнего интервала — последний уровень", () => {
+  it("levelForBands: за пределами последнего интервала - последний уровень", () => {
     expect(levelForBands(100, bands)).toBe(5);
     expect(levelForBands(0.2, bands)).toBe(1);
   });
@@ -168,14 +168,14 @@ describe("windowMax", () => {
       ),
     ).toBe(63);
   });
-  it("без точек в окне — null", () => {
+  it("без точек в окне - null", () => {
     expect(windowMax([], end, 1440)).toBeNull();
     expect(windowMax(points, new Date(end.getTime() + 48 * hour), 1440)).toBeNull();
   });
 });
 
 describe("ratioToLimit", () => {
-  it("делит на норматив и округляет до сотых; без норматива — null", () => {
+  it("делит на норматив и округляет до сотых; без норматива - null", () => {
     expect(ratioToLimit(55, 40)).toBe(1.38);
     expect(ratioToLimit(0.65, 3)).toBe(0.22);
     expect(ratioToLimit(10, undefined)).toBeNull();
@@ -198,7 +198,7 @@ describe("computeAgencyIndicators (бюллетень Душанбе 19.10.2026,
     { pollutantId: 6, limit: 160 },
     { pollutantId: 2, limit: 300 },
   ];
-  it("суммация NO₂+SO₂ — сумма кратностей ПДКс.с. (1,37 + 0,12 = 1,49 ≈ бюллетень без округления 0,66 для своих данных)", () => {
+  it("суммация NO₂+SO₂ - сумма кратностей ПДКс.с. (1,37 + 0,12 = 1,49 ≈ бюллетень без округления 0,66 для своих данных)", () => {
     const r = computeAgencyIndicators({
       dailyMeans: [
         { pollutantId: 3, value: 55 },

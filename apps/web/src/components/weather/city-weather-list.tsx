@@ -34,7 +34,7 @@ export async function CityWeatherList({
     getFormatter(),
   ]);
   const deg = (v: number | null | undefined) =>
-    v === null || v === undefined ? "—" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
+    v === null || v === undefined ? "-" : `${format.number(v, { maximumFractionDigits: 0 })}°`;
   return (
     <ul className={cn("grid", className)} data-testid="city-weather">
       {rows.map(({ overview: o, airLevel, selected }) => {

@@ -330,7 +330,7 @@ export function StationForm({ options, initial, action }: StationFormProps) {
               <Field>
                 <FieldLabel htmlFor="regionId">{t("fields.region")}</FieldLabel>
                 <NativeSelect id="regionId" {...register("regionId")}>
-                  <NativeSelectOption value="">—</NativeSelectOption>
+                  <NativeSelectOption value="">-</NativeSelectOption>
                   {options.regions.map((r) => (
                     <NativeSelectOption key={r.id} value={String(r.id)}>
                       {pick(r.name, locale)}
@@ -345,7 +345,7 @@ export function StationForm({ options, initial, action }: StationFormProps) {
                   {...register("districtId")}
                   disabled={districts.length === 0}
                 >
-                  <NativeSelectOption value="">—</NativeSelectOption>
+                  <NativeSelectOption value="">-</NativeSelectOption>
                   {districts.map((d) => (
                     <NativeSelectOption key={d.id} value={String(d.id)}>
                       {pick(d.name, locale)}

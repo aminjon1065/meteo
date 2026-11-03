@@ -135,12 +135,12 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
   const conc = (v: number | null | undefined, display: DisplayScale) => {
     const shown = toDisplayValue(v, display);
     return shown === null
-      ? "—"
+      ? "-"
       : format.number(shown, { maximumFractionDigits: Math.max(3, display.decimals) });
   };
   const band = (b: Breakpoint | undefined, display: DisplayScale) =>
     !b
-      ? "—"
+      ? "-"
       : b.hi === null
         ? `≥ ${conc(b.lo, display)}`
         : b.lo === 0
@@ -326,12 +326,12 @@ export default async function AboutIndexPage({ params }: { params: Promise<{ loc
                         </span>
                       </th>
                       <td className="px-3 py-2 tabular-nums">
-                        {daily ? conc(daily.value, p.display) : "—"}
+                        {daily ? conc(daily.value, p.display) : "-"}
                       </td>
                       <td className="px-3 py-2 tabular-nums">
-                        {single ? conc(single.value, p.display) : "—"}
+                        {single ? conc(single.value, p.display) : "-"}
                       </td>
-                      <td className="px-3 py-2 tabular-nums">{p.hazardClass ?? "—"}</td>
+                      <td className="px-3 py-2 tabular-nums">{p.hazardClass ?? "-"}</td>
                     </tr>
                   );
                 })}

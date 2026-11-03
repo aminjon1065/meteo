@@ -190,7 +190,7 @@ export default async function StationsPage({
                     </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {name(row.region, locale) || "—"}
+                    {name(row.region, locale) || "-"}
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline">{t(`kind.${row.kind}`)}</Badge>

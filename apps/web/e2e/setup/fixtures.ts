@@ -139,8 +139,8 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
         code: E2E.station.code,
         slug: E2E.station.slug,
         name: {
-          tg: "Душанбе — марказ (E2E)",
-          ru: "Душанбе — центр (E2E)",
+          tg: "Душанбе - марказ (E2E)",
+          ru: "Душанбе - центр (E2E)",
           en: "Dushanbe centre (E2E)",
         },
         kind: "air",
@@ -159,7 +159,7 @@ export async function seedE2eFixtures(opts: FixtureOptions): Promise<void> {
       .values({
         code: E2E.station2.code,
         slug: E2E.station2.slug,
-        name: { tg: "Бохтар — ҷануб (E2E)", ru: "Бохтар — юг (E2E)", en: "Bokhtar south (E2E)" },
+        name: { tg: "Бохтар - ҷануб (E2E)", ru: "Бохтар - юг (E2E)", en: "Bokhtar south (E2E)" },
         kind: "air",
         geom: { x: 68.78, y: 37.83 },
         regionId: need(rid, "KT"),

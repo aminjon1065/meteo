@@ -108,7 +108,7 @@ describe("smartmet client", () => {
 
 describe("isModelRunStale", () => {
   const now = new Date("2026-11-02T12:00:00Z");
-  it("прогон моложе порога — свежий, старше — устарел", () => {
+  it("прогон моложе порога - свежий, старше - устарел", () => {
     expect(isModelRunStale(new Date("2026-11-02T00:00:00Z"), now)).toBe(false);
     expect(isModelRunStale(new Date("2026-11-01T17:59:00Z"), now)).toBe(true);
     expect(SMARTMET_MAX_RUN_AGE_HOURS).toBe(18);

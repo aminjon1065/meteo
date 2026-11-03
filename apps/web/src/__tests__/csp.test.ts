@@ -19,7 +19,7 @@ describe("isEmbedPath", () => {
 });
 
 describe("parseEmbedAncestors", () => {
-  it("по умолчанию — сайты Агентства", () => {
+  it("по умолчанию - сайты Агентства", () => {
     expect(parseEmbedAncestors(undefined)).toEqual([...DEFAULT_EMBED_ANCESTORS]);
     expect(parseEmbedAncestors("")).toEqual([...DEFAULT_EMBED_ANCESTORS]);
   });
@@ -51,7 +51,7 @@ describe("buildCsp", () => {
     expect(csp).toContain("connect-src 'self' ws: wss:");
   });
 
-  it("виджеты: frame-ancestors из настройки, на https — upgrade-insecure-requests", () => {
+  it("виджеты: frame-ancestors из настройки, на https - upgrade-insecure-requests", () => {
     const csp = buildCsp({
       ...base,
       embed: true,

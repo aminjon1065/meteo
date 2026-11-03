@@ -4,6 +4,7 @@ import { CloudSunIcon, RadioIcon, SirenIcon, WindIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getTranslations, setRequestLocale } from "next-intl/server";
 import { FmiLogo } from "@/components/site/fmi-logo";
+import { Logo } from "@/components/site/logo";
 import { PageHeader, Section } from "@/components/site/page-header";
 import { Link } from "@/i18n/navigation";
 import { pageMetadata } from "@/lib/seo";
@@ -73,8 +74,11 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
       <div className="grid gap-8 md:grid-cols-2">
         <section>
           <h2 className="text-h2">{t("agency.title")}</h2>
-          <p className="mt-2 font-semibold">{agency}</p>
-          <p className="mt-1 text-sm text-muted-foreground">{t("agency.text")}</p>
+          <div className="mt-3 flex items-center gap-3">
+            <Logo className="size-20" />
+            <p className="font-semibold">{agency}</p>
+          </div>
+          <p className="mt-3 text-sm text-muted-foreground">{t("agency.text")}</p>
         </section>
         <section>
           <h2 className="text-h2">{t("project.title")}</h2>

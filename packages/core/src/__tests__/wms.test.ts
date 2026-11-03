@@ -14,7 +14,7 @@ import {
 } from "../wms";
 
 describe("tileBbox3857", () => {
-  it("z0 — весь мир", () => {
+  it("z0 - весь мир", () => {
     expect(tileBbox3857(0, 0, 0)).toEqual([
       -WEB_MERCATOR_HALF,
       -WEB_MERCATOR_HALF,
@@ -41,7 +41,7 @@ describe("тайлы и область данных", () => {
     expect(isValidTile(23, 0, 0)).toBe(false);
   });
 
-  it("tileBoundsLonLat и tileIntersects: тайл с Душанбе в области GFS, тайл Европы — нет", () => {
+  it("tileBoundsLonLat и tileIntersects: тайл с Душанбе в области GFS, тайл Европы - нет", () => {
     const area = { west: 58, south: 32, east: 82, north: 46 };
     const b = tileBoundsLonLat(6, 44, 24);
     expect(b.west).toBeCloseTo(67.5, 5);
@@ -92,7 +92,7 @@ describe("compactTime / parseCompactTime", () => {
 });
 
 describe("сроки прогноза из timeseries", () => {
-  it("buildDataTimesUrl — шаг и период данных producer'а", () => {
+  it("buildDataTimesUrl - шаг и период данных producer'а", () => {
     const url = new URL(
       buildDataTimesUrl("http://smartmet:8080", { producer: "gfs", lat: 38.56, lon: 68.78 }),
     );
@@ -127,7 +127,7 @@ describe("isWmsRequestAllowed", () => {
     times: [0, 3, 6].map((h) => new Date(origin.getTime() + h * 3_600_000)),
   };
   const at = (iso: string) => new Date(iso);
-  it("текущий прогон — только сроки каталога", () => {
+  it("текущий прогон - только сроки каталога", () => {
     expect(isWmsRequestAllowed({ run: origin, time: at("2026-11-02T09:00:00Z") }, catalog)).toBe(
       true,
     );
@@ -138,7 +138,7 @@ describe("isWmsRequestAllowed", () => {
       false,
     );
   });
-  it("предыдущие прогоны — на сетке 6 ч, не дальше 4 назад, сроки по 3 ч", () => {
+  it("предыдущие прогоны - на сетке 6 ч, не дальше 4 назад, сроки по 3 ч", () => {
     const prev = at("2026-11-02T00:00:00Z");
     expect(isWmsRequestAllowed({ run: prev, time: at("2026-11-02T21:00:00Z") }, catalog)).toBe(
       true,

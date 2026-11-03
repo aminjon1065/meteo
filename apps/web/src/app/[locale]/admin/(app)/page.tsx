@@ -79,7 +79,7 @@ export default async function AdminDashboardPage({
     loadDashboard(),
   ]);
   const dt = (d: Date) => format.dateTime(d, { dateStyle: "short", timeStyle: "short" });
-  const rel = (d: Date | null) => (d ? format.relativeTime(d) : "—");
+  const rel = (d: Date | null) => (d ? format.relativeTime(d) : "-");
   const utcTime = (d: Date) =>
     format.dateTime(d, {
       timeZone: "UTC",
@@ -219,7 +219,7 @@ export default async function AdminDashboardPage({
                         </span>
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">
-                        {name(s.region, locale) || "—"}
+                        {name(s.region, locale) || "-"}
                       </td>
                       <td className="num px-2 py-1.5">
                         {s.lastAt ? (
@@ -248,7 +248,7 @@ export default async function AdminDashboardPage({
                             {t("freshness.ingestNever")}
                           </span>
                         ) : (
-                          <span className="text-muted-foreground">—</span>
+                          <span className="text-muted-foreground">-</span>
                         )}
                         {s.sourcesFailed > 0 ? (
                           <span className="block text-caption text-destructive">
@@ -410,7 +410,7 @@ export default async function AdminDashboardPage({
                   <span className="font-mono text-xs">{a.action}</span>
                   <span className="text-caption text-muted-foreground">
                     {" "}
-                    · {a.actorEmail ?? "—"} · {a.entity}
+                    · {a.actorEmail ?? "-"} · {a.entity}
                     {a.entityId ? ` #${a.entityId}` : ""}
                   </span>
                 </span>

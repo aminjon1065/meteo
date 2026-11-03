@@ -106,7 +106,7 @@ export function WeatherChart({ points, locale, labels, className }: WeatherChart
             const lines = list.map((p) => {
               const v = p.data[1];
               const unit = p.seriesName === labels.temperature ? " °C" : " mm";
-              return `${p.seriesName}: <b>${v === null ? "—" : numFmt.format(v)}</b>${unit}`;
+              return `${p.seriesName}: <b>${v === null ? "-" : numFmt.format(v)}</b>${unit}`;
             });
             return `${fmt.format(new Date(ts))}<br/>${lines.join("<br/>")}`;
           },

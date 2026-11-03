@@ -42,7 +42,7 @@ describe("silam-fmi", () => {
     vi.unstubAllEnvs();
   });
 
-  it("каталог: прогон — 00 UTC суток перед выпуском", async () => {
+  it("каталог: прогон - 00 UTC суток перед выпуском", async () => {
     fetchMock.mockResolvedValueOnce(png(ISSUED_29));
     const { loadFmiSilamCatalog } = await load();
     expect(await loadFmiSilamCatalog()).toEqual({
@@ -54,7 +54,7 @@ describe("silam-fmi", () => {
     expect(init?.method).toBe("HEAD");
   });
 
-  it("каталог: FMI не ответил — null и минуту без повторных запросов", async () => {
+  it("каталог: FMI не ответил - null и минуту без повторных запросов", async () => {
     fetchMock.mockRejectedValue(new Error("timeout"));
     const { loadFmiSilamCatalog } = await load();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => undefined);
@@ -64,14 +64,14 @@ describe("silam-fmi", () => {
     warn.mockRestore();
   });
 
-  it("каталог: SILAM_FMI_URL=off — раздел без карт и без запросов", async () => {
+  it("каталог: SILAM_FMI_URL=off - раздел без карт и без запросов", async () => {
     vi.stubEnv("SILAM_FMI_URL", "off");
     const { loadFmiSilamCatalog } = await load();
     expect(await loadFmiSilamCatalog()).toBeNull();
     expect(fetchMock).not.toHaveBeenCalled();
   });
 
-  it("кадр: в 000 уже новый прогон — берётся из 001, второй раз из памяти", async () => {
+  it("кадр: в 000 уже новый прогон - берётся из 001, второй раз из памяти", async () => {
     const pm10 = fmiSilamProduct("PM10");
     if (!pm10) throw new Error("нет PM10");
     fetchMock.mockImplementation(async (input) =>

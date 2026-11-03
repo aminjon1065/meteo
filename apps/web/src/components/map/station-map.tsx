@@ -802,7 +802,7 @@ export function StationMap({
           `<div class="font-sans text-sm" data-popup="warning"><div class="flex items-center gap-1.5">${severityMarkHtml(Number(p.level ?? 0), severity)}<span class="text-xs font-medium">${escapeHtml(severityLabel)}</span>${upcoming && warningLabels ? `<span class="text-xs text-muted-foreground">· ${escapeHtml(warningLabels.upcoming)}</span>` : ""}</div>` +
             `<div class="text-xs text-muted-foreground">${escapeHtml(String(p.event ?? ""))}</div>` +
             `<div class="font-semibold">${escapeHtml(String(p.headline ?? ""))}</div>` +
-            `<div class="text-xs text-muted-foreground">${escapeHtml(start)}${end ? ` — ${escapeHtml(end)}` : ""}</div>` +
+            `<div class="text-xs text-muted-foreground">${escapeHtml(start)}${end ? ` - ${escapeHtml(end)}` : ""}</div>` +
             `<a class="mt-1 inline-block text-xs font-medium underline" href="${escapeHtml(href)}">${escapeHtml(warningsOpenLabel ?? openLabel)}</a></div>`,
         )
         .addTo(map);

@@ -178,7 +178,7 @@ describe("parseStationJsonFeed", () => {
       "7:record",
     ]);
   });
-  it("без stationField записи относятся к станции источника; неверный путь к массиву — ошибка", () => {
+  it("без stationField записи относятся к станции источника; неверный путь к массиву - ошибка", () => {
     const mapping: JsonFeedMapping = {
       format: "json",
       time: { field: "t" },
@@ -224,7 +224,7 @@ describe("planHistoryFetch", () => {
       planHistoryFetch({ ...base, full: false, cursors: [{ station: "A", last: newest, newest }] }),
     ).toBeNull();
   });
-  it("пропуск больше двух интервалов — догрузка на глубину пропуска, не больше maxHours", () => {
+  it("пропуск больше двух интервалов - догрузка на глубину пропуска, не больше maxHours", () => {
     const newest = new Date("2026-10-20T12:20:00Z");
     expect(
       planHistoryFetch({

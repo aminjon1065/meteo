@@ -120,13 +120,13 @@ export function renderEmail(
               dateStyle: "medium",
               timeStyle: "short",
             })
-          : "—";
+          : "-";
       const vars = {
         name,
         count: String(payload.failures ?? ""),
         since: fmt(payload.since),
         at: fmt(payload.at),
-        error: String(payload.error ?? "—"),
+        error: String(payload.error ?? "-"),
         until: fmt(payload.circuitUntil),
       };
       const subject = t(locale, `integration.${kind}Subject`, vars);
@@ -156,7 +156,7 @@ export function renderEmail(
                 dateStyle: "medium",
                 timeStyle: "short",
               })
-            : "—",
+            : "-",
         hours: String(payload.maxHours ?? ""),
         producer: String(payload.producer ?? "gfs"),
       };
@@ -203,7 +203,7 @@ export function renderEmail(
       const list = lines
         .map(
           (l) =>
-            `<li>${escapeHtml(l.text)}${l.url ? ` — <a href="${escapeHtml(l.url)}">${escapeHtml(t(locale, "ecoBulletinDraft.open"))}</a>` : ""}</li>`,
+            `<li>${escapeHtml(l.text)}${l.url ? ` - <a href="${escapeHtml(l.url)}">${escapeHtml(t(locale, "ecoBulletinDraft.open"))}</a>` : ""}</li>`,
         )
         .join("");
       const body = `<p>${escapeHtml(intro)}</p><ul>${list}</ul>${journalUrl ? button(journalUrl, t(locale, "ecoBulletinDraft.button")) : ""}`;
@@ -224,7 +224,7 @@ export function renderEmail(
               dateStyle: "medium",
               timeStyle: "short",
             })
-          : "—";
+          : "-";
       const channel = t(
         locale,
         `stationData.channel.${payload.channel === "pull" ? "pull" : "api"}`,
@@ -236,7 +236,7 @@ export function renderEmail(
         at: fmt(payload.at),
         minutes: String(payload.minutes ?? ""),
         channel,
-        error: String(payload.error ?? "—"),
+        error: String(payload.error ?? "-"),
       };
       const subject = t(locale, `stationData.${kind}Subject`, vars);
       const lines = [

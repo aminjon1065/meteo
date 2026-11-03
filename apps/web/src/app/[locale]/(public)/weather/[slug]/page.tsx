@@ -117,7 +117,7 @@ export default async function WeatherLocationPage({
   const nowCode = now?.params.symbol ?? today?.symbol ?? null;
   const nowLabel = symbolLabel(ts, nowCode);
   const n = (v: number | null | undefined, digits = 0) =>
-    v === null || v === undefined ? "—" : format.number(v, { maximumFractionDigits: digits });
+    v === null || v === undefined ? "-" : format.number(v, { maximumFractionDigits: digits });
   const wd = now?.params.wd ?? null;
   const ws = now?.params.ws ?? null;
   const futureDays = forecast.daily.filter((d) => localDateKey(d.time) > todayKey);
@@ -132,7 +132,7 @@ export default async function WeatherLocationPage({
       label: t("wind"),
       value:
         ws === null
-          ? "—"
+          ? "-"
           : ws < 0.5
             ? t("calm")
             : `${n(ws, 1)} ${t("ms")}${wd !== null ? ` ${t(`windDirections.${windDirectionKey(wd)}`)}` : ""}`,
@@ -142,14 +142,14 @@ export default async function WeatherLocationPage({
       key: "humidity",
       label: t("humidity"),
       value:
-        now?.params.rh === null || now?.params.rh === undefined ? "—" : `${n(now.params.rh)} %`,
+        now?.params.rh === null || now?.params.rh === undefined ? "-" : `${n(now.params.rh)} %`,
     },
     {
       key: "pressure",
       label: t("pressure"),
       value:
         now?.params.p === null || now?.params.p === undefined
-          ? "—"
+          ? "-"
           : `${n(now.params.p)} ${t("hpa")}`,
     },
     {
@@ -157,7 +157,7 @@ export default async function WeatherLocationPage({
       label: t("precip"),
       value:
         today?.precipSum === null || today?.precipSum === undefined
-          ? "—"
+          ? "-"
           : `${n(today.precipSum, 1)} ${t("mm")}`,
       note: t("today"),
     },
@@ -212,7 +212,7 @@ export default async function WeatherLocationPage({
                   ) : null}
                   <span className="num font-heading text-display">
                     {now?.params.t === null || now?.params.t === undefined
-                      ? "—"
+                      ? "-"
                       : `${n(now.params.t)}°`}
                   </span>
                   <span className="flex flex-col text-base">

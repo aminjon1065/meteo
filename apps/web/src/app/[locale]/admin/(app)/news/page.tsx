@@ -190,7 +190,7 @@ export default async function NewsAdminPage({
                     </span>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
-                    {name(row.category, locale) || "—"}
+                    {name(row.category, locale) || "-"}
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANT[row.status]}>{t(`status.${row.status}`)}</Badge>
@@ -201,9 +201,9 @@ export default async function NewsAdminPage({
                           dateStyle: "medium",
                           timeStyle: "short",
                         })
-                      : "—"}
+                      : "-"}
                   </TableCell>
-                  <TableCell className="text-muted-foreground">{row.author ?? "—"}</TableCell>
+                  <TableCell className="text-muted-foreground">{row.author ?? "-"}</TableCell>
                   <TableCell className="text-muted-foreground">
                     {format.dateTime(row.updatedAt, { dateStyle: "medium" })}
                   </TableCell>

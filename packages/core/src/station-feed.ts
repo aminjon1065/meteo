@@ -85,7 +85,7 @@ export interface FeedParseResult {
 }
 
 const MAX_ERRORS = 500;
-const DEFAULT_MISSING = ["", "-", "—", "–", "n/a", "na", "nan", "null", "н/д", "нд", "нет", "*"];
+const DEFAULT_MISSING = ["", "-", "-", "–", "n/a", "na", "nan", "null", "н/д", "нд", "нет", "*"];
 const DELIMITER_WORDS: Record<string, string> = {
   tab: "\t",
   "\\t": "\t",
@@ -157,7 +157,7 @@ export function validateFeedMapping(m: unknown): string[] {
     refs.push(map.pollutantColumn, map.valueColumn, map.unitColumn, map.statusColumn);
     for (const def of Object.values(map.pollutants ?? {})) refs.push(def?.column);
     if (refs.some((r) => typeof r === "string"))
-      errors.push("headerRow: 0 — без заголовка все колонки задаются индексами");
+      errors.push("headerRow: 0 - без заголовка все колонки задаются индексами");
   }
   return errors;
 }

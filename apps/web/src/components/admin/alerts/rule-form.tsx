@@ -199,7 +199,7 @@ export function RuleForm({ options, initial, action, onDelete }: RuleFormProps) 
                 onChange={(e) => set({ stationId: e.target.value })}
                 aria-invalid={Boolean(err("stationId"))}
               >
-                <NativeSelectOption value="">—</NativeSelectOption>
+                <NativeSelectOption value="">-</NativeSelectOption>
                 {options.stations.map((s) => (
                   <NativeSelectOption key={s.id} value={String(s.id)}>
                     {s.code} · {pick(s.name, locale)}
@@ -218,7 +218,7 @@ export function RuleForm({ options, initial, action, onDelete }: RuleFormProps) 
                 onChange={(e) => set({ regionId: e.target.value })}
                 aria-invalid={Boolean(err("regionId"))}
               >
-                <NativeSelectOption value="">—</NativeSelectOption>
+                <NativeSelectOption value="">-</NativeSelectOption>
                 {options.regions.map((r) => (
                   <NativeSelectOption key={r.id} value={String(r.id)}>
                     {pick(r.name, locale)}

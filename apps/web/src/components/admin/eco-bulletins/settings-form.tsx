@@ -92,7 +92,7 @@ export function EcoBulletinSettingsForm({
                 }
               />
               <label htmlFor={`st-${s.id}`} className="text-sm">
-                {s.code} — {pick(s.name, locale)}
+                {s.code} - {pick(s.name, locale)}
               </label>
             </div>
           ))}

@@ -220,11 +220,11 @@ export default async function CapAlertsPage({
                           label={tw(`severity.${row.severity}` as "severity.Severe")}
                         />
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </TableCell>
                     <TableCell>
-                      <span className="font-medium">{row.event ?? "—"}</span>
+                      <span className="font-medium">{row.event ?? "-"}</span>
                       {row.headline ? (
                         <span className="block max-w-72 truncate text-xs text-muted-foreground">
                           {row.headline}
@@ -232,12 +232,12 @@ export default async function CapAlertsPage({
                       ) : null}
                     </TableCell>
                     <TableCell className="font-mono text-xs">
-                      {row.regionCodes.join(", ") || "—"}
+                      {row.regionCodes.join(", ") || "-"}
                     </TableCell>
                     <TableCell className="whitespace-nowrap text-muted-foreground tabular-nums">
                       {row.expires
                         ? format.dateTime(row.expires, { dateStyle: "short", timeStyle: "short" })
-                        : "—"}
+                        : "-"}
                     </TableCell>
                     <TableCell>
                       <a

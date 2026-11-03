@@ -92,7 +92,7 @@ export function GenerateForm({
             >
               {stations.map((s) => (
                 <NativeSelectOption key={s.id} value={String(s.id)}>
-                  {s.code} — {pick(s.name, locale)}
+                  {s.code} - {pick(s.name, locale)}
                   {pick(s.city, locale) ? ` (${pick(s.city, locale)})` : ""}
                 </NativeSelectOption>
               ))}

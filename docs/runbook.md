@@ -3,19 +3,19 @@
 Версия 1.2 · 02.11.2026 · English version: [runbook.en.md](runbook.en.md)
 
 Для IT‑службы Агентства по гидрометеорологии и исполнителя. Портал постоянно работает на VPS исполнителя за
-Cloudflare (`havo.tj`, `staging.havo.tj`) — раздел 13, там же SmartMet Server и SmartMet Alert — раздел 14.
+Cloudflare (`havo.tj`, `staging.havo.tj`) - раздел 13, там же SmartMet Server и SmartMet Alert - раздел 14.
 Разделы 1–2 описывают установку на чистый сервер (например, при переезде). Среда: один хост Ubuntu 24.04 LTS или новее
-(на `havo.tj` — 26.04), Docker Compose
+(на `havo.tj` - 26.04), Docker Compose
 (`infra/compose/compose.prod.yml`), сервисы caddy, web, worker, migrate, postgres (TimescaleDB +
-PostGIS), redis, backup. Архитектура — `docs/02-architecture.md`, безопасность —
-`docs/security-checklist.md`, импорт архивов — `docs/import-history.md`, работа в панели —
+PostGIS), redis, backup. Архитектура - `docs/02-architecture.md`, безопасность -
+`docs/security-checklist.md`, импорт архивов - `docs/import-history.md`, работа в панели -
 `docs/manuals/admin/ru.md`.
 
 Все команды выполняются из каталога репозитория на сервере (`/opt/meteoportal`), от пользователя
 с правом запускать Docker. Сокращение: `dc = docker compose --env-file .env -f infra/compose/compose.prod.yml`
 (удобно добавить в `~/.bashrc`: `alias dc='docker compose --env-file .env -f infra/compose/compose.prod.yml'`).
 
-Сервер с несколькими приложениями и выкаткой из GitHub Actions (текущий VPS `havo.tj`) — раздел 13:
+Сервер с несколькими приложениями и выкаткой из GitHub Actions (текущий VPS `havo.tj`) - раздел 13:
 там же каталоги `/opt/meteo/<окружение>`, общий прокси `/opt/edge` и команда `dc` для каждого окружения.
 
 Требования к серверу: 4 vCPU, 8 ГБ RAM, 100 ГБ SSD (с запасом на 5 лет данных), статический IP,
@@ -58,12 +58,12 @@ git clone <адрес репозитория> /opt/meteoportal && cd /opt/meteop
 
 1. Создайте записи `A` (и `AAAA`, если есть IPv6) для домена портала, например `portal.meteo.tj → <IP сервера>`.
    Проверка: `dig +short portal.meteo.tj`.
-2. Caddy выпускает сертификат Let's Encrypt автоматически при первом запросе (ACME HTTP‑01/TLS‑ALPN —
+2. Caddy выпускает сертификат Let's Encrypt автоматически при первом запросе (ACME HTTP‑01/TLS‑ALPN -
    порты 80 и 443 должны быть доступны из интернета) и продлевает его за 30 дней до истечения.
-   Адрес для уведомлений Let's Encrypt задан в `infra/compose/Caddyfile` (`email admin@meteo.tj`) — замените на адрес IT‑службы.
+   Адрес для уведомлений Let's Encrypt задан в `infra/compose/Caddyfile` (`email admin@meteo.tj`) - замените на адрес IT‑службы.
 3. HTTP → HTTPS и HSTS включены в Caddy; дополнительных действий не нужно.
 4. Staging без публичного домена: в `Caddyfile` после адреса сайта добавьте блок `tls internal`
-   (самоподписанный сертификат Caddy) или используйте IP с `http://` в `SITE_ADDRESS` (без TLS — только для внутренней сети).
+   (самоподписанный сертификат Caddy) или используйте IP с `http://` в `SITE_ADDRESS` (без TLS - только для внутренней сети).
 
 Проверка после запуска (раздел 1.7): `curl -I https://portal.meteo.tj/` → `200`, заголовки
 `strict-transport-security`, `content-security-policy`.
@@ -74,11 +74,11 @@ git clone <адрес репозитория> /opt/meteoportal && cd /opt/meteop
 
 | Переменная | Значение | Примечание |
 |---|---|---|
-| `SITE_ADDRESS` | `havo.tj` | домен для Caddy; из него собираются `BETTER_AUTH_URL` и `NEXT_PUBLIC_APP_URL` (`https://…`). От публичного адреса зависят ссылки canonical, Open Graph, `sitemap.xml` и `robots.txt` — при смене домена поменяйте `SITE_ADDRESS`, перезапустите web и пересоберите картинку для соцсетей: `node apps/web/scripts/og-image.mjs https://<домен> <домен>` (файлы `apps/web/public/og/*`, затем новый релиз) |
-| `POSTGRES_PASSWORD` | `openssl rand -hex 24` | пароль роли `meteo`; только hex — пароль входит в `DATABASE_URL`, символы `/ + =` из base64 ломают адрес |
+| `SITE_ADDRESS` | `havo.tj` | домен для Caddy; из него собираются `BETTER_AUTH_URL` и `NEXT_PUBLIC_APP_URL` (`https://…`). От публичного адреса зависят ссылки canonical, Open Graph, `sitemap.xml` и `robots.txt` - при смене домена поменяйте `SITE_ADDRESS`, перезапустите web и пересоберите картинку для соцсетей: `node apps/web/scripts/og-image.mjs https://<домен> <домен>` (файлы `apps/web/public/og/*`, затем новый релиз) |
+| `POSTGRES_PASSWORD` | `openssl rand -hex 24` | пароль роли `meteo`; только hex - пароль входит в `DATABASE_URL`, символы `/ + =` из base64 ломают адрес |
 | `BETTER_AUTH_SECRET` | `openssl rand -base64 48` | подписи сессий; смена завершает все сессии |
 | `SEED_ADMIN_EMAIL`, `SEED_ADMIN_PASSWORD`, `SEED_ADMIN_NAME` | адрес и пароль ≥ 10 символов | первый администратор; используется один раз при seed, пока таблица пользователей пуста |
-| `SMTP_URL` | `smtp://user:pass@mail.meteo.tj:587` или `smtps://…:465` | без него письма только в лог worker'а; спецсимволы в пароле — URL‑кодировать (`@` → `%40`) |
+| `SMTP_URL` | `smtp://user:pass@mail.meteo.tj:587` или `smtps://…:465` | без него письма только в лог worker'а; спецсимволы в пароле - URL‑кодировать (`@` → `%40`) |
 | `MAIL_FROM` | `"Метеопортал <noreply@meteo.tj>"` | домен отправителя должен проходить SPF/DKIM/DMARC (раздел 1.8) |
 | `IMAGE_TAG` | `latest` или SHA коммита | версия образов из GHCR |
 | `IMAGE_REPO` | `ghcr.io/aminjon1065` (по умолчанию) | реестр и владелец образов `meteoportal-*` |
@@ -92,19 +92,19 @@ git clone <адрес репозитория> /opt/meteoportal && cd /opt/meteop
 `RATE_LIMIT_AUTH_PER_MINUTE` (30), `RATE_LIMIT_TILES_PER_MINUTE` (1200, тайлы `/wms` и кадры `/silam-fmi`),
 `RATE_LIMIT_SUBSCRIBE_PER_MINUTE` (10), `RATE_LIMIT_INGEST_PER_MINUTE` (60), `EMBED_FRAME_ANCESTORS` (кому разрешено
 встраивать виджеты). Вход в панель better-auth дополнительно ограничивает 5 попытками входа и проверки кода 2FA в минуту
-с одного IP (защита от подбора пароля); переменная `AUTH_SIGN_IN_PER_MINUTE` меняет это число только в тестах (E2E — 100),
+с одного IP (защита от подбора пароля); переменная `AUTH_SIGN_IN_PER_MINUTE` меняет это число только в тестах (E2E - 100),
 в compose она не передаётся.
 Бэкапы: `RESTIC_PASSWORD` (`openssl rand -base64 32`, **сохранить в менеджере паролей отдельно от сервера**),
 `RESTIC_REPOSITORY`, `RESTIC_AWS_ACCESS_KEY_ID`/`RESTIC_AWS_SECRET_ACCESS_KEY`, `BACKUP_TIME_UTC`, `BACKUP_KEEP_*`.
-Пути `SILAM_DIR`, `UPLOADS_DIR`, `TILES_DIR` в продакшене задаёт compose (тома) — не менять.
+Пути `SILAM_DIR`, `UPLOADS_DIR`, `TILES_DIR` в продакшене задаёт compose (тома) - не менять.
 Контейнеры получают только переменные, перечисленные в `infra/compose/compose.prod.yml` (`.env` целиком не
 передаётся): новая переменная добавляется и в `.env.example`, и в compose. Незаданная переменная приходит
-пустой строкой — приложения считают её отсутствующей. `STATION_SOURCES_KEY` должен быть одинаковым у web и worker
+пустой строкой - приложения считают её отсутствующей. `STATION_SOURCES_KEY` должен быть одинаковым у web и worker
 (он один и задаётся в `.env`).
 
 ### 1.4. Образы
 
-Вариант А — готовые образы из GHCR (CI публикует `ghcr.io/<владелец>/meteoportal-{web,worker,backup}` с тегами
+Вариант А - готовые образы из GHCR (CI публикует `ghcr.io/<владелец>/meteoportal-{web,worker,backup}` с тегами
 `latest` и SHA коммита после прохождения lint/тестов/Trivy):
 
 ```bash
@@ -114,7 +114,7 @@ dc pull
 
 После переноса репозитория в GitHub Заказчика задайте в `.env` `IMAGE_REPO=ghcr.io/<новый владелец>`.
 
-Вариант Б — сборка на сервере (нет доступа к GHCR или нужны локальные правки):
+Вариант Б - сборка на сервере (нет доступа к GHCR или нужны локальные правки):
 
 ```bash
 ./infra/data/fetch-map-assets.sh   # шрифты и спрайты карты в apps/web/public/basemaps (гитигнорируются,
@@ -126,7 +126,7 @@ dc build
 
 ### 1.5. Тома и данные карты
 
-Именованные тома создаются при первом `dc up`. Тайлы карты (`tajikistan.pmtiles`, ~210 МБ) не входят в образы —
+Именованные тома создаются при первом `dc up`. Тайлы карты (`tajikistan.pmtiles`, ~210 МБ) не входят в образы -
 их нужно положить в том `tiles`, который Caddy отдаёт по `/tiles/*`:
 
 ```bash
@@ -136,7 +136,7 @@ docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
   sh -c 'cp /src/tajikistan.pmtiles /t/ && ls -la /t'
 ```
 
-Подложки «Рельеф» и «Спутник» (переключатель «Тип карты» на главной) — необязательные файлы в том же томе.
+Подложки «Рельеф» и «Спутник» (переключатель «Тип карты» на главной) - необязательные файлы в том же томе.
 Без них посетителю предлагаются только «Схема» и «Серая»; карта сама проверяет наличие файлов (`HEAD /tiles/…`),
 перезапуск не нужен. Собираются из открытых данных скриптом (нужны интернет, Node 22 и Docker):
 
@@ -156,7 +156,7 @@ docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
 Снимки EOX Sentinel-2 cloudless, Esri, Google и Яндекс не используются: их лицензии запрещают хранить и раздавать
 тайлы или требуют внешнего сервиса (ТЗ: без внешних сервисов в критическом пути, п. 10.2 договора).
 
-Тома `silam` (слои прогноза) и `uploads` (файлы CMS) заполняются приложением; `backups` — сервисом backup.
+Тома `silam` (слои прогноза) и `uploads` (файлы CMS) заполняются приложением; `backups` - сервисом backup.
 Владельцы каталогов внутри томов задаются образами (пользователь `app`), менять права вручную не нужно.
 
 ### 1.6. Запуск, миграции, справочники
@@ -165,14 +165,14 @@ docker run --rm -v meteo_tiles:/t -v "$PWD/infra/data/tiles:/src:ro" alpine \
 dc up -d postgres redis                 # база и Redis
 dc up -d migrate && dc logs -f migrate  # миграции Drizzle + SQL TimescaleDB/PostGIS; ждать Exited (0)
 # справочники (вещества, шкалы, ПДК, регионы, точки прогноза) и первый администратор; SEED_ADMIN_* передаются
-# явно — compose отдаёт контейнеру только перечисленные в compose.prod.yml переменные, без -e администратор не создаётся
+# явно - compose отдаёт контейнеру только перечисленные в compose.prod.yml переменные, без -e администратор не создаётся
 dc run --rm -e SEED_ADMIN_EMAIL -e SEED_ADMIN_PASSWORD -e SEED_ADMIN_NAME worker node dist/seed.js
 dc up -d                                # web, worker, caddy, backup
 dc ps                                   # все сервисы healthy
 ```
 
 Seed идемпотентен и запускается при каждой выкатке (`deploy.sh`, раздел 13.5): добавляет недостающее и не трогает
-правки администратора. Тексты медицинских рекомендаций для уязвимых групп вставляются один раз на базу — после этого
+правки администратора. Тексты медицинских рекомендаций для уязвимых групп вставляются один раз на базу - после этого
 пишется метка `seed.health_advice_groups` в таблице `settings`, и очищенный администратором текст при выкатке не
 возвращается. Залить тексты заново: `dc exec postgres psql -U meteo -c "delete from settings where key = 'seed.health_advice_groups';"`,
 затем seed (пустые и отсутствующие строки заполнятся, заполненные останутся как есть).
@@ -186,21 +186,21 @@ DATABASE_URL=postgres://meteo:<пароль>@127.0.0.1:5432/meteo pnpm --filter 
 ```
 
 PostgreSQL наружу не публикуется: для запуска с рабочей станции откройте SSH‑туннель
-(`ssh -L 5432:<ip контейнера postgres>:5432 сервер`; IP — `docker inspect meteo-postgres-1 | grep IPAddress`)
-или временно опубликуйте порт только на `127.0.0.1` в override‑файле compose. Подробности и источники границ —
+(`ssh -L 5432:<ip контейнера postgres>:5432 сервер`; IP - `docker inspect meteo-postgres-1 | grep IPAddress`)
+или временно опубликуйте порт только на `127.0.0.1` в override‑файле compose. Подробности и источники границ -
 `infra/data/boundaries/README.md`.
 
 ### 1.7. Первый вход
 
 1. Откройте `https://<домен>/admin`, войдите как `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD`.
 2. Пройдите обязательную настройку 2FA (QR‑код в приложении‑аутентификаторе), **сохраните резервные коды**.
-3. Создайте второго администратора (защита от потери доступа), операторов и редакторов — «Пользователи».
+3. Создайте второго администратора (защита от потери доступа), операторов и редакторов - «Пользователи».
 4. «Настройки» → «Почта» → тестовое письмо; «Брендинг» → название и контакты Агентства.
 5. Удалите `SEED_ADMIN_PASSWORD` из `.env` (он больше не нужен) или смените пароль администратора в панели.
 
 ### 1.8. SMTP и домен отправителя (SPF, DKIM, DMARC)
 
-Письма отправляет worker через SMTP‑сервер Агентства или внешний провайдер; сам портал DKIM‑подпись не ставит —
+Письма отправляет worker через SMTP‑сервер Агентства или внешний провайдер; сам портал DKIM‑подпись не ставит -
 подписывает почтовый сервер (релей). Чтобы письма не попадали в спам, для домена из `MAIL_FROM` (например, `meteo.tj`)
 в DNS должны быть:
 
@@ -211,10 +211,10 @@ PostgreSQL наружу не публикуется: для запуска с р
 | DMARC (`TXT` на `_dmarc.meteo.tj`) | `v=DMARC1; p=quarantine; rua=mailto:dmarc@meteo.tj; adkim=s; aspf=s` | политика для несовпадений и отчёты |
 | PTR | обратная запись IP почтового сервера → его имя | требуется большинством получателей |
 
-На `havo.tj` (с 23.10.2026): отправка — Brevo (`smtp-relay.brevo.com:587`, бесплатный тариф 300 писем в сутки; логин и
-ключ — в `SMTP_URL` production, у staging SMTP не задан), отправитель «Метеопортал <noreply@havo.tj>». В DNS Cloudflare:
+На `havo.tj` (с 23.10.2026): отправка - Brevo (`smtp-relay.brevo.com:587`, бесплатный тариф 300 писем в сутки; логин и
+ключ - в `SMTP_URL` production, у staging SMTP не задан), отправитель «Метеопортал <noreply@havo.tj>». В DNS Cloudflare:
 `TXT brevo-code`, `CNAME brevo1/brevo2._domainkey` → `b1/b2.havo-tj.dkim.brevo.com` (без проксирования),
-`TXT _dmarc` `v=DMARC1; p=none`. Входящая почта — Cloudflare Email Routing (MX `route1-3.mx.cloudflare.net`, SPF
+`TXT _dmarc` `v=DMARC1; p=none`. Входящая почта - Cloudflare Email Routing (MX `route1-3.mx.cloudflare.net`, SPF
 `include:_spf.mx.cloudflare.net`), правило `admin@havo.tj` пересылает письма исполнителю. Проверка SMTP без отправки:
 `docker exec -w /app meteo-worker-1 node -e "require('nodemailer').createTransport(process.env.SMTP_URL).verify().then(()=>console.log('ok'))"`.
 
@@ -222,9 +222,9 @@ PostgreSQL наружу не публикуется: для запуска с р
 `MAIL_FROM` с адресом на том же домене. Проверка: `dc up -d worker`, админка → «Настройки» → «Отправить тестовое
 письмо» → статус «отправлено»; письмо должно прийти с `DKIM: pass`, `SPF: pass` (видно в заголовках письма,
 например «Показать оригинал» в Gmail). Типичные проблемы: самоподписанный сертификат релея (используйте
-действительный сертификат или внутренний релей без TLS в доверенной сети), неверный порт (587 — STARTTLS, 465 — TLS),
+действительный сертификат или внутренний релей без TLS в доверенной сети), неверный порт (587 - STARTTLS, 465 - TLS),
 пароль со спецсимволами (URL‑кодирование). Письма содержат ссылку отписки и отправляются только подтверждённым
-подписчикам (double opt‑in) — это снижает жалобы на спам.
+подписчикам (double opt‑in) - это снижает жалобы на спам.
 
 ### 1.9. Чек‑лист после развёртывания
 
@@ -237,7 +237,7 @@ dc exec backup cat /backups/last-backup.json                # первый бэ�
 dc ps                                                       # все healthy
 ```
 
-В админке: дашборд — фоновый сервис «работает», интеграции SmartMet/SILAM «актуально» (CAP — после настройки
+В админке: дашборд - фоновый сервис «работает», интеграции SmartMet/SILAM «актуально» (CAP - после настройки
 `CAP_FEED_URL`), очередь писем без ошибок. На портале: главная, карта (тайлы и подписи), `/weather`, `/warnings`.
 
 ## 2. Обновление версии
@@ -246,7 +246,7 @@ dc ps                                                       # все healthy
 `pnpm audit`, Trivy. Тесты, которым нужна база, идут в задаче миграций CI на чистой TimescaleDB: `@meteo/db`
 (CAP: замена, отмена, истечение, сверка ленты; переменная `TEST_DATABASE_URL`) и `alerts-eval` worker'а (правило →
 событие → письмо, пауза, закрытие без данных; `ALERTS_TEST_DATABASE_URL`). Без этих переменных они пропускаются;
-локально: `TEST_DATABASE_URL=postgres://meteo:meteo@localhost:5432/meteo pnpm --filter @meteo/db test`. Обновление — ~1 минута простоя web на время перезапуска (Caddy отдаёт 502 на это время).
+локально: `TEST_DATABASE_URL=postgres://meteo:meteo@localhost:5432/meteo pnpm --filter @meteo/db test`. Обновление - ~1 минута простоя web на время перезапуска (Caddy отдаёт 502 на это время).
 
 ```bash
 cd /opt/meteoportal
@@ -262,9 +262,9 @@ curl -fsS https://<домен>/api/healthz
 
 Откат: `IMAGE_TAG=<sha-предыдущего-коммита> dc up -d` (миграции не откатываются автоматически:
 схема обратно совместима в пределах одной недели поставки; при необходимости восстановить БД из
-бэкапа — раздел 3).
+бэкапа - раздел 3).
 
-Обновление Caddy/Postgres/Redis (мажорные версии образов) — только по отдельному плану с бэкапом;
+Обновление Caddy/Postgres/Redis (мажорные версии образов) - только по отдельному плану с бэкапом;
 PostgreSQL major upgrade требует `pg_dump` → новая версия → `pg_restore` (раздел 3.3).
 
 ## 3. Бэкап и восстановление
@@ -275,9 +275,9 @@ PostgreSQL major upgrade требует `pg_dump` → новая версия �
 `BACKUP_TIME_UTC` (21:00 UTC = 02:00 по Душанбе) и при старте:
 
 1. `pg_dump -Fc` всей базы → том `backups` (`/backups/db/meteo-<UTC>.dump`), хранение `BACKUP_KEEP_DAYS` (30).
-2. При заданном `RESTIC_PASSWORD` — снимок restic из дампов и томов `uploads` (файлы CMS и экобюллетени),
+2. При заданном `RESTIC_PASSWORD` - снимок restic из дампов и томов `uploads` (файлы CMS и экобюллетени),
    `silam` (растровые слои) и, если SmartMet стоит на этом хосте, архива выпусков редактора SmartMet Alert
-   (`/srv/smartalert`, монтирует `compose.smartmet.yml`; в staging — тестовая лента, `SMARTALERT_DIR`) в
+   (`/srv/smartalert`, монтирует `compose.smartmet.yml`; в staging - тестовая лента, `SMARTALERT_DIR`) в
    `RESTIC_REPOSITORY` (по умолчанию локальный `/backups/restic`, зашифрован), политика
    `--keep-daily 30 --keep-monthly 12`, `prune`, `check`.
 3. Статус в `/backups/last-backup.json` (`result`, `dump`, `sizeBytes`, `restic`). Любая ошибка `pg_dump`
@@ -299,7 +299,7 @@ PostgreSQL major upgrade требует `pg_dump` → новая версия �
 проверяет расширения, гипертаблицу `measurements`, число строк ключевых таблиц (сравнивает с
 источником) и пересчёт continuous aggregate. Нужен только Docker.
 
-Окружение задаётся двумя переменными (контейнеры называются `<проект>-<сервис>-1`, тома — `<проект>_<том>`):
+Окружение задаётся двумя переменными (контейнеры называются `<проект>-<сервис>-1`, тома - `<проект>_<том>`):
 
 ```bash
 ENV=production; P=meteo              # staging: ENV=staging; P=meteo-staging
@@ -326,26 +326,26 @@ SOURCE_CONTAINER=$P-postgres-1 sh /opt/meteo/$ENV/current/infra/backup/restore-t
 Скрипт ничего не меняет в окружении: восстанавливает в отдельный временный контейнер и удаляет его. После
 проверки удалить `/root/*.dump`. Результат фиксируется в журнале эксплуатации (дата, файл, `OK`).
 
-**Проверка при передаче (приёмка M8) — на staging:**
+**Проверка при передаче (приёмка M8) - на staging:**
 
 1. Для проверки restic задать в `/opt/meteo/staging/.env` `RESTIC_PASSWORD` (локальный репозиторий в томе
    `backups` staging) и выполнить `/opt/meteo/staging/dc up -d backup`.
 2. Свежая копия: `/opt/meteo/staging/dc exec backup sh -c 'BACKUP_ONCE=1 sh /backup/run.sh'`, затем
-   `/opt/meteo/staging/dc exec backup cat /backups/last-backup.json` — `"result":"ok"`, `"restic":"ok"`.
-3. Пункты а) и б) выше с `ENV=staging; P=meteo-staging` — `restore-test: OK`.
+   `/opt/meteo/staging/dc exec backup cat /backups/last-backup.json` - `"result":"ok"`, `"restic":"ok"`.
+3. Пункты а) и б) выше с `ENV=staging; P=meteo-staging` - `restore-test: OK`.
 4. Учебное восстановление staging по разделу 3.3 (те же переменные) из копии шага 2; проверки из конца 3.3.
 5. Записать дату, файлы и результаты в журнал эксплуатации и протокол приёмки M8.
 
 ### 3.3. Восстановление продакшена из бэкапа
 
-Сценарий: повреждена БД / ошибочное удаление / переезд на новый сервер. Переменные `ENV`, `P`, `DC` — как в 3.2
-(для учебного восстановления — staging).
+Сценарий: повреждена БД / ошибочное удаление / переезд на новый сервер. Переменные `ENV`, `P`, `DC` - как в 3.2
+(для учебного восстановления - staging).
 
 ```bash
 # 1. Дамп. Последний ночной из тома backups…
 F=$($DC exec -T backup ls -1t /backups/db | grep '\.dump$' | head -1)
 docker cp $P-backup-1:/backups/db/$F /root/restore.dump
-#    …или из restic (вместе с файлами — понадобятся на шаге 3):
+#    …или из restic (вместе с файлами - понадобятся на шаге 3):
 $DC run --rm --no-deps --entrypoint sh backup -c \
   'restic restore latest --target /backups/restore && ls -1t /backups/restore/backups/db | head -3'
 docker cp $P-backup-1:/backups/restore/backups/db/<файл> /root/restore.dump
@@ -363,7 +363,7 @@ $DC exec -T postgres psql -U meteo -d meteo -c "SELECT timescaledb_post_restore(
 $DC exec -T postgres rm -f /tmp/restore.dump
 
 # 3. Файлы из restic (если шаг 1 шёл через restic): загрузки, слои SILAM, архив SmartMet Alert.
-#    restic восстанавливает файлы от пользователя backup — владельца возвращаем как у каталога назначения.
+#    restic восстанавливает файлы от пользователя backup - владельца возвращаем как у каталога назначения.
 copy() { docker run --rm -v ${P}_backups:/b:ro -v "$2":/t alpine:3.22 \
   sh -c "o=\$(stat -c %u:%g /t); cp -a /b/restore/srv/$1/. /t/ && chown -R \$o /t"; }
 copy uploads ${P}_uploads
@@ -377,19 +377,19 @@ rm -f /root/restore.dump
 ```
 
 Без restic (`RESTIC_PASSWORD` не задан) рядом с дампом лежит `uploads-<UTC>.tar.gz`: распаковать его в том
-`uploads` — `docker run --rm -v ${P}_backups:/b:ro -v ${P}_uploads:/t alpine:3.22 tar -xzf /b/db/uploads-<UTC>.tar.gz -C /t --strip-components=1`.
+`uploads` - `docker run --rm -v ${P}_backups:/b:ro -v ${P}_uploads:/t alpine:3.22 tar -xzf /b/db/uploads-<UTC>.tar.gz -C /t --strip-components=1`.
 
 Проверить: `/api/healthz`, страница станции (история), админка → аудит. Восстановленная база
-содержит сессии пользователей — завершить их в «Пользователи» при подозрении на компрометацию.
+содержит сессии пользователей - завершить их в «Пользователи» при подозрении на компрометацию.
 
-Важно: TimescaleDB предупреждает о циклических FK в `continuous_agg` при `pg_dump` — это ожидаемо;
+Важно: TimescaleDB предупреждает о циклических FK в `continuous_agg` при `pg_dump` - это ожидаемо;
 восстанавливать всегда полный дамп, не `--data-only`.
 
 ### 3.4. Переезд на другой сервер
 
-1. На новом сервере выполнить разделы 1.1–1.5 и 13 (тот же `.env`, тот же `RESTIC_PASSWORD`), затем SmartMet —
+1. На новом сервере выполнить разделы 1.1–1.5 и 13 (тот же `.env`, тот же `RESTIC_PASSWORD`), затем SmartMet -
    раздел 14.2 (`/opt/smartmet` из репозитория, `/smartmet` создаётся заново, GFS загрузится сам) и SFTP
-   редактора — 14.5.
+   редактора - 14.5.
 2. На старом: `dc stop web worker`, финальный бэкап (`BACKUP_ONCE=1`), скопировать том `backups` (или использовать офсайт restic).
 3. На новом: восстановить БД, тома и архив SmartMet Alert по разделу 3.3, `dc up -d`, проверить по разделу 1.9 и 14.3.
 4. Переключить DNS на новый IP; Caddy выпустит сертификат автоматически. Старый сервер остановить через сутки.
@@ -399,14 +399,14 @@ rm -f /root/restore.dump
 | Секрет | Где | Как сменить | Последствия |
 |---|---|---|---|
 | `POSTGRES_PASSWORD` | `.env`, postgres | `dc exec postgres psql -U meteo -c "ALTER USER meteo PASSWORD '<new>';"`, обновить `.env`, `dc up -d` (web, worker, backup, migrate читают `DATABASE_URL`/`PGPASSWORD` из `.env`) | кратковременный перезапуск |
-| `BETTER_AUTH_SECRET` | `.env` | новый `openssl rand -base64 48`, `dc up -d web` | все сессии и «доверенные устройства» 2FA недействительны — пользователи входят заново (резервные коды и TOTP‑ключи остаются) |
+| `BETTER_AUTH_SECRET` | `.env` | новый `openssl rand -base64 48`, `dc up -d web` | все сессии и «доверенные устройства» 2FA недействительны - пользователи входят заново (резервные коды и TOTP‑ключи остаются) |
 | `RESTIC_PASSWORD` | `.env` + менеджер паролей | `dc exec backup restic key add` (новый пароль), затем `restic key remove <old-id>`, обновить `.env` | старые снимки читаются новым паролем |
-| `SMTP_URL`, `SMARTMET_API_KEY` | `.env` | обновить, `dc up -d worker web`; проверить тестовым письмом в «Настройки» | — |
+| `SMTP_URL`, `SMARTMET_API_KEY` | `.env` | обновить, `dc up -d worker web`; проверить тестовым письмом в «Настройки» | - |
 | API‑ключи станций | админка → станция → «Сгенерировать ключ» | показывается один раз; передать оператору датчика | старый ключ перестаёт работать сразу: агент станции и запросы к `POST /api/v1/ingest/{код}` со старым ключом получают 401 |
-| Пароли администраторов | админка → «Пользователи» → «Сбросить пароль» | сброс завершает сессии пользователя | — |
-| 2FA администратора | «Пользователи» → «Сбросить 2FA» | при следующем входе обязательная настройка заново | — |
-| TLS‑сертификат | Caddy | автоматически (Let's Encrypt, за 30 дней до истечения); проверка `dc logs caddy` | — |
-| Токен GHCR для `dc pull` | `docker login ghcr.io` на сервере | персональный токен с правом `read:packages`, срок ≤ 1 год | — |
+| Пароли администраторов | админка → «Пользователи» → «Сбросить пароль» | сброс завершает сессии пользователя | - |
+| 2FA администратора | «Пользователи» → «Сбросить 2FA» | при следующем входе обязательная настройка заново | - |
+| TLS‑сертификат | Caddy | автоматически (Let's Encrypt, за 30 дней до истечения); проверка `dc logs caddy` | - |
+| Токен GHCR для `dc pull` | `docker login ghcr.io` на сервере | персональный токен с правом `read:packages`, срок ≤ 1 год | - |
 
 Роль приложения без DDL (план): создать роль `meteo_app` с правами `SELECT/INSERT/UPDATE/DELETE`
 на схему `public` и использовать её в `DATABASE_URL` web/worker; `migrate` остаётся на владельце.
@@ -415,8 +415,8 @@ rm -f /root/restore.dump
 ### 4.1. Ограничение `/admin` по IP (опционально)
 
 Если панель должна быть доступна только из сети Агентства, добавьте в `infra/compose/Caddyfile` перед блоком
-`handle { reverse_proxy … }` (адреса панели — `/admin` для таджикского языка и `/ru/admin`, `/en/admin`;
-API входа — `/api/auth/*`):
+`handle { reverse_proxy … }` (адреса панели - `/admin` для таджикского языка и `/ru/admin`, `/en/admin`;
+API входа - `/api/auth/*`):
 
 ```caddyfile
 	@adminOutside {
@@ -433,21 +433,21 @@ API входа — `/api/auth/*`):
 
 | Что | Как проверить | Норма |
 |---|---|---|
-| Живость web | `curl -fsS https://<домен>/api/healthz` | `{"status":"ok","db":"ok"}`, код 200; 503 — нет связи с БД |
+| Живость web | `curl -fsS https://<домен>/api/healthz` | `{"status":"ok","db":"ok"}`, код 200; 503 - нет связи с БД |
 | Живость worker | `dc exec worker wget -qO- http://127.0.0.1:3001/healthz` | `status: ok`, `queue: ok`, `lastHeartbeatAt` не старше 3 минут |
-| Состояние контейнеров | `dc ps` | все `healthy`/`running`; `migrate` — `exited (0)` |
-| Интеграции | дашборд админки → «Интеграции» | SmartMet/SILAM/CAP «актуально»; при «сбой»/«приостановлено» — раздел 6 |
+| Состояние контейнеров | `dc ps` | все `healthy`/`running`; `migrate` - `exited (0)` |
+| Интеграции | дашборд админки → «Интеграции» | SmartMet/SILAM/CAP «актуально»; при «сбой»/«приостановлено» - раздел 6 |
 | Свежесть данных станций | дашборд → «Свежесть данных» | доля станций без данных за сутки близка к 0 % |
 | Очередь писем | дашборд → «Очередь писем» | `ошибки` = 0; иначе SMTP |
 | Бэкап | `dc exec backup cat /backups/last-backup.json` | `result: ok`, время < 25 ч, `restic: ok` |
-| Диск | `df -h /var/lib/docker`, `docker system df` | свободно ≥ 20 %; при нехватке — `docker image prune -a` и ретенция бэкапов |
+| Диск | `df -h /var/lib/docker`, `docker system df` | свободно ≥ 20 %; при нехватке - `docker image prune -a` и ретенция бэкапов |
 | Сертификат | `curl -vI https://<домен> 2>&1 \| grep -i expire` или `dc logs caddy \| grep -i certificate` | срок > 14 дней (продление автоматическое) |
-| Ошибки в логах | `dc logs --since 24h worker \| grep -i -E '"level":(50\|60)'` (pino: 50 — error, 60 — fatal), `dc logs --since 24h web \| grep -i error` | единичные ошибки сети допустимы; повторяющиеся — разбор |
+| Ошибки в логах | `dc logs --since 24h worker \| grep -i -E '"level":(50\|60)'` (pino: 50 - error, 60 - fatal), `dc logs --since 24h web \| grep -i error` | единичные ошибки сети допустимы; повторяющиеся - разбор |
 
 Автоматические уведомления: письма администраторам (все пользователи с ролью admin + `ADMIN_ALERT_EMAILS`)
 о сбое интеграции после `INTEGRATION_ALERT_FAILURES` неудач подряд и о восстановлении. Внешний мониторинг
-(рекомендуется): Uptime Kuma или аналог — HTTPS‑проверка `/api/healthz` каждую минуту и проверка
-срока сертификата; при желании — проверка `last-backup.json` через `docker exec` по cron с отправкой письма.
+(рекомендуется): Uptime Kuma или аналог - HTTPS‑проверка `/api/healthz` каждую минуту и проверка
+срока сертификата; при желании - проверка `last-backup.json` через `docker exec` по cron с отправкой письма.
 
 Регламент:
 
@@ -455,34 +455,34 @@ API входа — `/api/auth/*`):
 - Еженедельно: таблица выше целиком, дашборд админки, очередь QC (оператор).
 - Ежемесячно: тест восстановления (3.2), `dc pull && dc up -d` при наличии обновлений, проверка отчётов
   CI (audit/Trivy), ротация журналов (автоматически), проверка свободного места.
-- SmartMet (раздел 14): еженедельно — `docker compose ps` в `/opt/smartmet` (все healthy), время последнего прогона GFS
-  на дашборде (не старше 18 ч), свободное место на `/smartmet` (`df -h /smartmet`); ежемесячно — проверка новых версий
+- SmartMet (раздел 14): еженедельно - `docker compose ps` в `/opt/smartmet` (все healthy), время последнего прогона GFS
+  на дашборде (не старше 18 ч), свободное место на `/smartmet` (`df -h /smartmet`); ежемесячно - проверка новых версий
   образов FMI и пакетов загрузки (раздел 14.2) и сверка нашей правки `capfeed.php` с файлом нового образа; отчёт
   еженедельной проверки безопасности (`security-weekly` в GitHub Actions: audit, Trivy, сторонние образы).
-- Нагрузка и лимиты: `docs/perf.md`; при 429 у легитимных интеграций — поднять `RATE_LIMIT_API_PER_MINUTE`
+- Нагрузка и лимиты: `docs/perf.md`; при 429 у легитимных интеграций - поднять `RATE_LIMIT_API_PER_MINUTE`
   в `.env` или вынести интеграцию на отдельный IP.
 
 ## 6. Инциденты по источникам данных
 
 Общий порядок: дашборд → «Интеграции» (статус, последняя ошибка, адрес источника) → `dc logs --since 2h worker`
 → проверить источник с сервера (`curl`) → устранить → дождаться расписания или запустить задачу вручную (раздел 7).
-Статусы: «сбой, подряд N» — источник отвечает ошибкой; «приостановлено до …» — circuit breaker после
+Статусы: «сбой, подряд N» - источник отвечает ошибкой; «приостановлено до …» - circuit breaker после
 `INTEGRATION_CIRCUIT_FAILURES` сбоев, пауза `INTEGRATION_CIRCUIT_COOLDOWN_MIN` минут с удвоением до
 `INTEGRATION_CIRCUIT_MAX_COOLDOWN_MIN`; ручной запуск с `{"force":true}` обходит паузу; перезапуск worker'а сбрасывает её.
 
 | Симптом | Диагностика | Действие |
 |---|---|---|
-| Нет прогноза / «прогноз устарел» на `/weather` | дашборд → SmartMet; `dc logs worker \| grep smartmet`; с сервера: `curl -fsS "$SMARTMET_URL/timeseries?format=json&producer=$SMARTMET_PRODUCER&latlon=38.56,68.79&param=Temperature&timesteps=2"` | SmartMet работает на этом же сервере (раздел 14): `cd /opt/smartmet && docker compose ps` (все сервисы healthy), журнал `docker compose logs --tail 100 server`, проверки 14.3; сервер упал — `docker compose up -d`; после восстановления ручной запуск `smartmet-sync` (раздел 7). Крайняя мера — песочница FMI `SMARTMET_URL=https://opendata.fmi.fi`, `SMARTMET_PRODUCER=ecmwf` (без символов погоды и слоёв WMS), `dc up -d worker web` |
-| Дашборд: «прогон модели … старше 18 ч», письмо «Прогноз SmartMet не обновляется» | контейнер `data` — unhealthy (`docker compose -f /opt/smartmet/compose.yml ps`); `tail -50 /smartmet/logs/data/gfs_tajikistan_*.log`; доступность NOMADS: `curl -sI https://nomads.ncep.noaa.gov` | загрузка GFS остановилась, сервер отдаёт старый прогон: исправить причину по журналу (сеть, место на диске `df -h /smartmet`), внеочередная загрузка — 14.3; когда придёт свежий прогон, worker пришлёт письмо о восстановлении. Порог — `SMARTMET_MAX_RUN_AGE_H` (18 ч) |
-| Нет слоя SILAM / «прогноз SILAM устарел» | дашборд → SILAM; `curl -fsS "${SILAM_NCSS_URL}${SILAM_DATASET}/dataset.xml" \| head`; свободное место тома `silam` (`docker system df -v`) | THREDDS FMI отстаёт на 1–2 дня — норма; при смене датасета исправить `SILAM_DATASET`; при нехватке места уменьшить `SILAM_KEEP_RUNS`; ручной запуск `silam-sync` с `force` |
-| На главной нет карт «Погода · Прогноз» («Карты прогноза погоды сейчас недоступны») | `curl -fsS "$SMARTMET_WMS_URL/wms?service=WMS&request=GetCapabilities&version=1.3.0" \| grep -c tajikistan` из контейнера web; дашборд → SmartMet | не задан `SMARTMET_WMS_URL` или web не в сети `smartmet` (`compose.smartmet.yml`, раздел 14.6); сервер SmartMet не отвечает — 14.3. Каталог сроков обновляется вместе с прогоном; тайлы `/wms/…` для сроков вне каталога отвечают 404 — это защита, не сбой |
-| `/air/silam` без карт («Карты FMI сейчас недоступны») | с сервера: `curl -sI https://silam.fmi.fi/roux/TAJ/` | сайт FMI недоступен или сменил адрес — подождать или поправить `SILAM_FMI_URL`; `SILAM_FMI_URL=off` скрывает карты и не обращается к FMI. Слой SILAM на главной от этого не зависит (он из THREDDS) |
-| Предупреждения CAP не обновляются | дашборд → CAP и `/admin/cap` → «Синхронизация» (ошибки разбора по файлам); `curl -fsS "$CAP_FEED_URL" \| head` | проверить `CAP_FEED_URL` (Atom/RSS/HTTP‑каталог/`file://`), доступность редактора SmartMet Alert, сертификат; ошибки отдельных XML — сообщить выпускающему; ручной запуск `cap-sync` с `force` |
-| Письма не уходят (очередь «ошибки» растёт) | дашборд → очередь писем; `dc logs worker \| grep -i -E 'mail\|smtp'`; тест в «Настройки» | SMTP‑доступ (логин/порт/TLS), SPF/DKIM/DMARC домена, `MAIL_FROM`; после исправления `dc up -d worker` — очередь дошлёт письма сама (повторные попытки) |
-| Индекс «нет данных» при наличии измерений | админка → очередь QC; `select max(time) from station_index` | значения с флагом suspect/invalid не участвуют — решить в QC; измерения старше 6 ч считаются устаревшими; пересчёт — `index-compute` каждые 10 мин (ручной запуск — раздел 7) |
-| Worker «не отвечает» на дашборде | `dc ps worker`, `dc logs --since 30m worker`, Redis: `dc exec redis redis-cli ping` | `dc restart worker`; при падении Redis — `dc restart redis worker`; при переполнении памяти Redis (`maxmemory 256mb`, `noeviction`) — `dc exec redis redis-cli info memory` |
+| Нет прогноза / «прогноз устарел» на `/weather` | дашборд → SmartMet; `dc logs worker \| grep smartmet`; с сервера: `curl -fsS "$SMARTMET_URL/timeseries?format=json&producer=$SMARTMET_PRODUCER&latlon=38.56,68.79&param=Temperature&timesteps=2"` | SmartMet работает на этом же сервере (раздел 14): `cd /opt/smartmet && docker compose ps` (все сервисы healthy), журнал `docker compose logs --tail 100 server`, проверки 14.3; сервер упал - `docker compose up -d`; после восстановления ручной запуск `smartmet-sync` (раздел 7). Крайняя мера - песочница FMI `SMARTMET_URL=https://opendata.fmi.fi`, `SMARTMET_PRODUCER=ecmwf` (без символов погоды и слоёв WMS), `dc up -d worker web` |
+| Дашборд: «прогон модели … старше 18 ч», письмо «Прогноз SmartMet не обновляется» | контейнер `data` - unhealthy (`docker compose -f /opt/smartmet/compose.yml ps`); `tail -50 /smartmet/logs/data/gfs_tajikistan_*.log`; доступность NOMADS: `curl -sI https://nomads.ncep.noaa.gov` | загрузка GFS остановилась, сервер отдаёт старый прогон: исправить причину по журналу (сеть, место на диске `df -h /smartmet`), внеочередная загрузка - 14.3; когда придёт свежий прогон, worker пришлёт письмо о восстановлении. Порог - `SMARTMET_MAX_RUN_AGE_H` (18 ч) |
+| Нет слоя SILAM / «прогноз SILAM устарел» | дашборд → SILAM; `curl -fsS "${SILAM_NCSS_URL}${SILAM_DATASET}/dataset.xml" \| head`; свободное место тома `silam` (`docker system df -v`) | THREDDS FMI отстаёт на 1–2 дня - норма; при смене датасета исправить `SILAM_DATASET`; при нехватке места уменьшить `SILAM_KEEP_RUNS`; ручной запуск `silam-sync` с `force` |
+| На главной нет карт «Погода · Прогноз» («Карты прогноза погоды сейчас недоступны») | `curl -fsS "$SMARTMET_WMS_URL/wms?service=WMS&request=GetCapabilities&version=1.3.0" \| grep -c tajikistan` из контейнера web; дашборд → SmartMet | не задан `SMARTMET_WMS_URL` или web не в сети `smartmet` (`compose.smartmet.yml`, раздел 14.6); сервер SmartMet не отвечает - 14.3. Каталог сроков обновляется вместе с прогоном; тайлы `/wms/…` для сроков вне каталога отвечают 404 - это защита, не сбой |
+| `/air/silam` без карт («Карты FMI сейчас недоступны») | с сервера: `curl -sI https://silam.fmi.fi/roux/TAJ/` | сайт FMI недоступен или сменил адрес - подождать или поправить `SILAM_FMI_URL`; `SILAM_FMI_URL=off` скрывает карты и не обращается к FMI. Слой SILAM на главной от этого не зависит (он из THREDDS) |
+| Предупреждения CAP не обновляются | дашборд → CAP и `/admin/cap` → «Синхронизация» (ошибки разбора по файлам); `curl -fsS "$CAP_FEED_URL" \| head` | проверить `CAP_FEED_URL` (Atom/RSS/HTTP‑каталог/`file://`), доступность редактора SmartMet Alert, сертификат; ошибки отдельных XML - сообщить выпускающему; ручной запуск `cap-sync` с `force` |
+| Письма не уходят (очередь «ошибки» растёт) | дашборд → очередь писем; `dc logs worker \| grep -i -E 'mail\|smtp'`; тест в «Настройки» | SMTP‑доступ (логин/порт/TLS), SPF/DKIM/DMARC домена, `MAIL_FROM`; после исправления `dc up -d worker` - очередь дошлёт письма сама (повторные попытки) |
+| Индекс «нет данных» при наличии измерений | админка → очередь QC; `select max(time) from station_index` | значения с флагом suspect/invalid не участвуют - решить в QC; измерения старше 6 ч считаются устаревшими; пересчёт - `index-compute` каждые 10 мин (ручной запуск - раздел 7) |
+| Worker «не отвечает» на дашборде | `dc ps worker`, `dc logs --since 30m worker`, Redis: `dc exec redis redis-cli ping` | `dc restart worker`; при падении Redis - `dc restart redis worker`; при переполнении памяти Redis (`maxmemory 256mb`, `noeviction`) - `dc exec redis redis-cli info memory` |
 | Карта без подписей / серая | `curl -I https://<домен>/tiles/tajikistan.pmtiles` (206/200), `curl -I https://<домен>/basemaps/fonts/…` | том `tiles` пуст (раздел 1.5) или образ web собран без `basemaps` (раздел 1.4) |
-| В «Типе карты» нет «Рельефа» или «Спутника» | `curl -I https://<домен>/tiles/terrain.pmtiles`, `…/satellite.pmtiles` (200) | файлов нет в томе `tiles` — `fetch-basemap-layers.sh` и копирование (раздел 1.5) |
+| В «Типе карты» нет «Рельефа» или «Спутника» | `curl -I https://<домен>/tiles/terrain.pmtiles`, `…/satellite.pmtiles` (200) | файлов нет в томе `tiles` - `fetch-basemap-layers.sh` и копирование (раздел 1.5) |
 | 502 от Caddy | `dc ps web`, `dc logs --since 10m web` | web перезапускается или упал: `dc restart web`; проверить `.env` (`BETTER_AUTH_SECRET` ≥ 32 символов, `DATABASE_URL`) |
 | 429 у интеграции/СМИ | заголовки `X-RateLimit-*` | поднять `RATE_LIMIT_API_PER_MINUTE` (`dc up -d web`) или договориться о кэшировании на стороне клиента |
 | Импорт архива | `docs/import-history.md` | `--dry-run` → отчёт → импорт; индекс пересчитывается скриптом (раздел 11) |
@@ -492,8 +492,8 @@ API входа — `/api/auth/*`):
 Задачи worker'а (BullMQ, очередь `meteo-jobs`) и расписание: `heartbeat` 1 мин; `mailer` 1 мин; `index-compute` 10 мин;
 `threshold-eval` 10 мин; `station-pull` 10 мин; `qc-batch` 15 мин; `smartmet-sync` 15 мин; `cap-sync` 5 мин; `station-cities` 30 мин; `silam-sync` ежечасно в :20;
 `eco-bulletin-draft` ежедневно в 08:00 по Душанбе (если в настройках экобюллетеня включено расписание).
-Задачи с интервалом выполняются также сразу после старта worker'а (`dc restart worker` — простой способ
-«запустить всё сейчас»); `silam-sync` и `eco-bulletin-draft` по cron — только по расписанию или вручную.
+Задачи с интервалом выполняются также сразу после старта worker'а (`dc restart worker` - простой способ
+«запустить всё сейчас»); `silam-sync` и `eco-bulletin-draft` по cron - только по расписанию или вручную.
 
 На сервере (в контейнере worker нет `pnpm`, но есть `bullmq` и `ioredis`):
 
@@ -505,30 +505,30 @@ dc exec worker node -e "const R=require('ioredis'),{Queue}=require('bullmq');con
 
 | Задача | Параметры | Когда |
 |---|---|---|
-| `smartmet-sync` | `{"force":true}`; `{"slugs":["dushanbe"]}` — только указанные точки | после смены `SMARTMET_*`, добавления точки прогноза |
-| `silam-sync` | `{"force":true}` — перекачать текущий прогон, обойти circuit breaker; прежний прогон остаётся на карте, пока новый не скачан и не отрисован (сбой THREDDS посреди загрузки ничего не удаляет) | после сбоя THREDDS, смены датасета |
-| `cap-sync` | `{"force":true}`; `{"url":"file:///…/feed.atom","force":true}` — разовый источник (например, фикстуры `infra/data/cap`) | после смены `CAP_FEED_URL`, для проверки |
-| `station-pull` | `{}`; `{"sourceId":5,"force":true}` — один источник SFTP/FTP/HTTP, даже выключенный, с перечитыванием свежего файла | после настройки источника в карточке станции (кнопка «Проверить сейчас» делает то же) |
+| `smartmet-sync` | `{"force":true}`; `{"slugs":["dushanbe"]}` - только указанные точки | после смены `SMARTMET_*`, добавления точки прогноза |
+| `silam-sync` | `{"force":true}` - перекачать текущий прогон, обойти circuit breaker; прежний прогон остаётся на карте, пока новый не скачан и не отрисован (сбой THREDDS посреди загрузки ничего не удаляет) | после сбоя THREDDS, смены датасета |
+| `cap-sync` | `{"force":true}`; `{"url":"file:///…/feed.atom","force":true}` - разовый источник (например, фикстуры `infra/data/cap`) | после смены `CAP_FEED_URL`, для проверки |
+| `station-pull` | `{}`; `{"sourceId":5,"force":true}` - один источник SFTP/FTP/HTTP, даже выключенный, с перечитыванием свежего файла | после настройки источника в карточке станции (кнопка «Проверить сейчас» делает то же) |
 | `index-compute` | `{}` | после массового импорта или правки шкал (панель делает это сама) |
-| `station-cities` | `{}` — станции дальше 15 км от всех городов списка получают свой город (точка прогноза `kind = station` с названием района) | после заведения станций в базе вручную (админка и `import-wwcs` делают это сами); выключенный город (`active = false`) заново не создаётся |
-| `eco-bulletin-draft` | `{}`; `{"force":true}` — даже если расписание выключено в настройках | черновик не появился в 08:00 (данные станций пришли позже). PDF собирается только при наличии Chromium; в production‑образе его нет, поэтому кнопка PDF в панели открывает версию для печати, а DOCX формируется всегда |
+| `station-cities` | `{}` - станции дальше 15 км от всех городов списка получают свой город (точка прогноза `kind = station` с названием района) | после заведения станций в базе вручную (админка и `import-wwcs` делают это сами); выключенный город (`active = false`) заново не создаётся |
+| `eco-bulletin-draft` | `{}`; `{"force":true}` - даже если расписание выключено в настройках | черновик не появился в 08:00 (данные станций пришли позже). PDF собирается только при наличии Chromium; в production‑образе его нет, поэтому кнопка PDF в панели открывает версию для печати, а DOCX формируется всегда |
 | `qc-batch`, `threshold-eval`, `mailer` | `{}` | ускорить обработку очереди (`mailer` работает под замком: параллельный запуск пропускается, письмо не уйдёт дважды) |
 
-На машине разработчика то же делает `pnpm --filter @meteo/worker enqueue <задача> '<json>'`. Результат — в
+На машине разработчика то же делает `pnpm --filter @meteo/worker enqueue <задача> '<json>'`. Результат - в
 `dc logs -f worker` (строки `job completed` / `job failed`) и на дашборде.
 
 ## 8. Добавление станции, точки прогноза, языка, региона предупреждений
 
 ### 8.1. Станция
 
-Админка → «Станции» → «Добавить» (код, координаты, область, вещества и единицы ввода) — `docs/manuals/admin/ru.md`, раздел 4.
+Админка → «Станции» → «Добавить» (код, координаты, область, вещества и единицы ввода) - `docs/manuals/admin/ru.md`, раздел 4.
 Данные: ручной ввод, импорт CSV в админке, импорт архива (раздел 11) или автоматический приём со станции (раздел 9.4). Станция появится на карте и в API через минуту,
-индекс — после первых валидных измерений; точечный прогноз SILAM для её координат — при следующем `silam-sync`
+индекс - после первых валидных измерений; точечный прогноз SILAM для её координат - при следующем `silam-sync`
 (или ручной запуск с `force`).
 
 ### 8.2. Точка прогноза (город/район)
 
-Точки прогноза не редактируются в панели — добавляются в таблицу `forecast_locations`:
+Точки прогноза не редактируются в панели - добавляются в таблицу `forecast_locations`:
 
 ```bash
 dc exec postgres psql -U meteo -d meteo -c "
@@ -538,8 +538,8 @@ values ('panjakent', '{\"tg\":\"Панҷакент\",\"ru\":\"Пенджикен
         (select id from regions where code = 'SU'), 'city', 9, false, true);"
 ```
 
-`slug` — латиница, используется в адресах `/weather/<slug>`, API и виджетах; `featured=true` выводит точку в блок
-«Крупные города» и на главную; `smartmet_place` (необязательно) — имя места в SmartMet, если нужен прогноз по
+`slug` - латиница, используется в адресах `/weather/<slug>`, API и виджетах; `featured=true` выводит точку в блок
+«Крупные города» и на главную; `smartmet_place` (необязательно) - имя места в SmartMet, если нужен прогноз по
 названию, а не по координатам; `active=false` временно скрывает точку. Затем ручной запуск `smartmet-sync` с
 `{"slugs":["panjakent"]}` и `silam-sync` с `force` (или подождать расписания). Sitemap обновляется автоматически.
 
@@ -547,13 +547,13 @@ values ('panjakent', '{\"tg\":\"Панҷакент\",\"ru\":\"Пенджикен
 
 `packages/i18n`: новый `messages/<lang>.json`, `locales` и `localeTags` в `src/index.ts`, маршрутизация
 `apps/web/src/i18n/routing.ts`, проверка `pnpm --filter @meteo/i18n check:messages`; контент в БД хранится
-как jsonb `{tg, ru, en}` — новый язык требует доработки форм админки (отдельная задача разработчика). Это изменение
+как jsonb `{tg, ru, en}` - новый язык требует доработки форм админки (отдельная задача разработчика). Это изменение
 кода с новым релизом, а не настройка сервера.
 
 ### 8.4. Регионы предупреждений
 
 Таблица `warning_regions` (код как в geocode CAP‑сообщений SmartMet Alert, название, геометрия) заполнена из областей
-(`DU`, `RRP`, `SU`, `KT`, `GB`). Если редактор SmartMet Alert использует другие коды — добавьте строки с нужными
+(`DU`, `RRP`, `SU`, `KT`, `GB`). Если редактор SmartMet Alert использует другие коды - добавьте строки с нужными
 кодами и геометрией (можно скопировать из `regions`/`districts`):
 
 ```sql
@@ -572,9 +572,9 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 | Переменная | Значение |
 |---|---|
-| `SMARTMET_URL` | адрес сервера с плагином timeseries: собственный SmartMet на сервере портала — `http://smartmet:8080` (§14); по умолчанию песочница `https://opendata.fmi.fi` |
-| `SMARTMET_PRODUCER` | producer модели: для собственного SmartMet — `gfs`; для opendata — `ecmwf` |
-| `SMARTMET_WMS_URL` | SmartMet с плагином WMS для слоёв погоды на карте (web) — `http://smartmet:8080`; пусто — слоя нет |
+| `SMARTMET_URL` | адрес сервера с плагином timeseries: собственный SmartMet на сервере портала - `http://smartmet:8080` (§14); по умолчанию песочница `https://opendata.fmi.fi` |
+| `SMARTMET_PRODUCER` | producer модели: для собственного SmartMet - `gfs`; для opendata - `ecmwf` |
+| `SMARTMET_WMS_URL` | SmartMet с плагином WMS для слоёв погоды на карте (web) - `http://smartmet:8080`; пусто - слоя нет |
 | `SMARTMET_API_KEY` | если сервер требует ключ (передаётся запросом) |
 | `SMARTMET_HOURLY_STEPS` / `SMARTMET_DAILY_DAYS` | горизонт почасового (72) и суточного (10) прогноза |
 
@@ -587,9 +587,9 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 | Переменная | Значение |
 |---|---|
 | `SILAM_NCSS_URL` | базовый адрес NetCDF Subset Service, по умолчанию `https://thredds.silam.fmi.fi/thredds/ncss/grid/` |
-| `SILAM_DATASET` | путь датасета, по умолчанию глобальный `silam_glob_v6_1_sfc/silam_glob_v6_1_sfc_best.ncd`; при появлении регионального домена для Центральной Азии (D4) — заменить |
+| `SILAM_DATASET` | путь датасета, по умолчанию глобальный `silam_glob_v6_1_sfc/silam_glob_v6_1_sfc_best.ncd`; при появлении регионального домена для Центральной Азии (D4) - заменить |
 | `SILAM_KEEP_RUNS` | сколько прогонов хранить в томе `silam` (3; ~50–100 МБ на прогон) |
-| `SILAM_FMI_URL` | готовые карты FMI для страницы `/air/silam` (их отдаёт прокси `/silam-fmi`); пусто — `https://silam.fmi.fi/roux/TAJ`, `off` — раздел без карт и без запросов к FMI |
+| `SILAM_FMI_URL` | готовые карты FMI для страницы `/air/silam` (их отдаёт прокси `/silam-fmi`); пусто - `https://silam.fmi.fi/roux/TAJ`, `off` - раздел без карт и без запросов к FMI |
 
 Проверка: `curl -fsS "${SILAM_NCSS_URL}${SILAM_DATASET}/dataset.xml" | grep -o 'name="[^"]*"' | head`. Задача
 раз в час проверяет новый прогон, качает NetCDF по bbox Таджикистана, рисует PNG‑слои и считает точечные
@@ -599,13 +599,13 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 | Переменная | Значение |
 |---|---|
-| `CAP_FEED_URL` | лента SmartMet Alert на сервере портала — `http://smartalert/capfeed.php` (§14); в staging — тестовая лента `http://smartalert-test/capfeed.php` (§14.6); либо Atom/RSS‑фид редактора, HTTP‑каталог с `*.xml` или `file:///…` (фикстуры `infra/data/cap` для проверки); без значения задача пропускается, дашборд показывает «источник не настроен» |
+| `CAP_FEED_URL` | лента SmartMet Alert на сервере портала - `http://smartalert/capfeed.php` (§14); в staging - тестовая лента `http://smartalert-test/capfeed.php` (§14.6); либо Atom/RSS‑фид редактора, HTTP‑каталог с `*.xml` или `file:///…` (фикстуры `infra/data/cap` для проверки); без значения задача пропускается, дашборд показывает «источник не настроен» |
 | `CAP_TIMEOUT_MS` | таймаут запроса (15000) |
 
 Проверка: `curl -fsS "$CAP_FEED_URL" | head -20`; затем ручной запуск `cap-sync` с `force` и `/admin/cap` →
 «Синхронизация». Сообщения со статусом `Test`/`Exercise` видны только в панели. Коды регионов в `<geocode>` должны
-совпадать с `warning_regions.code` (раздел 8.4); иначе привязка — по пересечению полигонов. Словарь переводов
-`event` — `/admin/cap/events`.
+совпадать с `warning_regions.code` (раздел 8.4); иначе привязка - по пересечению полигонов. Словарь переводов
+`event` - `/admin/cap/events`.
 
 ### 9.4. Автоматический приём данных со станций (ingest API, агент, SFTP/FTP/HTTP)
 
@@ -616,19 +616,19 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 | **Агент станции** `apps/station-agent` | вендорское ПО пишет CSV/TSV в папку на станционном компьютере | Node.js 22, один файл `station-agent.mjs` + `config.json`, исходящий HTTPS |
 | **Прямая отправка** на `POST /api/v1/ingest/{код}` | логгер/контроллер сам умеет слать HTTP‑запросы с JSON | исходящий HTTPS, ключ станции |
 | **Pull‑источник** (SFTP/FTP/FTPS/HTTP) | данные уже выкладываются на сервер вендора или Агентства | доступ worker'а к этому серверу (исходящий TCP 22/21/443 с портала) |
-| **Источник «JSON API»** (несколько станций через один адрес) | сеть датчиков отдаёт JSON по HTTP(S) — основной канал данных сети PM‑датчиков Агентства (API wwcs.tj) | исходящий HTTPS с портала к API |
+| **Источник «JSON API»** (несколько станций через один адрес) | сеть датчиков отдаёт JSON по HTTP(S) - основной канал данных сети PM‑датчиков Агентства (API wwcs.tj) | исходящий HTTPS с портала к API |
 
 **Сетевые требования.** Агент и логгеры: только исходящий HTTPS (TCP 443) с станционного компьютера на адрес портала
 (из DMZ Агентства или через прокси; входящих портов не нужно). Pull‑источники: исходящий доступ с сервера портала к
 серверу вендора (SFTP 22, FTP 21 + пассивные порты, HTTPS 443); если сервер вендора ограничивает доступ по IP, в
-whitelist добавляется внешний IP сервера портала. Ключ станции и пароли источников — секреты: ключ показывается один
+whitelist добавляется внешний IP сервера портала. Ключ станции и пароли источников - секреты: ключ показывается один
 раз, в БД хранится хэш; пароли источников шифруются ключом `STATION_SOURCES_KEY` (`.env`, `openssl rand -base64 32`;
-без него используется `BETTER_AUTH_SECRET` — при ротации секрета пароли придётся ввести заново) или задаются ссылкой
+без него используется `BETTER_AUTH_SECRET` - при ротации секрета пароли придётся ввести заново) или задаются ссылкой
 `env:ИМЯ` на переменную окружения worker'а.
 
 **Допустимые адреса pull‑источников.** Частные сети разрешены (серверы станций в локальной сети Агентства, короткие
 имена вроде `station-pc`). Запрещены loopback, link‑local (адрес метаданных облака `169.254.169.254`), multicast,
-имена `*.localhost`/`*.internal` и — когда worker работает в Docker — подсети его собственных интерфейсов (сервисы
+имена `*.localhost`/`*.internal` и - когда worker работает в Docker - подсети его собственных интерфейсов (сервисы
 compose `postgres`, `redis`, `web`). Проверяется не только адрес из настроек, но и то, во что имя разрешается через DNS,
 и каждое HTTP‑перенаправление (не больше 5; при переходе на другой домен логин и пароль источника не передаются).
 Источник с таким адресом получает статус «сбой» с причиной `Адрес источника запрещён: <имя> → <адрес>`.
@@ -637,21 +637,21 @@ compose `postgres`, `redis`, `web`). Проверяется не только а
 
 1. Админка → «Станции» → карточка станции: отметьте измеряемые вещества и единицы ввода (значения в других единицах
    отклоняются с причиной `pollutantNotConfigured`/`unit`), укажите источник данных «API» или «Автоматический датчик»
-   (тогда дашборд и письма следят за отсутствием приёма), «Сгенерировать ключ» в блоке «Ключ API станции» — скопируйте
+   (тогда дашборд и письма следят за отсутствием приёма), «Сгенерировать ключ» в блоке «Ключ API станции» - скопируйте
    ключ сразу.
 2. На станционном компьютере: установите Node.js 22 LTS, скопируйте `apps/station-agent/station-agent.mjs` и подходящий
    конфиг из `apps/station-agent/examples/`, заполните `portalUrl`, `stationCode`, `watchDir`, `mapping`
    (разделитель, колонка времени и формат, колонки веществ) и ключ (`apiKey` или переменная из `apiKeyEnv`).
 3. Проверка: `node station-agent.mjs --config config.json --check` (папка и формат свежего файла), затем `--dry-run`
-   и `--once`. Ошибки разбора пишутся с номерами строк; причины отклонений портала — в ответе и в логе агента.
-4. Служба: Windows — `service\install-task.cmd` (Планировщик заданий, каждые 5 минут, `--once`) или
-   `service\nssm-install.cmd` (постоянная служба NSSM); Linux — `service/meteo-station-agent.service` (systemd).
-   Подробно — `apps/station-agent/README.ru.md`.
+   и `--once`. Ошибки разбора пишутся с номерами строк; причины отклонений портала - в ответе и в логе агента.
+4. Служба: Windows - `service\install-task.cmd` (Планировщик заданий, каждые 5 минут, `--once`) или
+   `service\nssm-install.cmd` (постоянная служба NSSM); Linux - `service/meteo-station-agent.service` (systemd).
+   Подробно - `apps/station-agent/README.ru.md`.
 5. Проверка на портале: карточка станции → «Автоматический приём данных» (время, канал, принято/отклонено, период),
-   дашборд → колонка «Автоматический приём»; журнал аудита — записи `measurements.ingest` от `station:<код>`.
+   дашборд → колонка «Автоматический приём»; журнал аудита - записи `measurements.ingest` от `station:<код>`.
    Прямая отправка без агента: `curl -X POST "$PORTAL/api/v1/ingest/DU-01" -H "Authorization: Bearer $KEY"
    -H "Content-Type: application/json" -d '[{"time":"2026-10-18T07:00:00Z","pollutant":"PM25","value":42.5}]'`
-   (описание формата — `/data/api`).
+   (описание формата - `/data/api`).
 
 **Шаг за шагом (pull‑источник):**
 
@@ -662,59 +662,59 @@ compose `postgres`, `redis`, `web`). Проверяется не только а
    описание колонок (шаблоны «столбец на вещество» / «вещество в строке» / «дата и время раздельно»; формат тот же, что
    у агента), порог «уведомить, если нет данных дольше N минут».
 3. «Проверить сейчас» → через минуту в карточке появятся статус, время успеха/данных и сводка (файлов, принято,
-   отклонено, первые ошибки); в логе worker'а — строки `station-pull: file processed` / `source failed`.
+   отклонено, первые ошибки); в логе worker'а - строки `station-pull: file processed` / `source failed`.
 4. Дальше worker забирает новые и изменившиеся файлы каждые 10 минут (повторная обработка безопасна: upsert по ключу
    время/вещество/осреднение). Смена адреса или маски обнуляет реестр обработанных файлов.
 
-**Контроль.** Письмо администраторам (шаблон `stationData`, получатели — как у сбоев интеграций) уходит, когда источник
+**Контроль.** Письмо администраторам (шаблон `stationData`, получатели - как у сбоев интеграций) уходит, когда источник
 не принёс ни одного значения дольше своего порога или станция с приёмом по API молчит дольше `STATION_INGEST_STALE_MIN`
-(180 мин); при возобновлении — письмо о восстановлении. Лимит `POST /api/v1/ingest` — `RATE_LIMIT_INGEST_PER_MINUTE`
-(60 запросов в минуту на станцию + IP, до 1000 записей в запросе). Отзыв доступа станции — «Обновить ключ» в карточке
+(180 мин); при возобновлении - письмо о восстановлении. Лимит `POST /api/v1/ingest` - `RATE_LIMIT_INGEST_PER_MINUTE`
+(60 запросов в минуту на станцию + IP, до 1000 записей в запросе). Отзыв доступа станции - «Обновить ключ» в карточке
 (старый ключ перестаёт действовать сразу) или статус «приостановлена» (ответ 403).
 
-**Сеть PM‑датчиков Агентства (открытый API подрядчика wwcs.tj) — источник типа «JSON API», основной
+**Сеть PM‑датчиков Агентства (открытый API подрядчика wwcs.tj) - источник типа «JSON API», основной
 канал данных этой сети на портале (подключение штатное, отдельного согласия не требует).**
 Тип источника `json` опрашивает JSON API сети датчиков: один запрос за свежими записями всех станций
-(`GET https://wwcs.tj/services/airquality/stations` — массив `{stationID, siteName, latitude, longitude, altitude,
+(`GET https://wwcs.tj/services/airquality/stations` - массив `{stationID, siteName, latitude, longitude, altitude,
 timestamp, PM25, PM10, temperature, humidity, wind_speed, wind_dir, aqi}`, время местное UTC+5 без смещения, данные
-каждые 10 минут) и при первом запуске, ручной проверке или пропуске у какой‑то станции — ряд за прошедшие часы
+каждые 10 минут) и при первом запуске, ручной проверке или пропуске у какой‑то станции - ряд за прошедшие часы
 (`…/airquality/history?hours=N`, до 72 ч, ≈ 0,35 МБ). Записи раскладываются по станциям портала по полю `stationID`
 (код в источнике = код станции портала; иначе соответствие задаётся в `stations` описания полей); по каждой станции
 ведётся курсор времени последней принятой записи, поэтому повторные ответы не создают дублей и не продлевают
-`last_data_at` — «зависшая» станция через порог даёт письмо «нет данных». Приостановленные станции и неизвестные коды
+`last_data_at` - «зависшая» станция через порог даёт письмо «нет данных». Приостановленные станции и неизвестные коды
 пропускаются с пометкой в сводке (`stationInactive:suspended`, `unknownStation`). Температура и влажность из API не
-принимаются (портал хранит только вещества); `aqi` сайта не используется — индекс считает портал.
+принимаются (портал хранит только вещества); `aqi` сайта не используется - индекс считает портал.
 
 1. **Станции и источник** создаёт идемпотентный скрипт: сначала `pnpm --filter @meteo/db import-wwcs -- --dry-run`,
-   затем `pnpm --filter @meteo/db import-wwcs`. Создаются 9 станций (код = `stationID`, названия tg/ru/en — по таблице
+   затем `pnpm --filter @meteo/db import-wwcs`. Создаются 9 станций (код = `stationID`, названия tg/ru/en - по таблице
    в скрипте, координаты и высота из API, регион и район по координатам через PostGIS, автоматический датчик,
    непрерывный ряд, PM2.5 и PM10 в µg/m³) и один источник `json` «WWCS airquality API» в карточке станции DYU01_ECO
    (**включён**, порог «нет данных» 60 мин, история 24 ч): worker опросит API в ближайшем цикле `station-pull`
    (каждые 10 минут и при старте) и догрузит ряд за сутки. Станция здания Агентства DYU006_ECO создаётся
-   **приостановленной** (датчик выдаёт 450–575 µg/m³ при фоне 2–30 у соседей — см. описание станции); после ремонта
-   датчика снимите приостановку в карточке — данные начнут приниматься со следующего цикла. Ключи: `--disabled`
+   **приостановленной** (датчик выдаёт 450–575 µg/m³ при фоне 2–30 у соседей - см. описание станции); после ремонта
+   датчика снимите приостановку в карточке - данные начнут приниматься со следующего цикла. Ключи: `--disabled`
    (создать источник выключенным), `--anchor КОД`, `--stale-min N`, `--history-hours N`, `--suspend A,B`, `--update`
    (обновить координаты/названия существующих), `--file stations.json` (сохранённый ответ без сети), `--no-source`.
-2. **Управление источником** — карточка станции DYU01_ECO → «Источники данных» → «WWCS airquality API»: «Проверить
+2. **Управление источником** - карточка станции DYU01_ECO → «Источники данных» → «WWCS airquality API»: «Проверить
    сейчас» ставит внеочередной запуск (с историей за 24 ч без учёта курсоров), переключатель «Включён» останавливает
    опрос, не удаляя настройки; изменение адреса обнуляет курсоры (следующий запуск снова возьмёт историю).
 3. **Проверка.** Прогон без очереди: `pnpm --filter @meteo/worker pull-source <id источника> [--force]` (итог JSON в
-   stdout: `files` — запросов, `accepted`, `rejected`; `--force` перечитывает историю без учёта курсоров). В логе
-   worker'а — `station-pull: json history fetched`, `json station processed` (по станции: принято/обновлено),
-   `json source done`; в карточке — статус «работает» и сводка «запросов N, станций 8, принято …, отклонено …»;
-   у остальных станций — блок «Автоматический приём данных» с каналом «забор данных»; публично — `/api/v1/stations`
+   stdout: `files` - запросов, `accepted`, `rejected`; `--force` перечитывает историю без учёта курсоров). В логе
+   worker'а - `station-pull: json history fetched`, `json station processed` (по станции: принято/обновлено),
+   `json source done`; в карточке - статус «работает» и сводка «запросов N, станций 8, принято …, отклонено …»;
+   у остальных станций - блок «Автоматический приём данных» с каналом «забор данных»; публично - `/api/v1/stations`
    (уровень у 8 станций) и `/air`. Первый прогон 20.10.2026: 2 запроса, 2134 значения за 24 ч по 8 станциям за 2 с;
-   повторный — 0 новых (курсор), история не запрашивается; worker выполнил задачу при старте и по расписанию.
-4. **Переменные окружения не нужны**: адреса заданы в источнике, авторизации у API нет. Общие ограничения —
+   повторный - 0 новых (курсор), история не запрашивается; worker выполнил задачу при старте и по расписанию.
+4. **Переменные окружения не нужны**: адреса заданы в источнике, авторизации у API нет. Общие ограничения -
    `STATION_PULL_TIMEOUT_MS`, `STATION_PULL_MAX_FILE_MB`. `STATION_PULL_ALLOW_FILE_URLS=1` разрешает адреса
-   `file://` для прогона маппинга на сохранённом ответе и для E2E — в продакшене не задавать.
+   `file://` для прогона маппинга на сохранённом ответе и для E2E - в продакшене не задавать.
 5. **Контроль качества и устаревание.** Значения датчика DYU006_ECO лежат в диапазоне правила `range` (0–2000 µg/m³)
    и меняются от записи к записи, поэтому правила `range`/`stuck`/`spike` их не отбраковывают (для портала они
-   неотличимы от пылевой бури) — отсюда приостановка станции до ремонта датчика; после ремонта снимите приостановку
-   в карточке и нажмите «Проверить сейчас». «Залипание» (одно значение ≥ 12 ч подряд, для 10‑минутного ряда — 73
+   неотличимы от пылевой бури) - отсюда приостановка станции до ремонта датчика; после ремонта снимите приостановку
+   в карточке и нажмите «Проверить сейчас». «Залипание» (одно значение ≥ 12 ч подряд, для 10‑минутного ряда - 73
    точки) и одиночные скачки 10‑минутного ряда правила ловят (unit‑тесты `qc.test.ts`). Устаревание: индекс
    станции старше 6 ч → уровень «нет данных» на карте и в `/air` (так выглядит Куляб, если его датчик замолчал).
-6. **Шкала US AQI (EPA)** — третья табличная шкала `US_AQI` (шесть категорий, цвета EPA, рекомендации), по умолчанию
+6. **Шкала US AQI (EPA)** - третья табличная шкала `US_AQI` (шесть категорий, цвета EPA, рекомендации), по умолчанию
    не публичная. Показать её посетителям: «Шкалы и пороги» → «Индекс US AQI (EPA)» → «Публичная шкала по умолчанию»
    → «Сохранить» (индекс пересчитывается, легенда и страница «Об индексе» переключатся на шесть уровней). Пороги
    EPA 2024 в единицах портала; расчёт по таблице PM2.5 2012 г. на 10‑минутных значениях даёт немного
@@ -724,8 +724,8 @@ timestamp, PM25, PM10, temperature, humidity, wind_speed, wind_dir, aqi}`, вр�
 
 Выбирайте первый подходящий вариант:
 
-1. **Есть другой администратор** — он в «Пользователи» выполняет «Сбросить пароль» и/или «Сбросить 2FA»; это штатный путь.
-2. **Администратор один, но есть оператор/редактор** — временно повысить его до администратора в БД, он
+1. **Есть другой администратор** - он в «Пользователи» выполняет «Сбросить пароль» и/или «Сбросить 2FA»; это штатный путь.
+2. **Администратор один, но есть оператор/редактор** - временно повысить его до администратора в БД, он
    восстановит доступ через панель, затем вернуть роль (всё фиксируется в аудите):
 
    ```bash
@@ -735,7 +735,7 @@ timestamp, PM25, PM10, temperature, humidity, wind_speed, wind_dir, aqi}`, вр�
    ```
 
    При первом входе новому администратору потребуется настроить 2FA.
-3. **Ни один пользователь не может войти** — сброс через БД (нужен доступ к серверу):
+3. **Ни один пользователь не может войти** - сброс через БД (нужен доступ к серверу):
 
    ```bash
    # 3а. Сброс 2FA и сессий администратора
@@ -761,7 +761,7 @@ timestamp, PM25, PM10, temperature, humidity, wind_speed, wind_dir, aqi}`, вр�
 ## 11. Импорт архивов измерений
 
 Исторические данные (CSV/XLSX Агентства) загружаются скриптом `packages/db/src/scripts/import-history.ts` по маппингу
-колонок — формат, маппинг и отчёт описаны в `docs/import-history.md`. Скрипт не входит в образы: запускайте его из клона
+колонок - формат, маппинг и отчёт описаны в `docs/import-history.md`. Скрипт не входит в образы: запускайте его из клона
 репозитория на сервере (`pnpm install --frozen-lockfile`, Node.js 22) или с рабочей станции через SSH‑туннель к PostgreSQL:
 
 ```bash
@@ -770,15 +770,15 @@ DATABASE_URL=postgres://meteo:<пароль>@127.0.0.1:5432/meteo \
 DATABASE_URL=… pnpm db:import-history -- --file ~/archive/du-2023.xlsx --mapping ~/archive/mapping.json
 ```
 
-Повторный запуск идемпотентен; индекс за затронутые месяцы пересчитывается скриптом. Перед большим импортом —
-бэкап (раздел 3.1), после — проверка страницы станции за период.
+Повторный запуск идемпотентен; индекс за затронутые месяцы пересчитывается скриптом. Перед большим импортом -
+бэкап (раздел 3.1), после - проверка страницы станции за период.
 
 ## 12. Приёмка и передача
 
 Портал остаётся на VPS исполнителя (`havo.tj`), поэтому секреты (`.env`, пароль restic, ключи деплоя) хранит исполнитель в
 менеджере паролей; Агентству передаются учётные записи администраторов панели. При приёмке: минимум два
 администратора с настроенной 2FA; тест восстановления (3.2) выполнен на staging с записью в журнале; внешний
-мониторинг `/api/healthz` настроен; DNS/TLS и почта (SPF/DKIM/DMARC) проверены письмом из «Настроек»; документация —
+мониторинг `/api/healthz` настроен; DNS/TLS и почта (SPF/DKIM/DMARC) проверены письмом из «Настроек»; документация -
 `docs/manuals` (HTML/PDF: `pnpm docs:build`).
 
 ## 13. Хост с несколькими приложениями и выкатка из GitHub Actions
@@ -804,32 +804,32 @@ sh infra/deploy/setup-host.sh aminjon1065/meteo   # пользователь dep
 sh infra/deploy/harden-host.sh                    # администратор сервера: SSH только по ключам, fail2ban, автообновления
 ```
 
-`harden-host.sh` отключает вход по паролю — перед запуском проверьте вход по ключу (команда в шапке скрипта).
-Межсетевой экран — в hPanel (VPS → Межсетевой экран: TCP 22, 80, 443, UDP 443): Docker публикует порты в обход ufw.
+`harden-host.sh` отключает вход по паролю - перед запуском проверьте вход по ключу (команда в шапке скрипта).
+Межсетевой экран - в hPanel (VPS → Межсетевой экран: TCP 22, 80, 443, UDP 443): Docker публикует порты в обход ufw.
 
 Общий прокси: содержимое `infra/edge/` → `/opt/edge` (`compose.yml`, `conf/Caddyfile`, `conf/sites/*.caddy`,
-`certs/` с правами 700), затем `docker compose -f /opt/edge/compose.yml up -d`. Как подключить другое приложение —
+`certs/` с правами 700), затем `docker compose -f /opt/edge/compose.yml up -d`. Как подключить другое приложение -
 `infra/edge/README.md`.
 
 ### 13.2. Окружения портала
 
-`/opt/meteo/<окружение>/.env` (владелец `deploy`, права 600) — как в 1.3, плюс `EDGE_ALIAS` (имя в сети `edge`,
-таблица выше) и `IMAGE_REPO`; `IMAGE_TAG` не задаётся — его ведёт выкатка. Тайлы карты кладутся в тома
+`/opt/meteo/<окружение>/.env` (владелец `deploy`, права 600) - как в 1.3, плюс `EDGE_ALIAS` (имя в сети `edge`,
+таблица выше) и `IMAGE_REPO`; `IMAGE_TAG` не задаётся - его ведёт выкатка. Тайлы карты кладутся в тома
 `meteo_tiles` и `meteo-staging_tiles` (как в 1.5; на сервере достаточно `SKIP_ASSETS=1 ./infra/data/fetch-map-assets.sh`,
-подложки «Рельеф» и «Спутник» — `./infra/data/fetch-basemap-layers.sh` или готовые файлы с машины разработчика).
+подложки «Рельеф» и «Спутник» - `./infra/data/fetch-basemap-layers.sh` или готовые файлы с машины разработчика).
 
 | Что | Где |
 |---|---|
 | Версии (только `infra/` коммита) | `releases/<sha>/`; хранятся текущая, предыдущая и ещё три |
-| Текущая версия | `current` → `releases/<sha>`, тег образов — `.deploy.env` (`IMAGE_TAG`, `PREVIOUS_TAG`) |
+| Текущая версия | `current` → `releases/<sha>`, тег образов - `.deploy.env` (`IMAGE_TAG`, `PREVIOUS_TAG`) |
 | История и журналы выкаток | `deploy.log`, `logs/<время>-<sha>.log` (90 дней) |
-| docker compose окружения | `./dc` — вместо `dc` из начала документа: `/opt/meteo/production/dc ps`, `… logs -f worker` |
+| docker compose окружения | `./dc` - вместо `dc` из начала документа: `/opt/meteo/production/dc ps`, `… logs -f worker` |
 
 ### 13.3. GitHub (однократно)
 
-1. Settings → Environments: `staging` (Deployment branches: только `main`) и `production` (Required reviewers —
+1. Settings → Environments: `staging` (Deployment branches: только `main`) и `production` (Required reviewers -
    ответственные за выпуск; Deployment branches: только `main`).
-2. В каждом окружении секрет `DEPLOY_SSH_KEY` — приватный ключ своей пары ed25519. Публичные ключи — в
+2. В каждом окружении секрет `DEPLOY_SSH_KEY` - приватный ключ своей пары ed25519. Публичные ключи - в
    `/home/deploy/.ssh/authorized_keys` с принудительной командой, ключ одного окружения не выкатывает другое:
 
    ```
@@ -837,7 +837,7 @@ sh infra/deploy/harden-host.sh                    # администратор �
    restrict,command="/usr/local/bin/meteo-deploy production" ssh-ed25519 AAAA… gha-meteo-production
    ```
 
-3. Необязательно: переменные `DEPLOY_HOST` и `DEPLOY_KNOWN_HOSTS` (значения по умолчанию — в `deploy.yml`; при
+3. Необязательно: переменные `DEPLOY_HOST` и `DEPLOY_KNOWN_HOSTS` (значения по умолчанию - в `deploy.yml`; при
    переезде на другой сервер задать их). Пакеты `meteoportal-*` в GHCR можно оставить приватными: выкатка входит
    в реестр токеном задания.
 
@@ -847,18 +847,18 @@ sh infra/deploy/harden-host.sh                    # администратор �
 ### 13.4. Cloudflare и TLS
 
 - DNS: `A` для `havo.tj`, `www`, `staging` → `46.202.155.70`, проксирование включено (оранжевое облако);
-  `AAAA` → `2a02:4780:41:1d30::1` — по желанию.
+  `AAAA` → `2a02:4780:41:1d30::1` - по желанию.
 - SSL/TLS → Overview: **Full (strict)**; Edge Certificates: Always Use HTTPS.
-- Сертификат между Cloudflare и сервером — Origin Certificate (15 лет). Ключ и CSR созданы на сервере
+- Сертификат между Cloudflare и сервером - Origin Certificate (15 лет). Ключ и CSR созданы на сервере
   (`/opt/edge/certs/havo.tj.key`, `havo.tj.csr`), ключ сервер не покидает: SSL/TLS → Origin Server → Create
   Certificate → «Use my private key and CSR» → вставить CSR, имена `havo.tj`, `*.havo.tj` → сохранить выданный
   сертификат в `/opt/edge/certs/havo.tj.pem` → `docker compose -f /opt/edge/compose.yml exec caddy caddy reload --force --config /etc/caddy/Caddyfile`
   (`--force` обязателен: Caddyfile не менялся, и без него Caddy не перечитывает файлы сертификатов).
-  Выпущен 23.10.2026, действует до 19.10.2041; временный самоподписанный — `havo.tj.selfsigned.pem`.
+  Выпущен 23.10.2026, действует до 19.10.2041; временный самоподписанный - `havo.tj.selfsigned.pem`.
 - Выключить Rocket Loader и Email Address Obfuscation: они вставляют свои скрипты, которые блокирует CSP портала.
 - Bot Fight Mode / WAF не должны показывать проверку логгерам станций и проверке здоровья: правило Skip для
   `/api/v1/ingest/*` и `/api/healthz` (иначе приём данных по API и внешняя проверка в GitHub Actions получают 403).
-  Настроено: Security rules → «Skip: station ingest API and healthz (meteo portal)» — пропускает Browser Integrity
+  Настроено: Security rules → «Skip: station ingest API and healthz (meteo portal)» - пропускает Browser Integrity
   Check, Security Level, User Agent Blocking и Super Bot Fight Mode; Bot Fight Mode выключен.
 - Ограничения бесплатного тарифа: тело запроса ≤ 100 МБ (загрузки CMS, импорт CSV), ответ ≤ 100 с.
 
@@ -866,12 +866,12 @@ sh infra/deploy/harden-host.sh                    # администратор �
 
 1. Push в `main` → CI (lint, typecheck, unit, E2E, Lighthouse, миграции, `pnpm audit`, Trivy) → образы
    `ghcr.io/aminjon1065/meteoportal-{web,worker,backup}:<sha>`.
-2. **Deploy → staging** — сразу; **Deploy → production** — тот же образ после Review deployments → Approve.
+2. **Deploy → staging** - сразу; **Deploy → production** - тот же образ после Review deployments → Approve.
 3. На сервере `deploy.sh`: pull образов → бэкап (production) → postgres/redis → миграции → справочники →
-   перезапуск → ожидание healthy и `/api/healthz` через Caddy портала и общий прокси. Если версия не поднялась —
+   перезапуск → ожидание healthy и `/api/healthz` через Caddy портала и общий прокси. Если версия не поднялась -
    автоматический возврат на предыдущую (миграции не откатываются, см. раздел 2). Затем GitHub проверяет
    `https://<адрес>/api/healthz` снаружи, через Cloudflare.
-4. Повторная выкатка или возврат на прежнюю версию — Actions → Deploy → Run workflow: окружение и полный SHA
+4. Повторная выкатка или возврат на прежнюю версию - Actions → Deploy → Run workflow: окружение и полный SHA
    коммита `main` (его образы уже в GHCR).
 
 Журнал GitHub Actions у публичного репозитория открыт всем, поэтому скрипт выкатки печатает только шаги, а журналы
@@ -882,7 +882,7 @@ sh infra/deploy/harden-host.sh                    # администратор �
 
 1. Вход `https://havo.tj/admin` администратором из `.env` окружения (`grep SEED_ADMIN /opt/meteo/production/.env`
    на сервере), настройка 2FA, второй администратор (1.7); затем удалить `SEED_ADMIN_PASSWORD` из `.env`.
-2. Границы областей и районов (1.6) — с рабочей станции через SSH‑туннель к PostgreSQL окружения:
+2. Границы областей и районов (1.6) - с рабочей станции через SSH‑туннель к PostgreSQL окружения:
 
    ```bash
    PG=$(ssh root@46.202.155.70 "docker inspect -f '{{range .NetworkSettings.Networks}}{{.IPAddress}} {{end}}' meteo-postgres-1" | awk '{print $1}')
@@ -891,38 +891,38 @@ sh infra/deploy/harden-host.sh                    # администратор �
    kill %1
    ```
 
-3. Пароль restic (`RESTIC_PASSWORD` из `.env` production) — в менеджер паролей; офсайт‑репозиторий — раздел 3.
+3. Пароль restic (`RESTIC_PASSWORD` из `.env` production) - в менеджер паролей; офсайт‑репозиторий - раздел 3.
 
 ## 14. SmartMet Server и SmartMet Alert
 
 По договору и подробному ТЗ (модуль 2, уточнено 29.10.2026) SmartMet Server и SmartMet Alert устанавливает
 исполнитель; портал и SmartMet постоянно работают на VPS исполнителя (havo.tj). Отдельный сервер
 AlmaLinux/Rocky Linux под SmartMet не выделен, поэтому SmartMet работает на сервере портала (Ubuntu) в
-официальных контейнерах FMI. Пакеты обработки данных — штатные RPM FMI (`smartmet-qdtools`,
+официальных контейнерах FMI. Пакеты обработки данных - штатные RPM FMI (`smartmet-qdtools`,
 `smartmet-data-gfs` из репозитория `smartmet-open`) внутри контейнера Rocky Linux 10. Каталог `/smartmet` устроен
 так же, как при установке скриптом `fmidev/smartmet-install`, поэтому документация FMI к нему применима.
-Решение и отступления от ТЗ — `docs/adr/ADR-010-smartmet-server.md`.
+Решение и отступления от ТЗ - `docs/adr/ADR-010-smartmet-server.md`.
 
 ### 14.1. Состав
 
 | Сервис (`/opt/smartmet/compose.yml`) | Образ | Назначение | Адрес |
 |---|---|---|---|
 | `server` | `fmidev/smartmetserver:26.08.01` | SmartMet Server: timeseries, WMS (`/wms`, `/wmts`, `/tiles`) | `http://smartmet:8080` в сети Docker `smartmet`; с хоста `http://127.0.0.1:8180` |
-| `data` | `smartmet-data:local` (сборка `infra/smartmet/data`) | загрузка GFS 0,25° по области 58–82° в. д., 32–46° с. ш., до 240 ч: в 03:15, 09:15, 15:15, 21:15 UTC; расписание — supercronic от пользователя smartmet (журнал — `docker compose logs data`) | — |
-| `alert-web` | `fmidev/smartmetalert:26.10.21` | карта предупреждений и CAP‑лента `capfeed.php` (tg/ru/en) для production; `capfeed.php` — наша правка файла FMI (см. ниже) | `http://smartalert` в сети `smartmet`; с хоста `http://127.0.0.1:8181` |
+| `data` | `smartmet-data:local` (сборка `infra/smartmet/data`) | загрузка GFS 0,25° по области 58–82° в. д., 32–46° с. ш., до 240 ч: в 03:15, 09:15, 15:15, 21:15 UTC; расписание - supercronic от пользователя smartmet (журнал - `docker compose logs data`) | - |
+| `alert-web` | `fmidev/smartmetalert:26.10.21` | карта предупреждений и CAP‑лента `capfeed.php` (tg/ru/en) для production; `capfeed.php` - наша правка файла FMI (см. ниже) | `http://smartalert` в сети `smartmet`; с хоста `http://127.0.0.1:8181` |
 | `alert-web-test` | тот же | тестовая лента для staging (приёмка M3, проверка редактора): каталог `/smartmet/editor/smartalert-test` | `http://smartalert-test`; с хоста `http://127.0.0.1:8182` |
 
 Наружу ничего не публикуется (порты только на `127.0.0.1`). У всех сервисов `cap_drop: ALL` и
-`no-new-privileges`; healthcheck: `server` — GetCapabilities WMS, `data` — свежий прогон GFS моложе 18 ч
-(после первого запуска «healthy» появится после первой загрузки, до 3 ч), `alert-web*` — `capfeed.php`.
+`no-new-privileges`; healthcheck: `server` - GetCapabilities WMS, `data` - свежий прогон GFS моложе 18 ч
+(после первого запуска «healthy» появится после первой загрузки, до 3 ч), `alert-web*` - `capfeed.php`.
 
 **Правка `capfeed.php`** (`infra/smartmet/alert/capfeed.php`, монтируется поверх файла образа; README образа
 разрешает настраивать этот файл). Оригинал 26.10.21 отдаёт только файлы `*_ALERT_*` и `*_UPDATE_*`, пропускает
 сообщения без `<expires>` и падает с HTTP 500 на одном битом XML. Наша версия добавляет `*_CANCEL_*`, не считает
 истёкшими сообщения без `<info>`/`<expires>` и пропускает битые файлы с записью в журнал. Как и оригинал, лента
-берёт только **последний выпуск** редактора (каталог с наибольшей меткой времени) — это полный список
+берёт только **последний выпуск** редактора (каталог с наибольшей меткой времени) - это полный список
 действующих предупреждений. Портал сверяет ленту с базой: предупреждение, пропавшее из выпуска, снимается с
-публикации и без CAP Cancel (в админке — «снято с выпуска»), вернувшееся — публикуется снова. При обновлении
+публикации и без CAP Cancel (в админке - «снято с выпуска»), вернувшееся - публикуется снова. При обновлении
 образа FMI сравнить `capfeed.php` нового образа с нашей правкой (ADR‑010).
 
 | Что | Где |
@@ -938,7 +938,7 @@ AlmaLinux/Rocky Linux под SmartMet не выделен, поэтому SmartM
 | Расписание загрузки | `infra/smartmet/cnf/cron/cron.d/gfs.cron` |
 | Источники данных сервера | `infra/smartmet/etc/engines/querydata.conf` |
 | Слои WMS портала | `infra/smartmet/wms/customers/tajikistan/products/*.json` |
-| Карта предупреждений (центр, языки, явления) | `infra/smartmet/alert/capmap-config.js`, `index.html`, библиотеки — `alert/vendor/` (без внешних CDN; подложка карты — тайлы OSM) |
+| Карта предупреждений (центр, языки, явления) | `infra/smartmet/alert/capmap-config.js`, `index.html`, библиотеки - `alert/vendor/` (без внешних CDN; подложка карты - тайлы OSM) |
 
 Ресурсы: в работе ~130 МБ памяти; данные ~160 МБ на прогон (хранится 4 приземных и 2 изобарических прогона),
 копии для редактора в `/smartmet/editor/in` (2 прогона).
@@ -957,14 +957,14 @@ chown -R 101010:101010 /smartmet/data /smartmet/logs /smartmet/tmp /smartmet/edi
 # /smartmet и /smartmet/editor остаются за root: это корень chroot SFTP редактора (14.5);
 # каталоги лент передаёт пользователю smartalert скрипт setup-editor-sftp.sh
 cd /opt/smartmet && docker compose build data && docker compose up -d
-# версии пакетов FMI в собранном образе — для воспроизводимой пересборки (SMARTMET_PACKAGES в data/Dockerfile)
+# версии пакетов FMI в собранном образе - для воспроизводимой пересборки (SMARTMET_PACKAGES в data/Dockerfile)
 docker compose run --rm data rpm -q smartmet-qdtools smartmet-data-gfs eccodes > /opt/smartmet/VERSIONS
 ```
 
-Внимание: `rsync --delete` удаляет и `REVISION`/`VERSIONS` — их записывают заново, как выше.
+Внимание: `rsync --delete` удаляет и `REVISION`/`VERSIONS` - их записывают заново, как выше.
 
 - Новая версия образа FMI: поменять тег в `compose.yml`, затем `docker compose pull && docker compose up -d`.
-- Изменение файла конфигурации: файлы смонтированы по одному, поэтому после `rsync` —
+- Изменение файла конфигурации: файлы смонтированы по одному, поэтому после `rsync` -
   `docker compose up -d --force-recreate <сервис>`.
 - Обновление пакетов FMI в контейнере загрузки: `docker compose build --pull --no-cache data && docker compose up -d data`.
 
@@ -972,7 +972,7 @@ docker compose run --rm data rpm -q smartmet-qdtools smartmet-data-gfs eccodes >
 
 ```bash
 cd /opt/smartmet
-docker compose ps                                   # все сервисы — healthy (data — после первой загрузки GFS)
+docker compose ps                                   # все сервисы - healthy (data - после первой загрузки GFS)
 cat REVISION VERSIONS                               # какая версия конфигурации и пакетов FMI стоит
 ls -l /smartmet/data/gfs/tajikistan/surface/querydata/
 tail -20 /smartmet/logs/data/gfs_tajikistan_*.log
@@ -991,7 +991,7 @@ curl -fsS http://127.0.0.1:8182/capfeed.php | grep -E "<id>|msgType"
 
 Возраст прогона модели портал проверяет сам: если `origintime` старше `SMARTMET_MAX_RUN_AGE_H` (18 ч), на
 дашборде админки у SmartMet появляется строка «Прогон модели … старше 18 ч», а администраторам приходит письмо
-«Прогноз SmartMet не обновляется» (одно на прогон; о восстановлении — отдельное письмо).
+«Прогноз SmartMet не обновляется» (одно на прогон; о восстановлении - отдельное письмо).
 
 Внеочередная загрузка GFS (например, после простоя):
 
@@ -1005,23 +1005,23 @@ docker compose -f /opt/smartmet/compose.yml exec -d data \
 
 ### 14.4. Слои WMS
 
-Слои портала — продукты `tajikistan:*`: `temperature`, `precipitation`, `windspeed`, `wind` (стрелки),
-`cloudcover`, `pressure` (изобары). Палитры и классы — ресурсы образа FMI (`/smartmet/share/wms/resources`),
-сглаживание — параметры `subdivide` и `smoother` слоя. Описание параметров — `docs/reference.md` в
-[fmidev/smartmet-plugin-wms](https://github.com/fmidev/smartmet-plugin-wms). Время — параметр `time`
+Слои портала - продукты `tajikistan:*`: `temperature`, `precipitation`, `windspeed`, `wind` (стрелки),
+`cloudcover`, `pressure` (изобары). Палитры и классы - ресурсы образа FMI (`/smartmet/share/wms/resources`),
+сглаживание - параметры `subdivide` и `smoother` слоя. Описание параметров - `docs/reference.md` в
+[fmidev/smartmet-plugin-wms](https://github.com/fmidev/smartmet-plugin-wms). Время - параметр `time`
 (ISO 8601, UTC); доступные сроки перечислены в GetCapabilities (`<Dimension name="time">`).
 
 ### 14.5. Редактор SmartMet Alert
 
 Редактор CAP‑сообщений (Java, Liberica JRE 8 Full; пакет, адаптированный для Таджикистана, предоставляет FMI)
 устанавливается на рабочей станции Агентства и публикует выпуски в `/smartmet/editor/smartalert` на сервере.
-Samba из штатной установки FMI в интернет не открывается: доступ — SFTP отдельной учётной записью `smartalert`
+Samba из штатной установки FMI в интернет не открывается: доступ - SFTP отдельной учётной записью `smartalert`
 (только ключ, только SFTP, chroot в `/smartmet/editor`, без перенаправлений и терминала, файлы с правами 644).
 
 **На сервере** (один раз, повторный запуск безопасен):
 
 ```bash
-# открытый ключ синоптика (ssh-keygen -t ed25519 на рабочей станции) — в /root/smartalert.pub
+# открытый ключ синоптика (ssh-keygen -t ed25519 на рабочей станции) - в /root/smartalert.pub
 sh /opt/smartmet/sftp/setup-editor-sftp.sh --key-file /root/smartalert.pub --from <статический IP Агентства>/32
 ```
 
@@ -1029,24 +1029,24 @@ sh /opt/smartmet/sftp/setup-editor-sftp.sh --key-file /root/smartalert.pub --fro
 `smartalert-test/` (staging), делает `/smartmet` и `/smartmet/editor` владением root (требование chroot), пишет
 блок `Match User smartalert` в `/etc/ssh/sshd_config.d/60-smartalert-sftp.conf`, проверяет `sshd -t` и
 перезагружает `ssh`; остальной вход по SSH не меняется (fail2ban уже защищает sshd). `--from` принимает ключ только
-с адреса Агентства — без статического IP параметр опустить. Порт 22 в файрволе Hostinger уже открыт; ограничивать
-его по IP нельзя — им пользуются администраторы и выкатка.
+с адреса Агентства - без статического IP параметр опустить. Порт 22 в файрволе Hostinger уже открыт; ограничивать
+его по IP нельзя - им пользуются администраторы и выкатка.
 
 **На рабочей станции Агентства (Windows):**
 
-1. Установить [WinFsp](https://winfsp.dev) и [SSHFS‑Win](https://github.com/winfsp/sshfs-win); закрытый ключ —
+1. Установить [WinFsp](https://winfsp.dev) и [SSHFS‑Win](https://github.com/winfsp/sshfs-win); закрытый ключ -
    `C:\Users\<синоптик>\.ssh\id_ed25519`.
 2. Подключить диск: Проводник → «Подключить сетевой диск» → `\\sshfs.k\smartalert@havo.tj` (вход по ключу).
    На диске видны каталоги `smartalert` (боевая лента) и `smartalert-test` (проверка на staging).
-3. В настройках редактора SmartMet Alert указать каталог публикации `<диск>:\smartalert` (для пробных выпусков —
+3. В настройках редактора SmartMet Alert указать каталог публикации `<диск>:\smartalert` (для пробных выпусков -
    `<диск>:\smartalert-test`).
-4. Альтернатива без сетевого диска — WinSCP с синхронизацией каталога публикации редактора на сервер
+4. Альтернатива без сетевого диска - WinSCP с синхронизацией каталога публикации редактора на сервер
    (`winscp.com /command "open sftp://smartalert@havo.tj/ -privatekey=…" "synchronize remote …" "exit"` по
    расписанию Windows).
 
 **Проверка:** пробный выпуск в `smartalert-test` → `curl -fsS http://127.0.0.1:8182/capfeed.php` на сервере
 перечисляет файл → на staging (`https://staging.havo.tj/ru/warnings`) предупреждение появляется в течение 5 минут.
-Отключить доступ — удалить ключ из `/etc/ssh/authorized_keys/smartalert`.
+Отключить доступ - удалить ключ из `/etc/ssh/authorized_keys/smartalert`.
 
 ### 14.6. Подключение портала
 
@@ -1057,10 +1057,10 @@ sh /opt/smartmet/sftp/setup-editor-sftp.sh --key-file /root/smartalert.pub --fro
 пользуются одним SmartMet.
 
 Порядок: запустить SmartMet (§14.2) → дописать переменные в `/opt/meteo/<окружение>/.env` → выкатить версию с
-`compose.smartmet.yml` (или для уже выкаченной — `/opt/meteo/<окружение>/dc up -d web worker`). Проверка:
+`compose.smartmet.yml` (или для уже выкаченной - `/opt/meteo/<окружение>/dc up -d web worker`). Проверка:
 `docker inspect -f '{{range $k,$v := .NetworkSettings.Networks}}{{$k}} {{end}}' meteo-worker-1` показывает сеть
-`smartmet`; на дашборде админки интеграции SmartMet и CAP — «ok»; `/?layer=weather` показывает слой погоды.
-Возврат на песочницу FMI — удалить переменные из `.env` и выполнить `dc up -d web worker`.
+`smartmet`; на дашборде админки интеграции SmartMet и CAP - «ok»; `/?layer=weather` показывает слой погоды.
+Возврат на песочницу FMI - удалить переменные из `.env` и выполнить `dc up -d web worker`.
 
 | Переменная | Значение |
 |---|---|
@@ -1080,19 +1080,19 @@ Staging читает **тестовую** ленту, поэтому тесто�
 T=/smartmet/editor/smartalert-test
 gen() { docker run --rm -u "$(stat -c %u:%g $T)" -v $T:/out -v /opt/smartmet/alert/test-feed:/s:ro \
   node:22-alpine node /s/cap-chain.mjs --out /out --step "$1"; }
-gen alert      # через ≤ 5 мин на https://staging.havo.tj/ru/warnings — «ТЕСТ: сильный ветер», Душанбе, оранжевый
-gen update     # заменено: красный, Душанбе + РРП; в /admin/cap исходное — «заменено»
-gen cancel     # исчезает с сайта, карты и виджета /embed/alerts; в /admin/cap — «отменено»
-gen reset; gen alert; gen withdraw   # пустой выпуск: снято без Cancel, в /admin/cap — «снято с выпуска»
+gen alert      # через ≤ 5 мин на https://staging.havo.tj/ru/warnings - «ТЕСТ: сильный ветер», Душанбе, оранжевый
+gen update     # заменено: красный, Душанбе + РРП; в /admin/cap исходное - «заменено»
+gen cancel     # исчезает с сайта, карты и виджета /embed/alerts; в /admin/cap - «отменено»
+gen reset; gen alert; gen withdraw   # пустой выпуск: снято без Cancel, в /admin/cap - «снято с выпуска»
 ```
 
-Ускорить — ручной запуск `cap-sync` в staging (раздел 7). Старые тестовые выпуски можно удалить:
+Ускорить - ручной запуск `cap-sync` в staging (раздел 7). Старые тестовые выпуски можно удалить:
 `rm -rf /smartmet/editor/smartalert-test/publishedCap/*`.
 
 ### 14.7. Резервное копирование
 
 Конфигурация хранится в репозитории (`infra/smartmet`), данные моделей восстанавливаются следующей загрузкой.
 Публикации редактора (`/smartmet/editor/smartalert`) входят в снимки restic production: `compose.smartmet.yml`
-монтирует каталог в сервис `backup` как `/srv/smartalert` (в staging — тестовую ленту через `SMARTALERT_DIR`).
-Кроме того, каждое загруженное порталом сообщение хранится в базе целиком (`cap_alerts.raw_xml`). Восстановление —
+монтирует каталог в сервис `backup` как `/srv/smartalert` (в staging - тестовую ленту через `SMARTALERT_DIR`).
+Кроме того, каждое загруженное порталом сообщение хранится в базе целиком (`cap_alerts.raw_xml`). Восстановление -
 раздел 3.3, шаг 3.

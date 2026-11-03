@@ -15,7 +15,7 @@ const MENU = [
 ];
 
 describe("подсветка пунктов меню", () => {
-  it("«Главная» только на корне, остальные — по префиксу", () => {
+  it("«Главная» только на корне, остальные - по префиксу", () => {
     expect(isActivePath("/", "/")).toBe(true);
     expect(isActivePath("/air", "/")).toBe(false);
     expect(isActivePath("/air/stations/x", "/air")).toBe(true);

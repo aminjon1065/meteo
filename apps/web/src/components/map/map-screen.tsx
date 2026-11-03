@@ -237,7 +237,7 @@ export async function MapScreen({ locale, layer }: { locale: Locale; layer?: str
     if (temp === null && !light) return [];
     const label = code !== null ? symbolLabel(tsym, code) : null;
     const maxMin = o.today
-      ? twx("maxMin", { max: deg(o.today.tmax) ?? "—", min: deg(o.today.tmin) ?? "—" })
+      ? twx("maxMin", { max: deg(o.today.tmax) ?? "-", min: deg(o.today.tmin) ?? "-" })
       : null;
     return [
       {

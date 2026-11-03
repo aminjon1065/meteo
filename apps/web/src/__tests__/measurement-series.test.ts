@@ -52,7 +52,7 @@ describe("CSV средних", () => {
 });
 
 describe("периоды и агрегации", () => {
-  it("у каждого периода есть агрегация по умолчанию, месяц — только для года и всего времени", () => {
+  it("у каждого периода есть агрегация по умолчанию, месяц - только для года и всего времени", () => {
     for (const r of RANGES) expect(allowedAggregation(r, aggregationFor(r))).toBe(true);
     const withMonth = RANGES.filter((r) => RANGE_AGGREGATIONS[r].includes("month"));
     expect(withMonth).toEqual(["1y", "all"]);

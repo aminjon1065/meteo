@@ -428,7 +428,7 @@ export function MapView({
   );
   const maxFmt = useMemo(() => numberFormatter(locale, { maximumFractionDigits: 1 }), [locale]);
 
-  const timeLabel = shownTime ? timeFmt.format(new Date(shownTime)) : "—";
+  const timeLabel = shownTime ? timeFmt.format(new Date(shownTime)) : "-";
   const silamMeta = [
     catalog.run
       ? labels.run.replace("{time}", runFmt.format(new Date(catalog.run.originTime)))

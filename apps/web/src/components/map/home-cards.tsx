@@ -210,7 +210,7 @@ export async function CityWeatherCard({
   const label = code !== null && code !== undefined ? symbolLabel(tsym, code) : null;
   const temp = deg(now?.t);
   const maxMin = overview?.today
-    ? tw("maxMin", { max: deg(overview.today.tmax) ?? "—", min: deg(overview.today.tmin) ?? "—" })
+    ? tw("maxMin", { max: deg(overview.today.tmax) ?? "-", min: deg(overview.today.tmin) ?? "-" })
     : null;
   const wind =
     now?.ws !== null && now?.ws !== undefined

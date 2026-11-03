@@ -144,7 +144,7 @@ export default async function EcoBulletinPage({
           </Badge>
         </div>
         <p className="text-sm text-muted-foreground">
-          {t("fields.station")}: {row.stationCode} — {name(row.stationName, locale)} ·{" "}
+          {t("fields.station")}: {row.stationCode} - {name(row.stationName, locale)} ·{" "}
           {row.generatedBy === "scheduler" ? t("generatedBy.scheduler") : t("generatedBy.manual")}
           {row.authorName ? ` (${row.authorName})` : ""} ·{" "}
           {t("summary.computedAt", {
@@ -229,7 +229,7 @@ export default async function EcoBulletinPage({
                   : exceeded
                       .map(
                         (r) =>
-                          `${pollutantLabel(r.pollutant, textLang, "nom")} — ${formatRatio(r.today.ratioDaily)} / ${formatRatio(r.today.ratioSingle)}`,
+                          `${pollutantLabel(r.pollutant, textLang, "nom")} - ${formatRatio(r.today.ratioDaily)} / ${formatRatio(r.today.ratioSingle)}`,
                       )
                       .join("; ")}
               </p>

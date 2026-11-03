@@ -82,7 +82,7 @@ describe("numberFormatter: браузер без данных Intl для tg", (
   });
 });
 
-describe("numberFormatter: ru и en — Intl", () => {
+describe("numberFormatter: ru и en - Intl", () => {
   it("как Intl.NumberFormat", () => {
     for (const locale of ["ru", "en"]) {
       for (const options of OPTIONS) {

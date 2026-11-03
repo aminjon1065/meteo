@@ -162,7 +162,7 @@ describe("server actions админки: проверка прав на серв
   });
 
   for (const role of ["operator", "editor"] as const) {
-    it(`${role}: разрешены только действия своих разделов, остальные — запрет`, async () => {
+    it(`${role}: разрешены только действия своих разделов, остальные - запрет`, async () => {
       state.session = sessionOf(role);
       const forbidden: string[] = [];
       const passed: string[] = [];
@@ -226,7 +226,7 @@ describe("route handlers /api/admin: проверка прав (FR7.1)", () => {
     }
   }
 
-  it("без сессии — 401, неизвестная роль — 403", async () => {
+  it("без сессии - 401, неизвестная роль - 403", async () => {
     for (const route of API_ROUTES) {
       state.session = null;
       expect(await status(route), route.path).toBe(401);

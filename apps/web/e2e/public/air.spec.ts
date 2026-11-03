@@ -7,7 +7,7 @@ test("/air: список станций с индексом и переход н
   await page.goto("/ru/air");
   await expect(page.getByRole("heading", { level: 1 })).toHaveText(t("ru", "air.title"));
   await expect(page.getByRole("heading", { name: t("ru", "air.stationsHeading") })).toBeVisible();
-  const link = page.getByRole("link", { name: "Душанбе — центр (E2E)" });
+  const link = page.getByRole("link", { name: "Душанбе - центр (E2E)" });
   await expect(link).toBeVisible();
   await link.click();
   await expect(page).toHaveURL(new RegExp(`/ru/air/stations/${E2E.station.slug}$`));
@@ -18,7 +18,7 @@ test("страница станции: текущий индекс, график
 }) => {
   const violations = trackCspViolations(page);
   await page.goto(`/ru/air/stations/${E2E.station.slug}`);
-  await expect(page.getByRole("heading", { level: 1 })).toContainText("Душанбе — центр (E2E)");
+  await expect(page.getByRole("heading", { level: 1 })).toContainText("Душанбе - центр (E2E)");
   // Индекс рассчитан по фикстуре: уровень 1–5, не «нет данных».
   await expect(page.getByText(t("ru", "levels.0"), { exact: true })).toHaveCount(0);
   // График грузится лениво: ряд запрашивается после прокрутки к блоку.
@@ -117,7 +117,7 @@ test("страница станции: кратность ПДК по метод
   expect(station?.subIndices.NO2?.index).toBeGreaterThan(0.4);
 });
 
-test("«Здоровье»: на каждом уровне — рекомендации для всех и пяти уязвимых групп (FR1.6)", async ({
+test("«Здоровье»: на каждом уровне - рекомендации для всех и пяти уязвимых групп (FR1.6)", async ({
   page,
 }) => {
   for (const locale of ["ru", "tg", "en"] as const) {

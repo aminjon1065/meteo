@@ -20,7 +20,7 @@ export async function DailyTable({ days }: { days: ForecastPoint[] }) {
   ]);
   if (days.length === 0) return null;
   const n = (v: number | null | undefined, digits = 0) =>
-    v === null || v === undefined ? "—" : format.number(v, { maximumFractionDigits: digits });
+    v === null || v === undefined ? "-" : format.number(v, { maximumFractionDigits: digits });
   return (
     <Table>
       <TableHeader>
@@ -52,7 +52,7 @@ export async function DailyTable({ days }: { days: ForecastPoint[] }) {
                   {hasSymbol(d.params.symbol) ? (
                     <span className="text-muted-foreground">{label}</span>
                   ) : (
-                    <span className="text-muted-foreground/60">—</span>
+                    <span className="text-muted-foreground/60">-</span>
                   )}
                 </span>
               </TableCell>
@@ -63,12 +63,12 @@ export async function DailyTable({ days }: { days: ForecastPoint[] }) {
                 {n(d.params.tmin)}°
               </TableCell>
               <TableCell className="text-right tabular-nums">
-                {d.params.precipSum ? `${n(d.params.precipSum, 1)} ${t("mm")}` : "—"}
+                {d.params.precipSum ? `${n(d.params.precipSum, 1)} ${t("mm")}` : "-"}
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {d.params.ws !== null && d.params.ws !== undefined
                   ? `${n(d.params.ws, 1)} ${t("ms")}`
-                  : "—"}
+                  : "-"}
               </TableCell>
             </TableRow>
           );

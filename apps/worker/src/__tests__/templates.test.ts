@@ -4,7 +4,7 @@ import { renderEmail } from "../mail/templates";
 const payload = {
   kind: "stale",
   stationId: 1,
-  stationName: { tg: "Душанбе — марказ", ru: "Душанбе — центр", en: "Dushanbe centre" },
+  stationName: { tg: "Душанбе - марказ", ru: "Душанбе - центр", en: "Dushanbe centre" },
   code: "DU-01",
   channel: "pull",
   since: "2026-10-18T01:00:00Z",
@@ -25,7 +25,7 @@ describe("renderEmail stationData", () => {
       expect(mail.html).not.toContain("{station}");
     }
     const ru = renderEmail("stationData", "ru", payload);
-    expect(ru.subject).toBe("Нет данных со станции Душанбе — центр дольше 180 мин");
+    expect(ru.subject).toBe("Нет данных со станции Душанбе - центр дольше 180 мин");
     expect(ru.text).toContain("Канал: забор данных (SFTP/FTP/HTTP/JSON API)");
   });
   it("письмо о восстановлении без последней ошибки", () => {
@@ -43,7 +43,7 @@ describe("renderEmail stationData", () => {
 describe("renderEmail ecoBulletinDraft", () => {
   const item = {
     bulletinId: 7,
-    station: { tg: "Душанбе — марказ", ru: "Душанбе — центр", en: "Dushanbe centre" },
+    station: { tg: "Душанбе - марказ", ru: "Душанбе - центр", en: "Dushanbe centre" },
     code: "DU-01",
     hasData: true,
     exceedances: {
@@ -74,14 +74,14 @@ describe("renderEmail ecoBulletinDraft", () => {
     }
     const ru = renderEmail("ecoBulletinDraft", "ru", digest);
     expect(ru.subject).toBe("Черновики экобюллетеня за 2026-10-19 готовы: 2");
-    expect(ru.text).toContain("превышения ПДК — диоксида азота (NO2), частиц 10 мкр. (РМ-10)");
+    expect(ru.text).toContain("превышения ПДК - диоксида азота (NO2), частиц 10 мкр. (РМ-10)");
     expect(ru.text).toContain("нет валидных измерений за сутки");
     expect(ru.html).toContain("https://portal.meteo.tj/ru/admin/eco-bulletins/7");
     const tg = renderEmail("ecoBulletinDraft", "tg", digest);
     expect(tg.text).toContain("дуоксиди нитроген (NO2)");
   });
 
-  it("без превышений — отдельная фраза", () => {
+  it("без превышений - отдельная фраза", () => {
     const clean = renderEmail("ecoBulletinDraft", "ru", {
       ...digest,
       items: [{ ...item, exceedances: { tg: "", ru: "" } }],
@@ -108,7 +108,7 @@ describe("renderEmail modelStale", () => {
       expect(mail.subject).not.toMatch(/modelStale\./);
     }
   });
-  it("письмо о восстановлении — без инструкции", () => {
+  it("письмо о восстановлении - без инструкции", () => {
     const mail = renderEmail("modelStale", "ru", { ...payload, kind: "fresh" });
     expect(mail.subject).toContain("снова");
     expect(mail.text).not.toContain("runbook");

@@ -66,7 +66,7 @@ for (const locale of locales) {
   });
 }
 
-test("стартовый JS главной — без MapLibre и в бюджете", async ({ request }) => {
+test("стартовый JS главной - без MapLibre и в бюджете", async ({ request }) => {
   // MapLibre (≈300 КБ gzip) грузится лениво, после первой отрисовки (station-map.lazy.tsx). Если
   // его модуль импортировать из кода, который рендерится сразу (так было с basemap-picker →
   // basemap.ts), он уходит в стартовые чанки: на медленной сети LCP и TBT главной растут.

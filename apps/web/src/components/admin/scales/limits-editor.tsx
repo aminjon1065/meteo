@@ -138,7 +138,7 @@ export function LimitsEditor({ pollutants, limits, action }: LimitsEditorProps) 
                       onChange={(e) => set({ hazardClass: e.target.value })}
                       aria-label={`${p.shortName} ${t("limits.hazardClass")}`}
                     >
-                      <NativeSelectOption value="">—</NativeSelectOption>
+                      <NativeSelectOption value="">-</NativeSelectOption>
                       {["1", "2", "3", "4"].map((c) => (
                         <NativeSelectOption key={c} value={c}>
                           {c}

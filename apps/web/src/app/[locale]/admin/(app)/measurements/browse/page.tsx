@@ -118,7 +118,7 @@ export default async function BrowsePage({
             name="station"
             defaultValue={stationId ? String(stationId) : ""}
           >
-            <NativeSelectOption value="">—</NativeSelectOption>
+            <NativeSelectOption value="">-</NativeSelectOption>
             {stationRows.map((s) => (
               <NativeSelectOption key={s.id} value={String(s.id)}>
                 {s.code} · {name(s.name, locale)}
@@ -135,7 +135,7 @@ export default async function BrowsePage({
             name="pollutant"
             defaultValue={pollutantId ? String(pollutantId) : ""}
           >
-            <NativeSelectOption value="">—</NativeSelectOption>
+            <NativeSelectOption value="">-</NativeSelectOption>
             {pollutantRows.map((p) => (
               <NativeSelectOption key={p.id} value={String(p.id)}>
                 {p.shortName}
@@ -195,7 +195,7 @@ export default async function BrowsePage({
                   <TableCell className="text-right tabular-nums">
                     {r.value !== null
                       ? format.number(r.value, { maximumFractionDigits: r.decimals })
-                      : "—"}{" "}
+                      : "-"}{" "}
                     <span className="text-muted-foreground">{r.unit}</span>
                   </TableCell>
                   <TableCell className="text-muted-foreground">

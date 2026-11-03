@@ -50,7 +50,7 @@ describe("parseImportTime", () => {
       })?.toISOString(),
     ).toBe("2024-01-05T07:05:00.000Z");
   });
-  it("без формата: ISO со зоной как есть, без зоны — по маппингу, DD.MM.YYYY", () => {
+  it("без формата: ISO со зоной как есть, без зоны - по маппингу, DD.MM.YYYY", () => {
     expect(parseImportTime("2024-01-05T07:00:00+05:00", {})?.toISOString()).toBe(
       "2024-01-05T02:00:00.000Z",
     );
@@ -111,7 +111,7 @@ describe("validateMapping", () => {
   });
 });
 
-describe("mapHistoryRows — широкий формат", () => {
+describe("mapHistoryRows - широкий формат", () => {
   const mapping: HistoryImportMapping = {
     layout: "wide",
     station: { column: "Пост" },
@@ -193,7 +193,7 @@ describe("mapHistoryRows — широкий формат", () => {
     ]);
   });
 
-  it("неизвестная колонка или вещество в маппинге — ошибка конфигурации", () => {
+  it("неизвестная колонка или вещество в маппинге - ошибка конфигурации", () => {
     expect(() =>
       mapHistoryRows(
         { header: ["t"], rows: [] },
@@ -221,7 +221,7 @@ describe("mapHistoryRows — широкий формат", () => {
   });
 });
 
-describe("mapHistoryRows — длинный формат", () => {
+describe("mapHistoryRows - длинный формат", () => {
   it("вещество/значение/единица в строке, будущее время отклоняется", () => {
     const r = mapHistoryRows(
       {

@@ -94,7 +94,7 @@ export default async function QcQueuePage({
   const total = totalRow[0]?.n ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const reasonLabel = (reason: string | null) => {
-    if (!reason) return "—";
+    if (!reason) return "-";
     const [code, detail] = reason.split(":", 2);
     const key = `reasons.${code}`;
     return t.has(key as "reasons.range")
@@ -128,7 +128,7 @@ export default async function QcQueuePage({
             name="station"
             defaultValue={stationId ? String(stationId) : ""}
           >
-            <NativeSelectOption value="">—</NativeSelectOption>
+            <NativeSelectOption value="">-</NativeSelectOption>
             {stationRows.map((s) => (
               <NativeSelectOption key={s.id} value={String(s.id)}>
                 {s.code} · {name(s.name, locale)}
@@ -198,7 +198,7 @@ export default async function QcQueuePage({
                     <span className="font-semibold">
                       {r.value !== null
                         ? format.number(r.value, { maximumFractionDigits: r.decimals })
-                        : "—"}
+                        : "-"}
                     </span>{" "}
                     <span className="text-muted-foreground">{r.unit}</span>
                     {r.originalValue !== null && r.originalValue !== r.value ? (
@@ -210,11 +210,11 @@ export default async function QcQueuePage({
                   <TableCell className="text-right tabular-nums text-muted-foreground">
                     {r.prevValue !== null
                       ? format.number(r.prevValue, { maximumFractionDigits: r.decimals })
-                      : "—"}{" "}
+                      : "-"}{" "}
                     →{" "}
                     {r.nextValue !== null
                       ? format.number(r.nextValue, { maximumFractionDigits: r.decimals })
-                      : "—"}
+                      : "-"}
                   </TableCell>
                   <TableCell>
                     <Badge

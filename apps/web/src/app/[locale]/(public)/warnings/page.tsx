@@ -218,7 +218,7 @@ export default async function WarningsPage({
                       return (
                         <td key={d.key} className="px-2 py-2 text-center">
                           {sev === "Unknown" ? (
-                            <span className="text-muted-foreground/50">—</span>
+                            <span className="text-muted-foreground/50">-</span>
                           ) : (
                             <Link
                               href={{

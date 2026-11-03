@@ -126,7 +126,7 @@ beforeEach(() => {
 });
 
 describe("syncSilam: перезагрузка прогона", () => {
-  it("THREDDS не отдал полный файл — прежний прогон остаётся и в базе, и на диске", async () => {
+  it("THREDDS не отдал полный файл - прежний прогон остаётся и в базе, и на диске", async () => {
     oldRunOnDisk();
     downloads.push(probe, () => {
       throw new Error("THREDDS timeout");

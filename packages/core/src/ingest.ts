@@ -280,7 +280,7 @@ export function normalizeIngestRecords(
     result.rejected += 1;
     if (result.errors.length < MAX_ERRORS) result.errors.push({ index, message });
   };
-  const missing = new Set(["", "-", "—", "n/a", "na", "nan", "null"]);
+  const missing = new Set(["", "-", "-", "n/a", "na", "nan", "null"]);
   const byKey = new Map<string, { rowIndex: number; inputIndex: number }>();
   const codes = new Set<string>();
 

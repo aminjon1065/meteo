@@ -82,14 +82,14 @@ export async function StationIngestCard(props: StationIngestCardProps) {
             </div>
             <div>
               <dt className="text-xs text-muted-foreground">{t("pollutants")}</dt>
-              <dd className="font-mono text-xs">{s.pollutants.join(", ") || "—"}</dd>
+              <dd className="font-mono text-xs">{s.pollutants.join(", ") || "-"}</dd>
             </div>
             <div className="col-span-2 sm:col-span-4">
               <dt className="text-xs text-muted-foreground">{t("period")}</dt>
               <dd className="tabular-nums">
                 {s.from && s.to
-                  ? `${format.dateTime(new Date(s.from), { dateStyle: "short", timeStyle: "short" })} — ${format.dateTime(new Date(s.to), { dateStyle: "short", timeStyle: "short" })}`
-                  : "—"}
+                  ? `${format.dateTime(new Date(s.from), { dateStyle: "short", timeStyle: "short" })} - ${format.dateTime(new Date(s.to), { dateStyle: "short", timeStyle: "short" })}`
+                  : "-"}
                 {s.file ? (
                   <span className="ml-2 font-mono text-xs text-muted-foreground">{s.file}</span>
                 ) : null}
@@ -102,7 +102,7 @@ export async function StationIngestCard(props: StationIngestCardProps) {
         ) : null}
         <p className="text-xs text-muted-foreground">
           {t("endpoint")} <code className="font-mono">POST /api/v1/ingest/{props.stationCode}</code>
-          {props.hasApiKey ? "" : ` — ${t("noKey")}`}
+          {props.hasApiKey ? "" : ` - ${t("noKey")}`}
           {" · "}
           <Link href="/data/api" className="underline-offset-4 hover:underline">
             {t("docs")}

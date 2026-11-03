@@ -21,7 +21,7 @@ describe("seo", () => {
     expect(absoluteUrl("ru", "/warnings")).toBe("https://havo.tj/ru/warnings");
   });
 
-  it("hreflang — короткие коды как в заголовке Link next-intl, плюс x-default на tg", () => {
+  it("hreflang - короткие коды как в заголовке Link next-intl, плюс x-default на tg", () => {
     process.env.NEXT_PUBLIC_APP_URL = "https://havo.tj";
     expect(languageAlternates("/news")).toEqual({
       tg: "https://havo.tj/news",
@@ -38,7 +38,7 @@ describe("seo", () => {
 
 describe("устаревание прогноза SmartMet", () => {
   const now = Date.UTC(2026, 10, 2, 12);
-  it("нет синхронизации — устарел", () => {
+  it("нет синхронизации - устарел", () => {
     expect(isForecastStale(null, now)).toBe(true);
   });
   it("порог 3 ч", () => {

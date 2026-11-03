@@ -17,7 +17,7 @@ await build({
   banner: {
     js: [
       "#!/usr/bin/env node",
-      "// Метеопортал — агент станции. Собрано из apps/station-agent/src/agent.ts и @meteo/core;",
+      "// Метеопортал - агент станции. Собрано из apps/station-agent/src/agent.ts и @meteo/core;",
       "// не редактируйте вручную: pnpm --filter @meteo/station-agent build.",
     ].join("\n"),
   },

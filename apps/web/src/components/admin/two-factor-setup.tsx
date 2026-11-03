@@ -123,7 +123,7 @@ export function TwoFactorSetup({ enabled, mandatory }: { enabled: boolean; manda
   }
 
   function downloadCodes() {
-    const blob = new Blob([`${t("backupCodes")} — Meteoportal\n\n${backupCodes.join("\n")}\n`], {
+    const blob = new Blob([`${t("backupCodes")} - Meteoportal\n\n${backupCodes.join("\n")}\n`], {
       type: "text/plain;charset=utf-8",
     });
     const url = URL.createObjectURL(blob);

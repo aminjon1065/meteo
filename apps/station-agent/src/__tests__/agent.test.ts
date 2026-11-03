@@ -92,7 +92,7 @@ describe("selectNewRecords", () => {
     expect(sel.mode).toBe("append");
     expect(sel.records.map((r) => r.row)).toEqual([5, 6]);
   });
-  it("переписанный файл (другой заголовок или меньше) — всё заново; без изменений — ничего", () => {
+  it("переписанный файл (другой заголовок или меньше) - всё заново; без изменений - ничего", () => {
     expect(selectNewRecords(records(5), prev, 150, "other").mode).toBe("all");
     expect(selectNewRecords(records(5), prev, 50, "h").mode).toBe("all");
     expect(selectNewRecords(records(3), prev, 100, "h").mode).toBe("none");
@@ -129,7 +129,7 @@ describe("sendBatch", () => {
     expect(JSON.parse(String(calls[0]?.init.body))[0]).not.toHaveProperty("row");
   });
 
-  it("5xx и сеть повторяются, потом успех; 401 — фатально", async () => {
+  it("5xx и сеть повторяются, потом успех; 401 - фатально", async () => {
     let n = 0;
     const flaky = (async () => {
       n += 1;

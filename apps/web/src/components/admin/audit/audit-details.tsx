@@ -25,7 +25,7 @@ export function AuditDetails({
   beforeLabel: string;
   afterLabel: string;
 }) {
-  if (before === null && after === null) return <span className="text-muted-foreground">—</span>;
+  if (before === null && after === null) return <span className="text-muted-foreground">-</span>;
   return (
     <Dialog>
       <DialogTrigger render={<Button variant="ghost" size="sm" />}>{label}</DialogTrigger>
@@ -44,13 +44,13 @@ export function AuditDetails({
               {beforeLabel}
             </p>
             <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 text-xs">
-              {before === null ? "—" : JSON.stringify(before, null, 2)}
+              {before === null ? "-" : JSON.stringify(before, null, 2)}
             </pre>
           </div>
           <div>
             <p className="mb-1 text-xs font-medium text-muted-foreground uppercase">{afterLabel}</p>
             <pre className="max-h-80 overflow-auto rounded-lg border bg-muted/40 p-3 text-xs">
-              {after === null ? "—" : JSON.stringify(after, null, 2)}
+              {after === null ? "-" : JSON.stringify(after, null, 2)}
             </pre>
           </div>
         </div>

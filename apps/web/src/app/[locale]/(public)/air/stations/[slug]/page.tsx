@@ -263,7 +263,7 @@ export default async function StationPage({
     [0, 1, 2, 3, 4, 5, 6].map((l) => [String(l), tl(`${l}` as "0")]),
   );
   const num = (v: number | null, decimals: number) =>
-    v === null ? "—" : format.number(v, { maximumFractionDigits: decimals });
+    v === null ? "-" : format.number(v, { maximumFractionDigits: decimals });
   const hint = (code: string) => (tp.has(code as "PM10") ? tp(code as "PM10") : undefined);
 
   // Плитки: значение из текущего окна индекса, иначе последняя часовая точка за сутки.
@@ -379,7 +379,7 @@ export default async function StationPage({
     measured.some((p) => p.code === "NO2") && measured.some((p) => p.code === "SO2");
   const ratioCell = (ratio: number | null) =>
     ratio === null ? (
-      <span className="text-muted-foreground">—</span>
+      <span className="text-muted-foreground">-</span>
     ) : ratio >= 1 ? (
       // Превышение — не только цветом: стрелка и жирный шрифт (WCAG 1.4.1), для экранных дикторов — текст.
       <span className="font-semibold text-aq-4">
@@ -684,7 +684,7 @@ export default async function StationPage({
               </div>
               <div>
                 <dt className="text-caption text-muted-foreground">{t("region")}</dt>
-                <dd className="font-medium">{place.join(", ") || "—"}</dd>
+                <dd className="font-medium">{place.join(", ") || "-"}</dd>
               </div>
               {name(station.address, locale) ? (
                 <div>
@@ -695,12 +695,12 @@ export default async function StationPage({
               <div>
                 <dt className="text-caption text-muted-foreground">{t("elevation")}</dt>
                 <dd className="num font-medium">
-                  {station.elevationM !== null ? `${station.elevationM} ${t("m")}` : "—"}
+                  {station.elevationM !== null ? `${station.elevationM} ${t("m")}` : "-"}
                 </dd>
               </div>
               <div>
                 <dt className="text-caption text-muted-foreground">{t("commissioned")}</dt>
-                <dd className="num font-medium">{station.commissionedAt ?? "—"}</dd>
+                <dd className="num font-medium">{station.commissionedAt ?? "-"}</dd>
               </div>
               <div>
                 <dt className="text-caption text-muted-foreground">{t("sampling")}</dt>

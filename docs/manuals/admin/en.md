@@ -30,15 +30,15 @@ The interface language does not affect the data: all multilingual fields (statio
 |---|---|---|---|
 | Dashboard | ✓ | ✓ | ✓ |
 | Station registry | create, edit, decommission, API key | view | view |
-| Measurements: entry, CSV import, browse | ✓ | ✓ | — |
-| Quality‑control queue (decisions) | ✓ | ✓ | — |
-| Quality control rules | ✓ | — | — |
-| Scales, thresholds, limit values; health advice | ✓ | — | — |
-| Alert rules, exceedance events, CAP messages, event dictionary | ✓ | — | — |
+| Measurements: entry, CSV import, browse | ✓ | ✓ | - |
+| Quality‑control queue (decisions) | ✓ | ✓ | - |
+| Quality control rules | ✓ | - | - |
+| Scales, thresholds, limit values; health advice | ✓ | - | - |
+| Alert rules, exceedance events, CAP messages, event dictionary | ✓ | - | - |
 | News | ✓ | list only | create, publish |
-| Media, bulletins | ✓ | — | ✓ |
+| Media, bulletins | ✓ | - | ✓ |
 | Eco-bulletin: drafts, publishing, settings | ✓ | ✓ | ✓ |
-| Subscribers, users, audit log, settings | ✓ | — | — |
+| Subscribers, users, audit log, settings | ✓ | - | - |
 
 Permissions are enforced on the server: opening a section URL directly without the required role shows the "Access denied" page.
 
@@ -50,7 +50,7 @@ Permissions are enforced on the server: opening a section URL directly without t
 
 1. Open `/admin`, enter your e‑mail and password and click "Sign in".
 2. If two‑factor authentication (2FA) is enabled for the account, a verification‑code prompt follows.
-3. After five failed attempts within a minute the server temporarily rejects requests — wait a minute.
+3. After five failed attempts within a minute the server temporarily rejects requests - wait a minute.
 
 A session lasts 7 days of regular use; sign out through the user menu → "Sign out". Changing a user's role, resetting the password or blocking the user terminates all of that user's sessions.
 
@@ -62,7 +62,7 @@ A session lasts 7 days of regular use; sign out through the user menu → "Sign 
 
 How to enable it:
 
-1. Install an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, Aegis, FreeOTP — any TOTP app).
+1. Install an authenticator app on your phone (Google Authenticator, Microsoft Authenticator, Aegis, FreeOTP - any TOTP app).
 2. On the "Two‑factor authentication" page enter your password and click "Enable 2FA".
 3. Scan the QR code with the app or type the key manually.
 4. **Save the backup codes** (10 single‑use codes): click "Download" or "Copy" and store the file in a password manager or a safe. Without the phone and without backup codes you cannot sign in.
@@ -82,7 +82,7 @@ How to enable it:
 
 ### 2.4. "Security & 2FA" page
 
-User menu → "Security & 2FA" (`/admin/two-factor`): shows the 2FA state and lets you issue new backup codes (the old ones stop working; the password is required). An administrator cannot disable their own 2FA. Operators and editors may enable 2FA voluntarily — recommended.
+User menu → "Security & 2FA" (`/admin/two-factor`): shows the 2FA state and lets you issue new backup codes (the old ones stop working; the password is required). An administrator cannot disable their own 2FA. Operators and editors may enable 2FA voluntarily - recommended.
 
 ![Figure 6. "Security & 2FA" page with protection enabled](../img/admin-two-factor-page.png)
 
@@ -95,9 +95,9 @@ The dashboard (`/admin`) summarises the system state (see Figure 1):
 | Block | Shows | Watch for |
 |---|---|---|
 | Cards | stations in the registry and active, measurements in the last 24 hours, QC queue, active exceedances, users | a growing QC queue and exceedances need an operator's attention |
-| Data freshness by station | time of the last measurement of each active station; "stale" — no data for 24 hours; share of stations without data | a post that stops reporting — check entry/import |
-| Background service | whether the worker is alive (heartbeat every minute); "not responding" — contact the IT service | without the worker the index, forecasts and e‑mails stop updating |
-| Mail queue | whether SMTP is configured, how many messages are pending, failed, sent in 24 hours; link to a test e‑mail | delivery errors — check SMTP in "Settings" |
+| Data freshness by station | time of the last measurement of each active station; "stale" - no data for 24 hours; share of stations without data | a post that stops reporting - check entry/import |
+| Background service | whether the worker is alive (heartbeat every minute); "not responding" - contact the IT service | without the worker the index, forecasts and e‑mails stop updating |
+| Mail queue | whether SMTP is configured, how many messages are pending, failed, sent in 24 hours; link to a test e‑mail | delivery errors - check SMTP in "Settings" |
 | Integrations | SmartMet (weather forecast), SILAM (air‑quality forecast), SmartMet Alert (CAP): last successful load, model run, source address, status | statuses are explained in [section 14](#14-integration-statuses-and-background-jobs); the SmartMet line "Model run … is older than 18 h" means GFS loading has stopped and the portal shows an old forecast (section 16.1) |
 | Recent actions | latest audit‑log entries | "Full log" link |
 
@@ -124,39 +124,39 @@ Click "Add station" and fill in the form.
 | Region, district | the district is chosen after the region; the district list comes from the loaded boundaries. The server checks that the district belongs to the selected region; if only the district is given, the region is taken from it |
 | Elevation, m | optional |
 | Commissioned | start date of observations |
-| Data source | manual entry / file import / API / automatic sensor — informational |
+| Data source | manual entry / file import / API / automatic sensor - informational |
 | Sampling mode | discrete samples (posts sampling 3–4 times a day) or continuous (automatic sensors). The mode defines the default time rows in manual entry |
 | Show on the portal | clear the box to hide the station from the map and lists (data is still stored) |
 | Measured pollutants | tick the pollutants and the input unit (µg/m³, mg/m³, ppb, ppm). Storage is always in the pollutant's reference unit; values are converted on entry |
 
 "Save" opens the card of the created station. An error on the "Code" field means the code already exists.
 
-**City for the station.** An active station shown on the portal belongs to a city from the header list if it is no more than 15 km away. If there is no city that close, the portal creates one at the station's location, named after the district ("Panjakent district"; for a town with its own boundaries — just the town name, "Hisor"). The city appears at once in the city selector, on the home page and in the "Weather" section; its weather forecast is loaded within 15 minutes. The same happens for stations created by import — a background job checks every 30 minutes. A disabled city is not created again. Such a city cannot be renamed or disabled in the panel — ask the IT service (runbook, section 8.2).
+**City for the station.** An active station shown on the portal belongs to a city from the header list if it is no more than 15 km away. If there is no city that close, the portal creates one at the station's location, named after the district ("Panjakent district"; for a town with its own boundaries - just the town name, "Hisor"). The city appears at once in the city selector, on the home page and in the "Weather" section; its weather forecast is loaded within 15 minutes. The same happens for stations created by import - a background job checks every 30 minutes. A disabled city is not created again. Such a city cannot be renamed or disabled in the panel - ask the IT service (runbook, section 8.2).
 
 ### 4.2. Station card, API key, decommissioning
 
 ![Figure 9. Existing station card: form, API key and decommissioning](../img/admin-station-edit.png)
 
 - All fields are edited as when creating; changes are written to the audit log (before/after).
-- **Station API key** is needed for automatic measurement uploads (station agent, logger or vendor software → `POST /api/v1/ingest/{code}`). The key is shown once; only its hash is stored; "Rotate key" replaces the old one, which stops working immediately. How to connect a station — section 4.3.
+- **Station API key** is needed for automatic measurement uploads (station agent, logger or vendor software → `POST /api/v1/ingest/{code}`). The key is shown once; only its hash is stored; "Rotate key" replaces the old one, which stops working immediately. How to connect a station - section 4.3.
 - **Automatic data intake** (block above the form): when the station last sent data, through which channel (API or file pull), how many records were accepted and rejected, the data period. The state "no data for a long time" means there was no intake for longer than the threshold (3 hours by default).
-- **File sources (SFTP / FTP / HTTP)** (block below the form): pulling export files from a vendor server — section 4.3.
+- **File sources (SFTP / FTP / HTTP)** (block below the form): pulling export files from a vendor server - section 4.3.
 - **Decommissioning**: the station disappears from the portal; the measurement history is kept and stays available in data browsing and the archive API. The action cannot be undone from the interface; if needed, the IT service changes the status.
 
 ### 4.3. Connecting a station: automatic data intake
 
-The portal receives station data in three ways; none depends on the equipment vendor — the file or request format is described by settings.
+The portal receives station data in three ways; none depends on the equipment vendor - the file or request format is described by settings.
 
 | Method | When it fits | What the administrator configures |
 |---|---|---|
 | Station agent | the station software writes CSV/TSV files to a folder on the station computer | the API key in the card; the IT service installs the agent on the station (runbook, section 9.4) |
-| Direct API upload | the logger or station software can send `POST /api/v1/ingest/{code}` requests | the API key in the card; format reference — the portal page "API for developers" (`/data/api`) |
+| Direct API upload | the logger or station software can send `POST /api/v1/ingest/{code}` requests | the API key in the card; format reference - the portal page "API for developers" (`/data/api`) |
 | File pull (SFTP / FTP / FTPS / HTTP) | the data is already published on a vendor's or the Agency's server | a source in the "File sources" block of the station card |
-| Sensor-network JSON API | several sensors publish data through one address as JSON — for example the Agency's PM sensor network (wwcs.tj API) | a "JSON API" source in the "Data sources" block of one station's card; the other stations receive data by code |
+| Sensor-network JSON API | several sensors publish data through one address as JSON - for example the Agency's PM sensor network (wwcs.tj API) | a "JSON API" source in the "Data sources" block of one station's card; the other stations receive data by code |
 
-**Before connecting**, tick the measured pollutants and input units in the station card: values for pollutants not ticked for the station are rejected with the reason `pollutantNotConfigured`. In "Data source" choose "API" or "Automatic sensor" — then the dashboard and administrator e-mails watch for gaps in the intake.
+**Before connecting**, tick the measured pollutants and input units in the station card: values for pollutants not ticked for the station are rejected with the reason `pollutantNotConfigured`. In "Data source" choose "API" or "Automatic sensor" - then the dashboard and administrator e-mails watch for gaps in the intake.
 
-**API key** ("Station API key" block): "Generate key" → copy the key immediately, it is not shown again. Hand it to the IT service for the agent or logger setup. If the key may have leaked — "Rotate key": the old one stops working at once. Suspending the station (status "suspended") also closes the intake (response 403).
+**API key** ("Station API key" block): "Generate key" → copy the key immediately, it is not shown again. Hand it to the IT service for the agent or logger setup. If the key may have leaked - "Rotate key": the old one stops working at once. Suspending the station (status "suspended") also closes the intake (response 403).
 
 **File source**: "Add source" → fill in the fields:
 
@@ -164,18 +164,18 @@ The portal receives station data in three ways; none depends on the equipment ve
 
 | Field | How to fill |
 |---|---|
-| Type | SFTP (SSH), FTP, FTPS, HTTP(S) — file by URL, or "JSON API — sensor network (several stations)" |
-| Server, port, user, password | access to the vendor server; the password is stored encrypted and never shown again (an empty field when editing keeps it, "-" removes it). Instead of a password you can enter `env:NAME` — an environment variable of the portal server (IT service) |
-| SSH private key, server key fingerprint | for key-based SFTP; the `SHA256:…` fingerprint protects against server spoofing (empty — no check) |
-| Directory on the server, file mask | the export folder and a mask such as `*.csv` or `DU-01_*.txt`; for HTTP — the full file address |
-| Column mapping (JSON) | the file format: delimiter, encoding, time column and date format, pollutant columns (wide layout) or "pollutant / value / unit" columns (long layout). The template buttons insert typical mappings — replace the column names with those in the file. The format is the same as in the station agent config (`apps/station-agent/README.md`) |
-| JSON API address, response field mapping (JSON) | for the "JSON API" type: the address where the API returns the latest records of all stations and the field mapping — path to the record array, station code field (`stationField`; the code in the response must match the portal station code or is mapped in `stations`), time field with its time zone, pollutant fields and units, averaging period (`averagingMin`) and, if available, the address of the series for the past hours (`history`) to backfill gaps. The "JSON API (wwcs.tj)" template already fits the Agency's sensor network |
+| Type | SFTP (SSH), FTP, FTPS, HTTP(S) - file by URL, or "JSON API - sensor network (several stations)" |
+| Server, port, user, password | access to the vendor server; the password is stored encrypted and never shown again (an empty field when editing keeps it, "-" removes it). Instead of a password you can enter `env:NAME` - an environment variable of the portal server (IT service) |
+| SSH private key, server key fingerprint | for key-based SFTP; the `SHA256:…` fingerprint protects against server spoofing (empty - no check) |
+| Directory on the server, file mask | the export folder and a mask such as `*.csv` or `DU-01_*.txt`; for HTTP - the full file address |
+| Column mapping (JSON) | the file format: delimiter, encoding, time column and date format, pollutant columns (wide layout) or "pollutant / value / unit" columns (long layout). The template buttons insert typical mappings - replace the column names with those in the file. The format is the same as in the station agent config (`apps/station-agent/README.md`) |
+| JSON API address, response field mapping (JSON) | for the "JSON API" type: the address where the API returns the latest records of all stations and the field mapping - path to the record array, station code field (`stationField`; the code in the response must match the portal station code or is mapped in `stations`), time field with its time zone, pollutant fields and units, averaging period (`averagingMin`) and, if available, the address of the series for the past hours (`history`) to backfill gaps. The "JSON API (wwcs.tj)" template already fits the Agency's sensor network |
 | Notify when no data for longer than, min | after how many minutes without accepted values the administrators get an e-mail (180 by default) |
 | Enabled | a disabled source is not polled; its settings are kept |
 
-After saving click "Check now": within a minute the source row shows the status ("working" / "failed" with the error text), the times of the last run, success and data, and the last run summary (files, accepted, rejected, first errors with line numbers). From then on the portal fetches new and changed files every 10 minutes; re-processing a file is safe — values are updated by the "time + pollutant" key and operator decisions in the QC queue are not overwritten.
+After saving click "Check now": within a minute the source row shows the status ("working" / "failed" with the error text), the times of the last run, success and data, and the last run summary (files, accepted, rejected, first errors with line numbers). From then on the portal fetches new and changed files every 10 minutes; re-processing a file is safe - values are updated by the "time + pollutant" key and operator decisions in the QC queue are not overwritten.
 
-**The Agency's PM sensor network (wwcs.tj API).** Nine PM2.5/PM10 sensors (six in Dushanbe, Kulob, Vahdat, Hisor) are created by the IT service with a script (runbook, section 9.4): the stations appear in the registry with names in three languages, coordinates and pollutants, and the card of station "Shukufon St. 59 (Medgorodok)" (DYU01_ECO) gets a "JSON API" source "WWCS airquality API" — the primary data channel of this network, already enabled: the portal backfills a day of history and then polls the API every 10 minutes; "Check now" triggers an extra poll, the "Enabled" switch stops polling without deleting the settings. Data arrives at all nine stations by sensor code; stations without a source of their own show it in the "Automatic data intake" block (channel "data pull"). The station "Agency for Hydrometeorology" (DYU006_ECO) is created **suspended**: its sensor reports hundreds of µg/m³ against a normal background at neighbours and the automatic quality rules do not reject such values — lift the suspension in the card after the sensor is repaired. Repeated API responses create no duplicates: the time of the last accepted record is kept per station, so a "frozen" sensor produces a "no data" e-mail after an hour and its index becomes "no data" after 6 hours.
+**The Agency's PM sensor network (wwcs.tj API).** Nine PM2.5/PM10 sensors (six in Dushanbe, Kulob, Vahdat, Hisor) are created by the IT service with a script (runbook, section 9.4): the stations appear in the registry with names in three languages, coordinates and pollutants, and the card of station "Shukufon St. 59 (Medgorodok)" (DYU01_ECO) gets a "JSON API" source "WWCS airquality API" - the primary data channel of this network, already enabled: the portal backfills a day of history and then polls the API every 10 minutes; "Check now" triggers an extra poll, the "Enabled" switch stops polling without deleting the settings. Data arrives at all nine stations by sensor code; stations without a source of their own show it in the "Automatic data intake" block (channel "data pull"). The station "Agency for Hydrometeorology" (DYU006_ECO) is created **suspended**: its sensor reports hundreds of µg/m³ against a normal background at neighbours and the automatic quality rules do not reject such values - lift the suspension in the card after the sensor is repaired. Repeated API responses create no duplicates: the time of the last accepted record is kept per station, so a "frozen" sensor produces a "no data" e-mail after an hour and its index becomes "no data" after 6 hours.
 
 **How to verify that data flows**: the "Automatic data intake" block in the card (time and channel of the last intake, accepted/rejected), the "Automatic intake" column on the dashboard (section 3), `measurements.ingest` and `measurements.pull` entries by `station:<code>` in the audit log (section 6). Rejected records are not lost silently: the reason for each (`unknownPollutant`, `unit`, `time`, `futureTime` …) is returned to the sender and appears in the source summary.
 
@@ -183,7 +183,7 @@ After saving click "Check now": within a minute the source row shows the status 
 
 ![Figure 12. Dashboard: the "Automatic intake" column in the "Data freshness by station" table and the counter of stations without intake for longer than the threshold](../img/admin-dashboard-ingest.png)
 
-**E-mails to administrators**: when a source delivers no value for longer than its threshold or a station with API intake stays silent for more than 3 hours, all administrators (and the `ADMIN_ALERT_EMAILS` addresses) receive "No data from station…"; when data resumes — "Data is arriving again".
+**E-mails to administrators**: when a source delivers no value for longer than its threshold or a station with API intake stays silent for more than 3 hours, all administrators (and the `ADMIN_ALERT_EMAILS` addresses) receive "No data from station…"; when data resumes - "Data is arriving again".
 
 ## 5. Measurements
 
@@ -218,18 +218,18 @@ For files from posts, from a laboratory information system or from automatic sen
 File format:
 
 - columns `time`, `station`, `pollutant`, `value`, `unit` (the unit is optional); Russian headers are accepted too (`время`, `станция`, `вещество`, `значение`, `единица`);
-- column separator — comma, semicolon or tab (detected automatically); UTF‑8 encoding (Excel: "CSV UTF‑8");
-- time — ISO 8601 (`2026-10-17T07:00:00+05:00`) or `YYYY-MM-DD HH:MM` in Dushanbe time; times in the future are rejected;
-- `station` — station code from the registry; if the column is missing, choose a "Default station";
-- `pollutant` — pollutant code: `PM25`, `PM10`, `NO2`, `SO2`, `CO`, `O3`;
-- `value` — a number with a dot or comma; `unit` — `ug/m3`, `µg/m³`, `мкг/м3`, `mg/m3`, `ppb`, `ppm` (empty — the station's input unit);
+- column separator - comma, semicolon or tab (detected automatically); UTF‑8 encoding (Excel: "CSV UTF‑8");
+- time - ISO 8601 (`2026-10-17T07:00:00+05:00`) or `YYYY-MM-DD HH:MM` in Dushanbe time; times in the future are rejected;
+- `station` - station code from the registry; if the column is missing, choose a "Default station";
+- `pollutant` - pollutant code: `PM25`, `PM10`, `NO2`, `SO2`, `CO`, `O3`;
+- `value` - a number with a dot or comma; `unit` - `ug/m3`, `µg/m³`, `мкг/м3`, `mg/m3`, `ppb`, `ppm` (empty - the station's input unit);
 - up to 100,000 rows and 20 MB per file; duplicate rows (time + station + pollutant) within a file are rejected.
 
 A template with correct headers is available via "Download CSV template". A training file can be generated with the command from the training materials (`node docs/training/make-sample-csv.mjs`).
 
 ![Figure 16. CSV import, step 2: validation report with "Apply" / "Reject" buttons](../img/admin-import-report.png)
 
-After "Check file" a report is shown: rows in the file, valid, rejected (with row number and reason), out of range. "Apply (N)" writes the valid rows; rows with errors are skipped — fix them in the file and upload separately. "Reject" discards the batch without writing. A validated batch is kept for a limited time: if "Validation expired" appears, upload the file again.
+After "Check file" a report is shown: rows in the file, valid, rejected (with row number and reason), out of range. "Apply (N)" writes the valid rows; rows with errors are skipped - fix them in the file and upload separately. "Reject" discards the batch without writing. A validated batch is kept for a limited time: if "Validation expired" appears, upload the file again.
 
 Out‑of‑range values are stored with the "invalid" flag and wait for a decision in the QC queue. The index is recalculated after applying. Re‑importing the same file is safe: values with the same time, station and pollutant are updated.
 
@@ -237,7 +237,7 @@ Out‑of‑range values are stored with the "invalid" flag and wait for a decisi
 
 ![Figure 17. Data browsing: filters by station, pollutant and period](../img/admin-browse.png)
 
-Filters: station, pollutant, period. The table shows the time (local), the value in the pollutant unit, averaging (20 — single sample, 60 — hour, 1440 — day), the QC flag and the source (manual entry / import / API / sensor). Flags:
+Filters: station, pollutant, period. The table shows the time (local), the value in the pollutant unit, averaging (20 - single sample, 60 - hour, 1440 - day), the QC flag and the source (manual entry / import / API / sensor). Flags:
 
 | Flag | Meaning | Used in the index and charts |
 |---|---|---|
@@ -263,28 +263,28 @@ Automatic quality control (QC) runs in the background every 15 minutes and on en
 
 The operator's decision for each value:
 
-- **Confirm** — the value is correct; flag "valid", the value takes part in calculations.
-- **Correct** — enter a new value and a reason (for example "typing error: extra zero"); the original value is kept, flag "corrected".
-- **Reject** — exclude from calculations and charts; flag "invalid".
+- **Confirm** - the value is correct; flag "valid", the value takes part in calculations.
+- **Correct** - enter a new value and a reason (for example "typing error: extra zero"); the original value is kept, flag "corrected".
+- **Reject** - exclude from calculations and charts; flag "invalid".
 
 ![Figure 19. Correction dialog with a reason](../img/admin-qc-correct.png)
 
 After a decision the value is locked for automatic QC (it will not return to the queue), the station index is recalculated and an audit record with "before → after" and the reason is written. The filter "Decision → Already processed" shows the decision history.
 
-**Correcting valid values.** The "Valid (to correct)" filter also lists values that passed quality control: if an error is noticed later (e.g. a wrong multiplier on import), the value can be corrected or rejected the same way — with a reason, the original value kept and an audit log entry.
+**Correcting valid values.** The "Valid (to correct)" filter also lists values that passed quality control: if an error is noticed later (e.g. a wrong multiplier on import), the value can be corrected or rejected the same way - with a reason, the original value kept and an audit log entry.
 
 ### 5.5. Quality control rules
 
 The "Quality control rules" page (`/admin/qc-rules`, administrators only) sets the automatic check parameters:
 
-- **Allowed ranges** — minimum and maximum per pollutant (in the storage unit) and the "Enabled" switch. Values outside the range on manual entry, import and API intake are flagged invalid and excluded from the index. Disable an unwanted range rather than deleting it — otherwise a portal update restores the default.
-- **Batch checks** (every 15 minutes over the last 48 hours): spikes — threshold in median absolute deviations (MAD, default 6) and minimum values in the series; stuck sensor — hours without change (12) and minimum identical values (3), continuous stations only; outliers against 30 days — robust z threshold (5) and minimum baseline values (30).
+- **Allowed ranges** - minimum and maximum per pollutant (in the storage unit) and the "Enabled" switch. Values outside the range on manual entry, import and API intake are flagged invalid and excluded from the index. Disable an unwanted range rather than deleting it - otherwise a portal update restores the default.
+- **Batch checks** (every 15 minutes over the last 48 hours): spikes - threshold in median absolute deviations (MAD, default 6) and minimum values in the series; stuck sensor - hours without change (12) and minimum identical values (3), continuous stations only; outliers against 30 days - robust z threshold (5) and minimum baseline values (30).
 
 Changes apply from the next check run; operator decisions already taken are never changed by the rules. Every save is written to the audit log (`qcRules.update`).
 
 ## 6. Audit log
 
-"Audit log" (`/admin/audit`) keeps every action in the panel: who (e‑mail and role), when, what (`stations.update`, `measurement.correct`, `news.publish`, `user.ban` and so on), on which object, and the "before" / "after" state as JSON. Records cannot be edited or deleted — not even by an administrator; when a user is deleted, their actions stay in the log with the e‑mail.
+"Audit log" (`/admin/audit`) keeps every action in the panel: who (e‑mail and role), when, what (`stations.update`, `measurement.correct`, `news.publish`, `user.ban` and so on), on which object, and the "before" / "after" state as JSON. Records cannot be edited or deleted - not even by an administrator; when a user is deleted, their actions stay in the log with the e‑mail.
 
 ![Figure 20. Audit log with object and period filters and search](../img/admin-audit.png)
 
@@ -294,7 +294,7 @@ Panel sign-ins are recorded too (entity `auth`): successful sign-in (`auth.signI
 
 ## 7. Scales, thresholds and limit values
 
-"Scales and thresholds" (`/admin/scales`) — administrators only. Changes apply to the index calculation immediately and affect the whole portal, widgets and API; change thresholds only according to an approved methodology and document the decision.
+"Scales and thresholds" (`/admin/scales`) - administrators only. Changes apply to the index calculation immediately and affect the whole portal, widgets and API; change thresholds only according to an approved methodology and document the decision.
 
 ![Figure 21. List of index scales](../img/admin-scales.png)
 
@@ -314,7 +314,7 @@ Five scales are supplied:
 
 - **Basics**: name and description in three languages, "Enabled" and "Public default scale" (exactly one scale can be public), order.
 - **Levels**: level labels in three languages (five; six for US AQI); colours are fixed by the design system (green, yellow, orange, red, purple; plus maroon for US AQI).
-- **Pollutant thresholds** (breakpoint scale): the lower bound of each level in the pollutant unit and the averaging period (1 h, 8 h, 24 h). Bounds must strictly increase; for a pollutant fill in all bounds (one per level) or leave the row empty — then the pollutant is excluded from the index.
+- **Pollutant thresholds** (breakpoint scale): the lower bound of each level in the pollutant unit and the averaging period (1 h, 8 h, 24 h). Bounds must strictly increase; for a pollutant fill in all bounds (one per level) or leave the row empty - then the pollutant is excluded from the index.
 
 After "Save" the message "Scale saved, index recalculated" appears.
 
@@ -322,7 +322,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 ![Figure 23. Limit values and hazard classes table](../img/admin-limits.png)
 
-"Limit values and hazard classes" (`/admin/scales/limits`): daily (MPCd), maximum single (MPCs) and annual limit values in the pollutant unit, plus the hazard class (1–4) used by the IZA. An empty field means no limit is set. Default values are the limit table of the Agency's daily air pollution bulletin (19 October 2026; mg/m³ converted to the pollutant unit): PM2.5 35/160, PM10 60/300, NO₂ 40/85, SO₂ 50/500, CO 3/5 mg/m³, O₃ 30/160, NO 60/400, formaldehyde 3/35, phenol 3/10, HF 5/20, dust 150/500 µg/m³, TVOC 300/900 ppb; CO₂ has no limit. Values edited here are kept on portal updates. From the daily and single MPC the portal calculates the ratios of the Agency method (the "Ratio to limit values" scale): NO₂+SO₂ summation and high/extremely high pollution cases — see the station page and `/air/index`.
+"Limit values and hazard classes" (`/admin/scales/limits`): daily (MPCd), maximum single (MPCs) and annual limit values in the pollutant unit, plus the hazard class (1–4) used by the IZA. An empty field means no limit is set. Default values are the limit table of the Agency's daily air pollution bulletin (19 October 2026; mg/m³ converted to the pollutant unit): PM2.5 35/160, PM10 60/300, NO₂ 40/85, SO₂ 50/500, CO 3/5 mg/m³, O₃ 30/160, NO 60/400, formaldehyde 3/35, phenol 3/10, HF 5/20, dust 150/500 µg/m³, TVOC 300/900 ppb; CO₂ has no limit. Values edited here are kept on portal updates. From the daily and single MPC the portal calculates the ratios of the Agency method (the "Ratio to limit values" scale): NO₂+SO₂ summation and high/extremely high pollution cases - see the station page and `/air/index`.
 
 ## 8. Health advice
 
@@ -336,7 +336,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 Texts must be agreed with medical experts; the portal shows a disclaimer that the advice does not replace a doctor's consultation.
 
-Texts for all groups and levels are supplied (based on WHO and EPA guidance, with the ambulance number 103) — this is a **draft for approval** by the Agency's medical specialists; edit it here. Portal updates do not overwrite edited texts, and a cleared text does not reappear.
+Texts for all groups and levels are supplied (based on WHO and EPA guidance, with the ambulance number 103) - this is a **draft for approval** by the Agency's medical specialists; edit it here. Portal updates do not overwrite edited texts, and a cleared text does not reappear.
 
 ## 9. Exceedance alerts and subscribers
 
@@ -353,7 +353,7 @@ Texts for all groups and levels are supplied (based on WHO and EPA guidance, wit
 | Name | how the rule is named in the banner and e‑mails |
 | Condition type | pollutant concentration (threshold in the pollutant unit, "greater than or equal" to the average over the 1 / 8 / 24 h averaging period) or index level (threshold 1–5 on the chosen scale) |
 | Scope | all stations / one station / region |
-| Channels | "Portal" — banner on the station page, data in `/api/v1/exceedances`; "E‑mail" — messages to confirmed subscribers of the station or of all stations |
+| Channels | "Portal" - banner on the station page, data in `/api/v1/exceedances`; "E‑mail" - messages to confirmed subscribers of the station or of all stations |
 | Cooldown between events, min | after an event closes, a new one for the same rule and station does not open earlier than this (0–10080) |
 | Rule enabled | a disabled rule is kept but not evaluated |
 
@@ -371,11 +371,11 @@ An event closes automatically when the value drops below the threshold, when the
 
 ![Figure 28. Subscribers: statuses, topics, export](../img/admin-subscribers.png)
 
-"Subscribers" (`/admin/subscribers`) shows addresses, language, status (confirmed / pending / unsubscribed) and topics: all stations, selected stations, newsletter. Visitors subscribe on `/subscribe` and confirm through a link in the e‑mail (double opt‑in); every message contains an unsubscribe link. Addresses cannot be edited in the panel — this protects against mailing without consent. "Export CSV" downloads the list for reporting; treat it as personal data.
+"Subscribers" (`/admin/subscribers`) shows addresses, language, status (confirmed / pending / unsubscribed) and topics: all stations, selected stations, newsletter. Visitors subscribe on `/subscribe` and confirm through a link in the e‑mail (double opt‑in); every message contains an unsubscribe link. Addresses cannot be edited in the panel - this protects against mailing without consent. "Export CSV" downloads the list for reporting; treat it as personal data.
 
 ## 10. CAP warnings
 
-"CAP messages" (`/admin/cap`) — weather warnings from the SmartMet Alert editor in CAP 1.2 format. The portal does not create them: a background job reads the feed every 5 minutes (the IT service sets the address in `CAP_FEED_URL`) and stores the messages; they then appear in the portal's "Warnings" section, on the home page map, in the widget and in the API.
+"CAP messages" (`/admin/cap`) - weather warnings from the SmartMet Alert editor in CAP 1.2 format. The portal does not create them: a background job reads the feed every 5 minutes (the IT service sets the address in `CAP_FEED_URL`) and stores the messages; they then appear in the portal's "Warnings" section, on the home page map, in the widget and in the API.
 
 ![Figure 29. CAP message list with synchronisation status](../img/admin-cap.png)
 
@@ -384,23 +384,23 @@ Statuses in the list:
 | Status | Meaning |
 |---|---|
 | published | active or upcoming message, visible on the portal |
-| expired | the validity period (`expires`) has passed — hidden from the portal, kept in the panel archive |
+| expired | the validity period (`expires`) has passed - hidden from the portal, kept in the panel archive |
 | superseded | an Update message referencing this one arrived; the new version is shown |
 | cancelled | a Cancel message arrived; removed from the portal |
 | withdrawn | the warning is missing from the latest SmartMet Alert editor issue (the forecaster removed it without a Cancel); removed from the portal, the card shows the withdrawal date; if it returns to an issue, it is published again |
-| not published | status `Test`, `Exercise`, `Draft` — visible only in the panel |
+| not published | status `Test`, `Exercise`, `Draft` - visible only in the panel |
 
 The "Synchronisation" block at the top shows the result of the last run (ok / partial / error / not modified / source not configured) and parsing errors of individual files.
 
 ![Figure 30. CAP message card: info blocks by language, areas, parameters, source XML](../img/admin-cap-detail.png)
 
-The message card shows all `info` blocks (by language), affected areas mapped to warning regions, parameters and an "XML" button for the source file. This helps to understand why a message is displayed differently than expected (for example, there is no Tajik block — the fallback and the event dictionary are used).
+The message card shows all `info` blocks (by language), affected areas mapped to warning regions, parameters and an "XML" button for the source file. This helps to understand why a message is displayed differently than expected (for example, there is no Tajik block - the fallback and the event dictionary are used).
 
 ### 10.1. Event dictionary
 
 ![Figure 31. CAP event type dictionary](../img/admin-cap-events.png)
 
-"Event types" (`/admin/cap/events`): translations of the `event` field (for example `Strong wind` → «Сильный ветер» / «Шамоли сахт») into three languages. They are used when a message has no `info` block in the portal language. New event types appear in the dictionary automatically after the first synchronisation — fill in the translations, otherwise the portal shows the original text from the message.
+"Event types" (`/admin/cap/events`): translations of the `event` field (for example `Strong wind` → «Сильный ветер» / «Шамоли сахт») into three languages. They are used when a message has no `info` block in the portal language. New event types appear in the dictionary automatically after the first synchronisation - fill in the translations, otherwise the portal shows the original text from the message.
 
 ## 11. News, media and bulletins
 
@@ -416,11 +416,11 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 |---|---|
 | Title, excerpt, body | in three languages; one language is enough (Tajik recommended as the primary one), the others are shown with the tg → ru → en fallback |
 | Body | Markdown: `#` headings, lists, `**bold**`, `*italic*`, `[link](https://…)`, `![image](/uploads/…)`; HTML tags are not allowed. The "Preview" tab shows the result |
-| Address (slug) | shared by all languages; empty — derived from the title |
+| Address (slug) | shared by all languages; empty - derived from the title |
 | Category | from the reference list ("Categories" page) |
 | Cover | JPEG, PNG, WebP or GIF image up to 10 MB; uploaded from the form or chosen from media |
 | Status | draft → published → archived. Drafts are not visible on the portal |
-| Publication date | empty — the moment of publishing; a future date — scheduled publication (the item appears at that time) |
+| Publication date | empty - the moment of publishing; a future date - scheduled publication (the item appears at that time) |
 | Pin to the top of the feed | a pinned item is shown first in the "News" section |
 
 "Publish" / "Unpublish" change the status without re‑saving the form. "Open on the portal" leads to the news page. Categories are managed on the "Categories" page (name in three languages, slug, order).
@@ -439,18 +439,18 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 ![Figure 37. New bulletin: subject and body in three languages, linked news item](../img/admin-bulletin-new.png)
 
-"Bulletins" (`/admin/bulletins`) — mailing to subscribers who chose the newsletter.
+"Bulletins" (`/admin/bulletins`) - mailing to subscribers who chose the newsletter.
 
-1. Create a bulletin: subject and body (Markdown) in the subscribers' languages; optionally link a news item — a link is added to the e‑mail.
+1. Create a bulletin: subject and body (Markdown) in the subscribers' languages; optionally link a news item - a link is added to the e‑mail.
 2. Save and check "E‑mail preview".
 3. "Send to subscribers": the panel shows the number of recipients; after confirmation the messages are queued, each in the language of its subscription, with an unsubscribe link. A started mailing cannot be cancelled.
 4. The status changes to "Queued", then to "Sent" when the background service has sent all messages (usually within a few minutes). A sent bulletin cannot be edited.
 
-If the mail queue on the dashboard shows growing errors, the mailing is not delivered — check SMTP in "Settings" and contact the IT service.
+If the mail queue on the dashboard shows growing errors, the mailing is not delivered - check SMTP in "Settings" and contact the IT service.
 
 ### 11.4. Eco-bulletin
 
-The “Eco-bulletin” section (`/admin/eco-bulletins`) prepares the Agency’s daily ecological bulletin — three documents
+The “Eco-bulletin” section (`/admin/eco-bulletins`) prepares the Agency’s daily ecological bulletin - three documents
 in Tajik and Russian: the city bulletin (“Экологический бюллетень г. Душанбе” / “Шарҳи ҳолати ифлосшавии ҳаво”), the
 summary for the cities of the republic (“Загрязнение атмосферного воздуха” / “ИҲА”) and form 4a (“Намунаи 4а”, limit
 exceedances by city). Available to administrators, operators and editors.
@@ -473,10 +473,10 @@ Pollutants in ppm/ppb (CO2, TVOC) are printed without ratios.
    “no data for: …”. “Recompute from data” refreshes the draft after measurements were entered or corrected.
 3. Switch the document (city bulletin / cities summary / form 4a) and the language (Tajik / Russian); the right column
    shows the computation summary: exceedances, summation, number of cities, high/extremely high pollution.
-4. Enter the gamma radiation background (e.g. `0,014`) and press “Save” — the gamma paragraph appears in the
+4. Enter the gamma radiation background (e.g. `0,014`) and press “Save” - the gamma paragraph appears in the
    document; without a value the paragraph is omitted.
-5. Download the documents: **DOCX** (Word, Times New Roman, A4 — same structure as the Agency samples), **PDF** (when
-   Chromium is installed on the server; otherwise a print version opens — save it as PDF from the print dialog) or
+5. Download the documents: **DOCX** (Word, Times New Roman, A4 - same structure as the Agency samples), **PDF** (when
+   Chromium is installed on the server; otherwise a print version opens - save it as PDF from the print dialog) or
    **HTML**.
 6. “Publish”: the files are stored in the portal archive (“Eco-bulletins”, `/air/bulletins`), a published news post in
    the “Bulletins” category is created with a short text and file links; the “Also e-mail the subscribers” checkbox
@@ -497,18 +497,18 @@ All actions (generate, recompute, gamma, publish, delete, settings) are written 
 
 ## 12. Settings
 
-"Settings" (`/admin/settings`) — administrators only.
+"Settings" (`/admin/settings`) - administrators only.
 
 ![Figure 38. Settings: SMTP test, integration addresses, branding](../img/admin-settings.png)
 
-- **Mail (SMTP)**: shows whether SMTP is configured (`SMTP_URL` is set on the server). "Send test e‑mail" queues a message and shows its status (queued → sent / error with text). The test checks the whole path: queue → SMTP → mailbox. Without `SMTP_URL`, messages are only written to the background‑service log — development mode.
-- **Integration addresses**: SmartMet, SILAM, SmartMet Alert, portal address — read‑only; credentials are hidden. Only the IT service can change them through environment variables (see the runbook).
-- **Display units**: the unit of mass concentrations on station pages, widgets, API and CSV — "µg/m³ (CO — mg/m³)" by default or "mg/m³ as in the Agency's bulletins". Data is stored in the pollutant unit and converted on output (three more decimals when shown in mg/m³); ppm (CO₂) and ppb (TVOC) are not affected. Applied within a minute.
-- **Branding**: portal name, organisation name, e‑mail, phone, address, website, extra footer line — in three languages. Shown in the header, footer and on the "About" page within a minute after saving.
+- **Mail (SMTP)**: shows whether SMTP is configured (`SMTP_URL` is set on the server). "Send test e‑mail" queues a message and shows its status (queued → sent / error with text). The test checks the whole path: queue → SMTP → mailbox. Without `SMTP_URL`, messages are only written to the background‑service log - development mode.
+- **Integration addresses**: SmartMet, SILAM, SmartMet Alert, portal address - read‑only; credentials are hidden. Only the IT service can change them through environment variables (see the runbook).
+- **Display units**: the unit of mass concentrations on station pages, widgets, API and CSV - "µg/m³ (CO - mg/m³)" by default or "mg/m³ as in the Agency's bulletins". Data is stored in the pollutant unit and converted on output (three more decimals when shown in mg/m³); ppm (CO₂) and ppb (TVOC) are not affected. Applied within a minute.
+- **Branding**: portal name, organisation name, e‑mail, phone, address, website, extra footer line - in three languages. Shown in the header, footer and on the "About" page within a minute after saving.
 
 ## 13. Users
 
-"Users" (`/admin/users`) — administrators only.
+"Users" (`/admin/users`) - administrators only.
 
 ![Figure 39. User list: role, 2FA, status, sessions](../img/admin-users.png)
 
@@ -516,7 +516,7 @@ All actions (generate, recompute, gamma, publish, delete, settings) are written 
 
 ![Figure 40. Create‑user dialog](../img/admin-user-create.png)
 
-"Create user": name, e‑mail (login), role, interface language, password (at least 10 characters; "Generate password" and "Copy" buttons). Hand the password over through a secure channel and ask the employee to have it changed at the first sign‑in through "Reset password" (there is no self‑service password change in the panel yet — an administrator sets a new one on request). An administrator must set up 2FA at the first sign‑in.
+"Create user": name, e‑mail (login), role, interface language, password (at least 10 characters; "Generate password" and "Copy" buttons). Hand the password over through a secure channel and ask the employee to have it changed at the first sign‑in through "Reset password" (there is no self‑service password change in the panel yet - an administrator sets a new one on request). An administrator must set up 2FA at the first sign‑in.
 
 ### 13.2. Actions
 
@@ -528,7 +528,7 @@ All actions (generate, recompute, gamma, publish, delete, settings) are written 
 | Reset password | set a new password; sessions end |
 | Revoke all sessions | forced sign‑out on all devices (if compromise is suspected) |
 | Reset 2FA | deletes the secret and backup codes; 2FA must be set up again at the next sign‑in (mandatory for administrators) |
-| Block / unblock | block with a reason (visible to administrators only) and a duration in days (empty — indefinitely); a blocked user cannot sign in, sessions end |
+| Block / unblock | block with a reason (visible to administrators only) and a duration in days (empty - indefinitely); a blocked user cannot sign in, sessions end |
 | Delete | irreversible; audit records are kept |
 
 Safeguards: actions cannot be applied to your own account; the last active administrator cannot be demoted, blocked or deleted. Keep at least two administrators so one can restore access for the other.
@@ -554,7 +554,7 @@ Integration statuses on the dashboard:
 
 | Status | Meaning | Action |
 |---|---|---|
-| up to date | the last load succeeded recently | — |
+| up to date | the last load succeeded recently | - |
 | stale | no load for a long time; the portal shows a "stale" mark | check the background service and the source |
 | failure, in a row: N | the source returns errors | after 3 consecutive failures administrators receive an e‑mail; wait or inform the IT service |
 | paused until … | after a series of failures requests to the source are stopped temporarily (circuit breaker); they resume automatically after 30–240 minutes | if the source is already back, the IT service can run the job manually |
@@ -583,50 +583,50 @@ Failure and recovery e‑mails are sent to all users with the "Administrator" ro
 | CAP warnings do not update | source not configured, unavailable or messages with errors | check the "Synchronisation" block in CAP; inform the IT service |
 | Forecast marked "stale" on the portal | SmartMet/SILAM synchronisation has not run for a long time | integration status on the dashboard; IT service |
 | "Not allowed: this is the last active administrator" | protection against losing access | create a second administrator first |
-| Forgotten password | — | administrator → "Reset password" |
+| Forgotten password | - | administrator → "Reset password" |
 
 ## 16. SmartMet Server and SmartMet Alert
 
 Both FMI systems run on the portal server (`havo.tj`); the IT service installs, updates and restores them following the runbook (section 14). The panel administrator watches their state and the content of the warnings.
 
-### 16.1. SmartMet Server — weather forecast
+### 16.1. SmartMet Server - weather forecast
 
-- **What it gives the portal**: forecasts for forecast points (cities, districts, station cities) — the "Weather" section, home page cards, station pages, the widget and the API; weather maps (temperature, precipitation, wind, cloud cover) in the "Weather · Forecast" mode on the home page and on station pages.
-- **Data**: the global GFS model (NOAA) at 0.25°, forecast up to 10 days. The server loads a new run 4 times a day — around 02:15, 08:15, 14:15 and 20:15 Dushanbe time; the portal fetches the forecast every 15 minutes.
-- **Check**: dashboard → "Integrations" → SmartMet — "up to date", model run time no older than 18 hours.
+- **What it gives the portal**: forecasts for forecast points (cities, districts, station cities) - the "Weather" section, home page cards, station pages, the widget and the API; weather maps (temperature, precipitation, wind, cloud cover) in the "Weather · Forecast" mode on the home page and on station pages.
+- **Data**: the global GFS model (NOAA) at 0.25°, forecast up to 10 days. The server loads a new run 4 times a day - around 02:15, 08:15, 14:15 and 20:15 Dushanbe time; the portal fetches the forecast every 15 minutes.
+- **Check**: dashboard → "Integrations" → SmartMet - "up to date", model run time no older than 18 hours.
 - **If "stale" or "Model run … older than 18 h"**: the portal shows a "Forecast is out of date" note, and administrators receive a "SmartMet forecast is not updating" e‑mail. Tell the IT service (runbook 14.3: container checks and an extra GFS download). Until it is fixed, the portal shows the last loaded forecast.
 - Forecast points are added by the IT service (runbook 8.2); station cities are created automatically (section 4.1).
 
-### 16.2. SmartMet Alert — severe-weather warnings
+### 16.2. SmartMet Alert - severe-weather warnings
 
 How a warning reaches the portal:
 
 1. A forecaster prepares the warning in the SmartMet Alert editor on the Agency workstation (event, danger level, areas, validity, texts in Tajik, Russian and English) and publishes an issue.
-2. The issue is saved on the server over a secure SFTP connection — the editor's network drive (set up by the IT service, runbook 14.5).
+2. The issue is saved on the server over a secure SFTP connection - the editor's network drive (set up by the IT service, runbook 14.5).
 3. The SmartMet Alert web module serves the latest issue as a CAP feed; the portal reads it every 5 minutes.
 4. Within 5 minutes the warning is visible on the home page, in the "Warnings" section, on the weather pages of the area, in the widget and the API, and in the panel under "CAP messages" (section 10).
 
 Working rules:
 
-- Each editor issue is the **complete list** of warnings in force. To change a warning, publish an update (Update) — the portal replaces the previous version. To withdraw it, send a cancellation (Cancel) or leave it out of the next issue: the portal removes it (status "cancelled" or "withdrawn").
+- Each editor issue is the **complete list** of warnings in force. To change a warning, publish an update (Update) - the portal replaces the previous version. To withdraw it, send a cancellation (Cancel) or leave it out of the next issue: the portal removes it (status "cancelled" or "withdrawn").
 - An expired warning hides itself; messages with status Test and Exercise are visible only in the panel.
 - Fill in texts in all three languages; if a language is missing, the portal shows another language and the event type translation from the dictionary (section 10.1).
 - **Trial issues and training** go only to the test folder `smartalert-test` on the editor's network drive: staging (`staging.havo.tj`) sees them, `havo.tj` does not.
-- **Monitoring**: dashboard → "Integrations" → SmartMet Alert — "up to date". If the feed cannot be read, the portal shows a "data may be out of date" note next to the warnings, and after 3 failures in a row administrators receive an e‑mail — tell the IT service.
+- **Monitoring**: dashboard → "Integrations" → SmartMet Alert - "up to date". If the feed cannot be read, the portal shows a "data may be out of date" note next to the warnings, and after 3 failures in a row administrators receive an e‑mail - tell the IT service.
 
 ## Appendix A. Panel sections
 
 | Section | Address | Roles |
 |---|---|---|
 | Dashboard | `/admin` | all |
-| Stations | `/admin/stations` | administrator (edit), others — view |
+| Stations | `/admin/stations` | administrator (edit), others - view |
 | Measurements: entry, import, browse, QC | `/admin/measurements`, `/entry`, `/import`, `/browse`, `/qc` | administrator, operator |
 | Quality control rules | `/admin/qc-rules` | administrator |
 | Scales and thresholds, limit values | `/admin/scales`, `/admin/scales/limits` | administrator |
 | Health advice | `/admin/health-advice` | administrator |
 | Alerts, events | `/admin/alerts`, `/admin/alerts/events` | administrator |
 | CAP messages, event dictionary | `/admin/cap`, `/admin/cap/events` | administrator |
-| News, categories | `/admin/news`, `/admin/news/categories` | administrator, editor; operator — view |
+| News, categories | `/admin/news`, `/admin/news/categories` | administrator, editor; operator - view |
 | Media | `/admin/media` | administrator, editor |
 | Bulletins | `/admin/bulletins` | administrator, editor |
 | Eco-bulletin, eco-bulletin settings | `/admin/eco-bulletins`, `/admin/eco-bulletins/settings` | administrator, operator, editor |

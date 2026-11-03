@@ -230,7 +230,7 @@ export function NewsForm({ options, initial, initialCover, action, canPublish }:
             <Field>
               <FieldLabel htmlFor="categoryId">{t("fields.category")}</FieldLabel>
               <NativeSelect id="categoryId" {...register("categoryId")}>
-                <NativeSelectOption value="">—</NativeSelectOption>
+                <NativeSelectOption value="">-</NativeSelectOption>
                 {options.categories.map((c) => (
                   <NativeSelectOption key={c.id} value={String(c.id)}>
                     {pick(c.name, locale)}

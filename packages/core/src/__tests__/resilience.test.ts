@@ -119,7 +119,7 @@ describe("вспомогательные функции", () => {
     expect(normalizeIntegrationState("cap", null).status).toBe("never");
   });
 
-  it("isRetryableStatus: 5xx, 408, 425, 429 — да; 4xx — нет", () => {
+  it("isRetryableStatus: 5xx, 408, 425, 429 - да; 4xx - нет", () => {
     expect(isRetryableStatus(503)).toBe(true);
     expect(isRetryableStatus(429)).toBe(true);
     expect(isRetryableStatus(408)).toBe(true);

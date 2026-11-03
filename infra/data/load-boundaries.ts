@@ -188,7 +188,7 @@ const GADM: BoundarySource = {
   key: "gadm",
   title: "GADM 4.1 (gadm41_TJK_1/2.json, 2022)",
   license:
-    "GADM: свободно для академического и иного некоммерческого использования; распространение и коммерческое использование — только с разрешения GADM (https://gadm.org/license.html)",
+    "GADM: свободно для академического и иного некоммерческого использования; распространение и коммерческое использование - только с разрешения GADM (https://gadm.org/license.html)",
   attribution: "© GADM 4.1, https://gadm.org",
   admin1Url: "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_TJK_1.json",
   admin2Url: "https://geodata.ucdavis.edu/gadm/gadm4.1/json/gadm41_TJK_2.json",
@@ -227,7 +227,7 @@ const GADM: BoundarySource = {
 
 const GEOBOUNDARIES: BoundarySource = {
   key: "geoboundaries",
-  title: "geoBoundaries 6.0 gbOpen TJK ADM1/ADM2 (источник — OpenStreetMap, 2017; сборка 2023-12)",
+  title: "geoBoundaries 6.0 gbOpen TJK ADM1/ADM2 (источник - OpenStreetMap, 2017; сборка 2023-12)",
   license: "ODbL 1.0 (OpenStreetMap contributors), https://www.geoboundaries.org",
   attribution: "© OpenStreetMap contributors (ODbL), geoBoundaries",
   admin1Url:
@@ -388,7 +388,7 @@ for (const unit of source.admin2(admin2Fc, resolveRegion)) {
   const skipReason = source.skipAdmin2[unit.id];
   if (skipReason) {
     skipped++;
-    log(`admin2: пропускаю ${unit.id} — ${skipReason}`);
+    log(`admin2: пропускаю ${unit.id} - ${skipReason}`);
     continue;
   }
   const row = matchAdmin2(unit);
@@ -399,7 +399,7 @@ for (const unit of source.admin2(admin2Fc, resolveRegion)) {
   const existing = districtGeometry.get(row.pcode);
   if (existing) {
     throw new Error(
-      `полигоны ${existing.unit.id} и ${unit.id} оба сопоставлены с ${row.pcode} (${row.tg}) — уточните aliases`,
+      `полигоны ${existing.unit.id} и ${unit.id} оба сопоставлены с ${row.pcode} (${row.tg}) - уточните aliases`,
     );
   }
   districtGeometry.set(row.pcode, { unit, row });
@@ -408,7 +408,7 @@ if (unmatched.length > 0) {
   for (const u of unmatched)
     warn(`admin2: не сопоставлен ${u.id}: ${u.names.join(" | ")} (${u.region ?? "?"})`);
   throw new Error(
-    `${unmatched.length} полигонов admin2 не сопоставлены — добавьте aliases в ${taxonomyPath}`,
+    `${unmatched.length} полигонов admin2 не сопоставлены - добавьте aliases в ${taxonomyPath}`,
   );
 }
 const withoutGeometry = taxonomy.admin2.filter((r) => !districtGeometry.has(r.pcode));

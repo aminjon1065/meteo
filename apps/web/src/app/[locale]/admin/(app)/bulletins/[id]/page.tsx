@@ -108,14 +108,14 @@ export default async function BulletinPage({
             <Card key={l}>
               <CardHeader>
                 <CardTitle className="text-base">
-                  {l.toUpperCase()} · {bulletin.subject[l] || "—"}
+                  {l.toUpperCase()} · {bulletin.subject[l] || "-"}
                 </CardTitle>
               </CardHeader>
               <CardContent>
                 {bulletin.body[l] ? (
                   <MarkdownContent markdown={bulletin.body[l] ?? ""} lang={l} className="text-sm" />
                 ) : (
-                  <p className="text-sm text-muted-foreground">—</p>
+                  <p className="text-sm text-muted-foreground">-</p>
                 )}
               </CardContent>
             </Card>

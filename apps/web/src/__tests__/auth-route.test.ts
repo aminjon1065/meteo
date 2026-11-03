@@ -7,7 +7,7 @@ const route = await import("@/app/api/auth/[...all]/route");
 const { isBlockedAuthPath } = await import("@/lib/auth-paths");
 
 describe("/api/auth: эндпоинты плагина admin закрыты по HTTP", () => {
-  it("set-role, ban-user, impersonate и др. — 404 без вызова better-auth", async () => {
+  it("set-role, ban-user, impersonate и др. - 404 без вызова better-auth", async () => {
     for (const path of [
       "/api/auth/admin/set-role",
       "/api/auth/admin/ban-user",

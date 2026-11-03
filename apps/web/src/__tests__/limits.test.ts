@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { rateLimitGroupFor, rateLimitKey, subscribeActionGroup } from "@/lib/security/limits";
 
 describe("rateLimitGroupFor / rateLimitKey", () => {
-  it("ingest — отдельная группа с лимитом по умолчанию 60 и ключом «станция + IP»", () => {
+  it("ingest - отдельная группа с лимитом по умолчанию 60 и ключом «станция + IP»", () => {
     const group = rateLimitGroupFor("/api/v1/ingest/DU-01");
     expect(group?.name).toBe("ingest");
     expect(group?.rule.limit).toBe(60);
@@ -13,7 +13,7 @@ describe("rateLimitGroupFor / rateLimitKey", () => {
       rateLimitKey(group as NonNullable<typeof group>, "/api/v1/ingest/%D0%A1%D0%A3-01", "::1"),
     ).toBe("ingest:СУ-01:::1");
   });
-  it("публичный API и auth — как прежде; остальные пути без лимита", () => {
+  it("публичный API и auth - как прежде; остальные пути без лимита", () => {
     expect(rateLimitGroupFor("/api/v1/stations")?.name).toBe("api");
     expect(rateLimitGroupFor("/api/v1/stations")?.rule.limit).toBe(120);
     expect(rateLimitGroupFor("/api/auth/get-session")?.name).toBe("auth");
@@ -24,7 +24,7 @@ describe("rateLimitGroupFor / rateLimitKey", () => {
     >;
     expect(rateLimitKey(api, "/api/v1/stations", "1.2.3.4")).toBe("api:1.2.3.4");
   });
-  it("тайлы SmartMet и кадры FMI — группа tiles (проверяют сами маршруты, proxy их не видит)", () => {
+  it("тайлы SmartMet и кадры FMI - группа tiles (проверяют сами маршруты, proxy их не видит)", () => {
     const wms = rateLimitGroupFor("/wms/202611020600/temperature/20261102T0900/6/43/24.png");
     expect(wms?.name).toBe("tiles");
     expect(wms?.rule.limit).toBe(1200);

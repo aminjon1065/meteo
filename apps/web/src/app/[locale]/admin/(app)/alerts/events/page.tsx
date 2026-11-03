@@ -84,7 +84,7 @@ export default async function AlertEventsPage({ params }: { params: Promise<{ lo
                   <TableCell className="tabular-nums">
                     {e.endedAt
                       ? format.dateTime(e.endedAt, { dateStyle: "short", timeStyle: "short" })
-                      : "—"}
+                      : "-"}
                   </TableCell>
                   <TableCell>{e.rule}</TableCell>
                   <TableCell>
@@ -94,9 +94,9 @@ export default async function AlertEventsPage({ params }: { params: Promise<{ lo
                   <TableCell className="text-right tabular-nums">
                     {e.peakValue !== null
                       ? format.number(e.peakValue, { maximumFractionDigits: 1 })
-                      : (e.level ?? "—")}
+                      : (e.level ?? "-")}
                   </TableCell>
-                  <TableCell>{e.notifiedAt ? t("events.yes") : "—"}</TableCell>
+                  <TableCell>{e.notifiedAt ? t("events.yes") : "-"}</TableCell>
                   <TableCell className="flex items-center gap-2">
                     <Badge variant={e.status === "active" ? "destructive" : "secondary"}>
                       {t(`events.status.${e.status}`)}
