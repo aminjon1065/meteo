@@ -122,9 +122,13 @@ The map is the portal's home page (`/`; the old address `/map` leads there too).
 
 **Weather · Now** - the weather symbol and the current temperature in cities (SmartMet forecast points); click a city for the weather description, the day's maximum and minimum and a link to the detailed forecast. Other places appear as you zoom in.
 
+![Figure 7. Map in "Weather · Now" mode: weather symbols and temperature in cities](../img/user-map-weather.png)
+
 **Weather · Forecast** (when SmartMet Server maps are connected) - air temperature, precipitation, wind or cloud cover with a time slider and a value scale.
 
 **Map type** - a button with a map thumbnail (bottom left on a computer, top right under the location button on a phone): "Map" (a regular colour map: vegetation, water, roads), "Grey" (the same map without colour, so station and forecast colours stand out most), "Terrain" (hill shading from the Copernicus digital elevation model) and "Satellite" (a cloud‑free Sentinel‑2 image for 2021). The choice is remembered in the browser. All base maps are built from open data and stored on the portal's server.
+
+![Figure 8. Choosing the map type](../img/user-basemap.png)
 
 The outlines of the regions, Dushanbe and the RRP are always shown, and dashed district boundaries appear when zoomed in. Hover over a region to highlight it and see its name; click to open a card with the number of stations and a link to the station list. Active warnings are polygons coloured by danger level; warnings starting within 24 hours have a pale fill and a dashed outline. A legend of danger levels with digits 1–4 appears next to the chip. Click a polygon to read the level (digit and word), headline and validity period. The link `/?layer=warnings` zooms the map straight to the warning areas. Station markers and station-group circles carry the level face icon (the worst level for a group).
 
@@ -139,15 +143,17 @@ The "SmartMet (SILAM)" section (`/air/silam`, in the ☰ menu) shows ready-made 
 - The 48-hour forecast usually starts at 00 UTC of the previous day, and new maps appear at about 07:00 Dushanbe time; when FMI publishes later, the run starts at 00 UTC of the same day - the portal accounts for this. The map gives the time in UTC ("06Z" = 11:00 in Dushanbe), the portal shows local time above it. If FMI has not updated the maps for a while, the portal says so and shows the latest run.
 - Below the map - explanations, the FMI index thresholds table and links to the SILAM layer on the portal map and to station measurements. The model shows background pollution on a grid of tens of kilometres; the official assessment is based on station data.
 
+![Figure 9. The "SmartMet (SILAM)" section: FMI forecast maps, parameter buttons and the hour strip](../img/user-silam.png)
+
 ## 7. Weather
 
 The "Weather" section (`/weather`) - SmartMet Server (FMI) forecast for cities and districts, updated every 15 minutes.
 
-![Figure 7. "Weather" section: city cards](../img/user-weather.png)
+![Figure 10. "Weather" section: city cards](../img/user-weather.png)
 
 Cards of major cities show the current temperature, wind, precipitation and weather symbol; below is a list of other localities. City page (`/weather/<slug>`):
 
-![Figure 8. City page: now, next 24 hours, 72‑hour chart, 10‑day forecast, air‑quality forecast](../img/user-weather-city.png)
+![Figure 11. City page: now, next 24 hours, 72‑hour chart, 10‑day forecast, air‑quality forecast](../img/user-weather-city.png)
 
 - **Now** - temperature, wind, humidity, pressure, dew point, cloudiness, precipitation.
 - **Next 24 hours** - hourly strip.
@@ -162,7 +168,7 @@ Cards of major cities show the current temperature, wind, precipitation and weat
 
 The "Warnings" section (`/warnings`) - the Agency's severe‑weather warnings in CAP format (SmartMet Alert editor).
 
-![Figure 9. Warnings: active now, upcoming, table by region and day](../img/user-warnings.png)
+![Figure 12. Warnings: active now, upcoming, table by region and day](../img/user-warnings.png)
 
 - **Active now** and **Upcoming** - cards with headline, danger level, validity period, area, description and instructions; the "CAP XML" button opens the source message.
 - **By region and day** - a table: rows - regions (Dushanbe, RRP, Sughd, Khatlon, GBAO), columns - the coming days; a cell holds a circle with the digit of the maximum danger level. A region link filters the list.
@@ -177,23 +183,25 @@ Active warnings are also visible on the home page map, on the weather pages of t
 
 The "Health" section (`/health`) - advice for each index level for different groups: general population, children, pregnant and breastfeeding women, elderly people, people with chronic respiratory and cardiovascular diseases. Choose a group and read what to do at each of the five levels. The advice is general and does not replace a doctor's consultation.
 
-![Figure 10. "Health" section](../img/user-health.png)
+![Figure 13. "Health" section](../img/user-health.png)
 
 ## 10. News
 
 The "News" section (`/news`) - Agency publications with categories, pinned ("Important") items and pagination. RSS feed: `/api/v1/news/rss.xml?locale=en` (the "RSS feed" link in the section). The "Get the newsletter by e‑mail" link leads to the subscription.
 
-![Figure 11. "News" section](../img/user-news.png)
+![Figure 14. "News" section](../img/user-news.png)
 
 ### 10.1. Eco-bulletins
 
 The "Eco-bulletins" section (`/air/bulletins`, in the ☰ menu and the footer) is the archive of the Agency's daily ecological bulletins on air pollution in the cities of the republic for the previous day. Open the bulletin for the date you need: the document is shown right on the page. The switches above it choose the document type ("City bulletin", "Cities summary", "Form 4a") and the language (Tajik or Russian - the documents are issued in these two languages). The DOCX and PDF buttons download the document, HTML opens a printable version. Each published bulletin also appears in "News".
 
+![Figure 15. An eco-bulletin page in the archive](../img/user-eco-bulletin.png)
+
 ## 11. E‑mail alerts subscription
 
 The "E‑mail alerts" page (`/subscribe`, linked from the ☰ menu, the footer and station pages):
 
-![Figure 12. Subscription form](../img/user-subscribe.png)
+![Figure 16. Subscription form](../img/user-subscribe.png)
 
 1. Enter your e‑mail address.
 2. Choose what to receive: all stations or selected stations (an e‑mail when thresholds are exceeded), and/or the Agency's newsletter.
@@ -212,11 +220,11 @@ Ready‑made blocks for embedding on meteo.tj and other websites via `<iframe>` 
 | Weather forecast | `<portal>/embed/forecast?location=dushanbe&lang=ru` | `location` - forecast point slug (`dushanbe`, `khujand`, `bokhtar`, `kulob`, `khorugh`, …; full list - `/api/v1/forecast`). If the forecast has not been updated for a while, the widget shows an "outdated" note |
 | Warnings | `<portal>/embed/alerts?region=DU&lang=en&limit=5` | `region` - region code (`DU`, `RRP`, `SU`, `KT`, `GB`), without it - the whole country; `limit` - number of messages |
 
-![Figure 13. Index widget](../img/user-embed-aqi.png)
+![Figure 17. Index widget](../img/user-embed-aqi.png)
 
-![Figure 14. Forecast widget](../img/user-embed-forecast.png)
+![Figure 18. Forecast widget](../img/user-embed-forecast.png)
 
-![Figure 15. Warnings widget](../img/user-embed-alerts.png)
+![Figure 19. Warnings widget](../img/user-embed-alerts.png)
 
 Example code (a ready line is available on a city page in "Weather" and in "Open data"):
 
@@ -232,9 +240,9 @@ Recommended width 300–400 px; the height depends on the content (the widget ad
 
 The "Open data" section (`/data`) lists datasets, formats and the licence; "API for developers" (`/data/api`) - interactive documentation with parameters, response schemas and examples.
 
-![Figure 16. "Open data" section](../img/user-data.png)
+![Figure 20. "Open data" section](../img/user-data.png)
 
-![Figure 17. API documentation](../img/user-api.png)
+![Figure 21. API documentation](../img/user-api.png)
 
 Essentials:
 

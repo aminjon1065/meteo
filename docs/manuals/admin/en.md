@@ -280,13 +280,15 @@ The "Quality control rules" page (`/admin/qc-rules`, administrators only) sets t
 - **Allowed ranges** - minimum and maximum per pollutant (in the storage unit) and the "Enabled" switch. Values outside the range on manual entry, import and API intake are flagged invalid and excluded from the index. Disable an unwanted range rather than deleting it - otherwise a portal update restores the default.
 - **Batch checks** (every 15 minutes over the last 48 hours): spikes - threshold in median absolute deviations (MAD, default 6) and minimum values in the series; stuck sensor - hours without change (12) and minimum identical values (3), continuous stations only; outliers against 30 days - robust z threshold (5) and minimum baseline values (30).
 
+![Figure 20. Quality control rules: allowed ranges and batch checks](../img/admin-qc-rules.png)
+
 Changes apply from the next check run; operator decisions already taken are never changed by the rules. Every save is written to the audit log (`qcRules.update`).
 
 ## 6. Audit log
 
 "Audit log" (`/admin/audit`) keeps every action in the panel: who (e‑mail and role), when, what (`stations.update`, `measurement.correct`, `news.publish`, `user.ban` and so on), on which object, and the "before" / "after" state as JSON. Records cannot be edited or deleted - not even by an administrator; when a user is deleted, their actions stay in the log with the e‑mail.
 
-![Figure 20. Audit log with object and period filters and search](../img/admin-audit.png)
+![Figure 21. Audit log with object and period filters and search](../img/admin-audit.png)
 
 Search by action, e‑mail or identifier; filter by object and period. Use the log when investigating disputed values, restoring accidentally changed settings and during inspections.
 
@@ -296,7 +298,7 @@ Panel sign-ins are recorded too (entity `auth`): successful sign-in (`auth.signI
 
 "Scales and thresholds" (`/admin/scales`) - administrators only. Changes apply to the index calculation immediately and affect the whole portal, widgets and API; change thresholds only according to an approved methodology and document the decision.
 
-![Figure 21. List of index scales](../img/admin-scales.png)
+![Figure 22. List of index scales](../img/admin-scales.png)
 
 Five scales are supplied:
 
@@ -310,7 +312,7 @@ Five scales are supplied:
 
 ### 7.1. Editing a scale
 
-![Figure 22. Scale card: basics, levels, pollutant thresholds](../img/admin-scale-edit.png)
+![Figure 23. Scale card: basics, levels, pollutant thresholds](../img/admin-scale-edit.png)
 
 - **Basics**: name and description in three languages, "Enabled" and "Public default scale" (exactly one scale can be public), order.
 - **Levels**: level labels in three languages (five; six for US AQI); colours are fixed by the design system (green, yellow, orange, red, purple; plus maroon for US AQI).
@@ -320,7 +322,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 ### 7.2. Limit values and hazard classes
 
-![Figure 23. Limit values and hazard classes table](../img/admin-limits.png)
+![Figure 24. Limit values and hazard classes table](../img/admin-limits.png)
 
 "Limit values and hazard classes" (`/admin/scales/limits`): daily (MPCd), maximum single (MPCs) and annual limit values in the pollutant unit, plus the hazard class (1–4) used by the IZA. An empty field means no limit is set. Default values are the limit table of the Agency's daily air pollution bulletin (19 October 2026; mg/m³ converted to the pollutant unit): PM2.5 35/160, PM10 60/300, NO₂ 40/85, SO₂ 50/500, CO 3/5 mg/m³, O₃ 30/160, NO 60/400, formaldehyde 3/35, phenol 3/10, HF 5/20, dust 150/500 µg/m³, TVOC 300/900 ppb; CO₂ has no limit. Values edited here are kept on portal updates. From the daily and single MPC the portal calculates the ratios of the Agency method (the "Ratio to limit values" scale): NO₂+SO₂ summation and high/extremely high pollution cases - see the station page and `/air/index`.
 
@@ -328,7 +330,7 @@ After "Save" the message "Scale saved, index recalculated" appears.
 
 "Health advice" (`/admin/health-advice`) holds the texts the portal shows next to the index: on station pages, the "Health" section and in widgets.
 
-![Figure 24. Advice matrix: level × population group × language](../img/admin-health-advice.png)
+![Figure 25. Advice matrix: level × population group × language](../img/admin-health-advice.png)
 
 - Choose the scale (normally the public default).
 - For each level (1–5) and each population group (general population, children, pregnant and breastfeeding, elderly, chronic respiratory diseases, cardiovascular diseases) fill in the title and text in three languages.
@@ -344,9 +346,9 @@ Texts for all groups and levels are supplied (based on WHO and EPA guidance, wit
 
 "Alerts" (`/admin/alerts`): rules by which the portal shows an exceedance banner and e‑mails subscribers.
 
-![Figure 25. List of alert rules](../img/admin-alerts.png)
+![Figure 26. List of alert rules](../img/admin-alerts.png)
 
-![Figure 26. Rule form: condition, scope, delivery](../img/admin-alert-new.png)
+![Figure 27. Rule form: condition, scope, delivery](../img/admin-alert-new.png)
 
 | Field | Description |
 |---|---|
@@ -361,7 +363,7 @@ How evaluation works: every 10 minutes a background job takes the latest availab
 
 ### 9.2. Exceedance events
 
-![Figure 27. Exceedance events: active and resolved](../img/admin-alert-events.png)
+![Figure 28. Exceedance events: active and resolved](../img/admin-alert-events.png)
 
 "Exceedance events" (`/admin/alerts/events`): start, end, peak, whether e‑mails were sent. An active event can be closed manually with "Resolve" (for example after rejecting a wrong value in QC).
 
@@ -369,7 +371,7 @@ An event closes automatically when the value drops below the threshold, when the
 
 ### 9.3. Subscribers
 
-![Figure 28. Subscribers: statuses, topics, export](../img/admin-subscribers.png)
+![Figure 29. Subscribers: statuses, topics, export](../img/admin-subscribers.png)
 
 "Subscribers" (`/admin/subscribers`) shows addresses, language, status (confirmed / pending / unsubscribed) and topics: all stations, selected stations, newsletter. Visitors subscribe on `/subscribe` and confirm through a link in the e‑mail (double opt‑in); every message contains an unsubscribe link. Addresses cannot be edited in the panel - this protects against mailing without consent. "Export CSV" downloads the list for reporting; treat it as personal data.
 
@@ -377,7 +379,7 @@ An event closes automatically when the value drops below the threshold, when the
 
 "CAP messages" (`/admin/cap`) - weather warnings from the SmartMet Alert editor in CAP 1.2 format. The portal does not create them: a background job reads the feed every 5 minutes (the IT service sets the address in `CAP_FEED_URL`) and stores the messages; they then appear in the portal's "Warnings" section, on the home page map, in the widget and in the API.
 
-![Figure 29. CAP message list with synchronisation status](../img/admin-cap.png)
+![Figure 30. CAP message list with synchronisation status](../img/admin-cap.png)
 
 Statuses in the list:
 
@@ -392,13 +394,13 @@ Statuses in the list:
 
 The "Synchronisation" block at the top shows the result of the last run (ok / partial / error / not modified / source not configured) and parsing errors of individual files.
 
-![Figure 30. CAP message card: info blocks by language, areas, parameters, source XML](../img/admin-cap-detail.png)
+![Figure 31. CAP message card: info blocks by language, areas, parameters, source XML](../img/admin-cap-detail.png)
 
 The message card shows all `info` blocks (by language), affected areas mapped to warning regions, parameters and an "XML" button for the source file. This helps to understand why a message is displayed differently than expected (for example, there is no Tajik block - the fallback and the event dictionary are used).
 
 ### 10.1. Event dictionary
 
-![Figure 31. CAP event type dictionary](../img/admin-cap-events.png)
+![Figure 32. CAP event type dictionary](../img/admin-cap-events.png)
 
 "Event types" (`/admin/cap/events`): translations of the `event` field (for example `Strong wind` → «Сильный ветер» / «Шамоли сахт») into three languages. They are used when a message has no `info` block in the portal language. New event types appear in the dictionary automatically after the first synchronisation - fill in the translations, otherwise the portal shows the original text from the message.
 
@@ -408,9 +410,9 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 "News" (`/admin/news`): publications for the portal's "News" section, RSS and API.
 
-![Figure 32. News list with statuses](../img/admin-news.png)
+![Figure 33. News list with statuses](../img/admin-news.png)
 
-![Figure 33. News editor: three languages, Markdown with preview, cover, publishing options](../img/admin-news-edit.png)
+![Figure 34. News editor: three languages, Markdown with preview, cover, publishing options](../img/admin-news-edit.png)
 
 | Field | Description |
 |---|---|
@@ -425,19 +427,19 @@ The message card shows all `info` blocks (by language), affected areas mapped to
 
 "Publish" / "Unpublish" change the status without re‑saving the form. "Open on the portal" leads to the news page. Categories are managed on the "Categories" page (name in three languages, slug, order).
 
-![Figure 34. News categories](../img/admin-news-categories.png)
+![Figure 35. News categories](../img/admin-news-categories.png)
 
 ### 11.2. Media
 
-![Figure 35. Media library](../img/admin-media.png)
+![Figure 36. Media library](../img/admin-media.png)
 
 "Media" (`/admin/media`): images and PDFs for news and bulletins. JPEG, PNG, WebP, GIF and PDF up to 10 MB are accepted; the type is detected from the file content, so renamed files of other formats (for example SVG) are rejected. After upload, "Copy link" gives an address like `/uploads/2026/10/….png` for Markdown. Deleting a file breaks links to it in already published news.
 
 ### 11.3. Bulletins
 
-![Figure 36. Bulletin list](../img/admin-bulletins.png)
+![Figure 37. Bulletin list](../img/admin-bulletins.png)
 
-![Figure 37. New bulletin: subject and body in three languages, linked news item](../img/admin-bulletin-new.png)
+![Figure 38. New bulletin: subject and body in three languages, linked news item](../img/admin-bulletin-new.png)
 
 "Bulletins" (`/admin/bulletins`) - mailing to subscribers who chose the newsletter.
 
@@ -454,6 +456,8 @@ The “Eco-bulletin” section (`/admin/eco-bulletins`) prepares the Agency’s 
 in Tajik and Russian: the city bulletin (“Экологический бюллетень г. Душанбе” / “Шарҳи ҳолати ифлосшавии ҳаво”), the
 summary for the cities of the republic (“Загрязнение атмосферного воздуха” / “ИҲА”) and form 4a (“Намунаи 4а”, limit
 exceedances by city). Available to administrators, operators and editors.
+
+![Figure 39. The “Eco-bulletin” section: new bulletin form and the log](../img/admin-eco-bulletins.png)
 
 **How it is computed.** For the local day (00:00–24:00 Dushanbe time) and valid measurements (QC flags “valid” and
 “corrected”), each pollutant of the station gets its daily mean and maximum single concentration (mg/m³ in the
@@ -482,6 +486,8 @@ Pollutants in ppm/ppb (CO2, TVOC) are printed without ratios.
    the “Bulletins” category is created with a short text and file links; the “Also e-mail the subscribers” checkbox
    queues e-mails to newsletter subscribers. A published bulletin cannot be changed; a draft can be deleted.
 
+![Figure 40. Eco-bulletin page: document preview and actions](../img/admin-eco-bulletin.png)
+
 **Automatic draft.** The background service prepares a draft for the previous day every day at 08:00 Dushanbe time
 for the stations from the settings (by default all public automatic stations) and e-mails operators and
 administrators one digest “Eco-bulletin drafts for … are ready” with the stations, exceedances and links. The operator only reviews the data, enters the gamma
@@ -499,7 +505,7 @@ All actions (generate, recompute, gamma, publish, delete, settings) are written 
 
 "Settings" (`/admin/settings`) - administrators only.
 
-![Figure 38. Settings: SMTP test, integration addresses, branding](../img/admin-settings.png)
+![Figure 41. Settings: SMTP test, integration addresses, branding](../img/admin-settings.png)
 
 - **Mail (SMTP)**: shows whether SMTP is configured (`SMTP_URL` is set on the server). "Send test e‑mail" queues a message and shows its status (queued → sent / error with text). The test checks the whole path: queue → SMTP → mailbox. Without `SMTP_URL`, messages are only written to the background‑service log - development mode.
 - **Integration addresses**: SmartMet, SILAM, SmartMet Alert, portal address - read‑only; credentials are hidden. Only the IT service can change them through environment variables (see the runbook).
@@ -510,17 +516,17 @@ All actions (generate, recompute, gamma, publish, delete, settings) are written 
 
 "Users" (`/admin/users`) - administrators only.
 
-![Figure 39. User list: role, 2FA, status, sessions](../img/admin-users.png)
+![Figure 42. User list: role, 2FA, status, sessions](../img/admin-users.png)
 
 ### 13.1. Creating a user
 
-![Figure 40. Create‑user dialog](../img/admin-user-create.png)
+![Figure 43. Create‑user dialog](../img/admin-user-create.png)
 
 "Create user": name, e‑mail (login), role, interface language, password (at least 10 characters; "Generate password" and "Copy" buttons). Hand the password over through a secure channel and ask the employee to have it changed at the first sign‑in through "Reset password" (there is no self‑service password change in the panel yet - an administrator sets a new one on request). An administrator must set up 2FA at the first sign‑in.
 
 ### 13.2. Actions
 
-![Figure 41. User actions menu](../img/admin-user-actions.png)
+![Figure 44. User actions menu](../img/admin-user-actions.png)
 
 | Action | Effect |
 |---|---|
