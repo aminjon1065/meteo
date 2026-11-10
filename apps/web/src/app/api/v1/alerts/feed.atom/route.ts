@@ -101,7 +101,7 @@ export async function GET(req: NextRequest) {
 
   const feed = `<?xml version="1.0" encoding="UTF-8"?>
 <feed xmlns="http://www.w3.org/2005/Atom">
-  <title>CAP — Агентство по гидрометеорологии Республики Таджикистан</title>
+  <title>CAP - Агентство по гидрометеорологии Республики Таджикистан</title>
   <id>${esc(self)}</id>
   <updated>${updated}</updated>
   <link rel="self" type="application/atom+xml" href="${esc(self)}"/>
