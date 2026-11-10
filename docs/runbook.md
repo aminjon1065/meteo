@@ -563,6 +563,12 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 Сообщения без совпадающего geocode привязываются по пересечению полигона CAP с регионами.
 
+Границы регионов предупреждений копируются из `regions` при выкатке (шаг «справочники») и при загрузке границ
+(`pnpm --filter @meteo/db boundaries`), если у региона своей геометрии ещё нет; заданную геометрию они не меняют.
+Если предупреждение есть в списке, но его нет на карте, проверьте геометрию:
+`select code, geom is not null from warning_regions;` - пустую можно заполнить вручную:
+`update warning_regions wr set geom = r.geom from regions r where r.code = wr.code and wr.geom is null;`
+
 ## 9. Подключение внешних источников через `.env`
 
 После любого изменения `.env`: `dc up -d worker web` (пересоздаются только затронутые сервисы), затем проверка на

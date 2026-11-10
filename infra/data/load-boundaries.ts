@@ -491,6 +491,13 @@ try {
           : [rid, row.pcode, JSON.stringify(displayName(row))],
       );
     }
+
+    // Регионы предупреждений CAP с кодами областей (их создаёт seed) получают границы, если своих ещё
+    // нет: seed обычно выполняется раньше загрузки границ, и предупреждения не попадали бы на карту.
+    await tx`
+      update warning_regions wr set geom = r.geom, updated_at = now()
+      from regions r
+      where r.code = wr.code and wr.geom is null and r.geom is not null`;
   });
   log(
     `записано: regions ${taxonomy.admin1.length} (upsert), districts ${taxonomy.admin2.length} (upsert, с геометрией ${districtGeometry.size})`,

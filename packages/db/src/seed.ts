@@ -831,11 +831,16 @@ await db
 // ---------------------------------------------------------------------------
 // Регионы предупреждений CAP: пока Агентство не передало коды SmartMet Alert (D3),
 // используем коды и границы областей (geocode valueName любой, value = код области).
+// Границы областей загружаются отдельно (pnpm --filter @meteo/db boundaries) и обычно позже первого
+// seed, поэтому у уже созданного региона пустая геометрия дозаполняется: без неё предупреждение,
+// привязанное по geocode, есть в списке, но не попадает на карту. Заданную геометрию не трогаем.
 // ---------------------------------------------------------------------------
 await db.execute(sql`
   insert into warning_regions (code, name, geom)
   select code, name, geom from regions
-  on conflict (code) do nothing
+  on conflict (code) do update
+    set geom = excluded.geom, updated_at = now()
+    where warning_regions.geom is null and excluded.geom is not null
 `);
 
 // ---------------------------------------------------------------------------

@@ -42,8 +42,11 @@ log "размер дампа: $(wc -c <"$DUMP" | tr -d ' ') байт"
 log "чистый контейнер $TARGET ($IMAGE)"
 docker run -d --name "$TARGET" -e POSTGRES_USER=meteo -e POSTGRES_PASSWORD=restore -e POSTGRES_DB=postgres \
   "$IMAGE" postgres -c shared_preload_libraries=timescaledb -c timescaledb.telemetry_level=off >/dev/null
+# Готовность проверяем по TCP: при первом запуске образ поднимает временный сервер только на
+# unix-сокете (инициализация), затем перезапускает его. Проверка по сокету ловила временный сервер,
+# и следующий запрос попадал на "the database system is shutting down".
 i=0
-until docker exec "$TARGET" pg_isready -U meteo -d postgres >/dev/null 2>&1; do
+until docker exec "$TARGET" pg_isready -h 127.0.0.1 -U meteo -d postgres >/dev/null 2>&1; do
   i=$((i + 1)); [ "$i" -gt 60 ] && fail "PostgreSQL не поднялся за 60 с"; sleep 1
 done
 sleep 2

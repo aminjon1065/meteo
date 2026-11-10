@@ -557,6 +557,12 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 Messages without a matching geocode are assigned by intersecting the CAP polygon with the regions.
 
+Warning region boundaries are copied from `regions` on deployment (the reference data step) and when boundaries are
+loaded (`pnpm --filter @meteo/db boundaries`) if the warning region has no geometry of its own yet; an existing
+geometry is not changed. If a warning is in the list but not on the map, check the geometry:
+`select code, geom is not null from warning_regions;` - an empty one can be filled manually:
+`update warning_regions wr set geom = r.geom from regions r where r.code = wr.code and wr.geom is null;`
+
 ## 9. Connecting external sources through `.env`
 
 After any `.env` change: `dc up -d worker web` (only the affected services are recreated), then check the dashboard and
