@@ -1,30 +1,34 @@
 import { CAP_SEVERITY_RANK, type CapSeverity, severityStyle } from "@meteo/core";
 import { cn } from "@meteo/ui/lib/utils";
 
-/** Уровень CAP → токены уровня воздуха того же цвета: жёлтый (2), оранжевый (3), красный (4). */
-const TINT: Record<0 | 2 | 3 | 4, string> = {
+/** Уровень CAP → токены уровня воздуха того же цвета: зелёный (1), жёлтый (2), оранжевый (3), красный (4). */
+const TINT: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: "bg-aq-0-tint",
+  1: "bg-aq-1-tint",
   2: "bg-aq-2-tint",
   3: "bg-aq-3-tint",
   4: "bg-aq-4-tint",
 };
 
-const BORDER: Record<0 | 2 | 3 | 4, string> = {
+const BORDER: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: "border-l-aq-0",
+  1: "border-l-aq-1",
   2: "border-l-aq-2",
   3: "border-l-aq-3",
   4: "border-l-aq-4",
 };
 
-const DOT: Record<0 | 2 | 3 | 4, string> = {
+const DOT: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: "bg-aq-0",
+  1: "bg-aq-1",
   2: "bg-aq-2",
   3: "bg-aq-3",
   4: "bg-aq-4",
 };
 
-const FG: Record<0 | 2 | 3 | 4, string> = {
+const FG: Record<0 | 1 | 2 | 3 | 4, string> = {
   0: "text-aq-0-foreground",
+  1: "text-aq-1-foreground",
   2: "text-aq-2-foreground",
   3: "text-aq-3-foreground",
   4: "text-aq-4-foreground",
@@ -38,8 +42,7 @@ export function severityNumber(severity: string): string {
 
 /**
  * Знак уровня опасности: круг цвета уровня с цифрой 1–4. Цифра различает уровни без цвета
- * (WCAG 1.4.1) — в том числе высокую и чрезвычайную опасность, у которых цвет один (красный).
- * Декоративен: смысл передаёт подпись или aria-label ссылки рядом.
+ * (WCAG 1.4.1). Декоративен: смысл передаёт подпись или aria-label ссылки рядом.
  */
 export function SeverityMark({ severity, className }: { severity: string; className?: string }) {
   const style = severityStyle(severity);

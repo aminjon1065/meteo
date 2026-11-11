@@ -372,7 +372,7 @@ export const AlertSchema = z.object({
   description: z.string().nullable(),
   instruction: z.string().nullable(),
   severity: z.enum(["Extreme", "Severe", "Moderate", "Minor", "Unknown"]),
-  color: z.enum(["red", "orange", "yellow", "none"]),
+  color: z.enum(["red", "orange", "yellow", "green", "none"]),
   colorHex: z.string(),
   urgency: z.string(),
   certainty: z.string(),

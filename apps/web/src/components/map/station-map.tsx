@@ -261,7 +261,7 @@ const SEVERITY_NUMBER: Record<string, string> = {
 
 /**
  * Знак уровня опасности для попапа: круг цвета с цифрой 1–4 (как SeverityMark). `level` — уровень
- * цвета из CAP_SEVERITY_STYLES (2 жёлтый, 3 оранжевый, 4 красный): цифра цветом текста уровня.
+ * цвета из CAP_SEVERITY_STYLES (1 зелёный, 2 жёлтый, 3 оранжевый, 4 красный): цифра цветом текста уровня.
  */
 function severityMarkHtml(level: number, severity: string): string {
   const style = AQ_LEVEL_STYLES[level as keyof typeof AQ_LEVEL_STYLES] ?? AQ_LEVEL_STYLES[0];

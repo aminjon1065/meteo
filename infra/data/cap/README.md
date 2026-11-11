@@ -4,9 +4,9 @@
 
 | Файл | Что проверяет |
 |---|---|
-| `wind-alert.xml` | Actual/Alert на трёх языках (tg/ru/en), polygon + circle + geocode DU, RRP; severity Severe (красный) |
-| `frost-alert.xml` | Alert только на английском с префиксом `cap:`, CDATA; geocode SU; Minor (жёлтый) |
-| `frost-update.xml` | Update, заменяет `frost-alert.xml` через `<references>`; en + ru; Moderate (оранжевый); SU + RRP |
+| `wind-alert.xml` | Actual/Alert на трёх языках (tg/ru/en), polygon + circle + geocode DU, RRP; severity Severe (оранжевый) |
+| `frost-alert.xml` | Alert только на английском с префиксом `cap:`, CDATA; geocode SU; Minor (зелёный) |
+| `frost-update.xml` | Update, заменяет `frost-alert.xml` через `<references>`; en + ru; Moderate (жёлтый); SU + RRP |
 | `dust-alert.xml` | Alert Extreme (красный) с незамкнутым полигоном и двумя category; KT |
 | `dust-cancel.xml` | Cancel: отменяет `dust-alert.xml` - исчезает с портала, остаётся в админке |
 | `test-alert.xml` | status=Test - не публикуется, виден только в админке |

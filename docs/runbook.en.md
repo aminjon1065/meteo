@@ -1086,8 +1086,8 @@ shown on staging.
 T=/smartmet/editor/smartalert-test
 gen() { docker run --rm -u "$(stat -c %u:%g $T)" -v $T:/out -v /opt/smartmet/alert/test-feed:/s:ro \
   node:22-alpine node /s/cap-chain.mjs --out /out --step "$1"; }
-gen alert      # within 5 min on https://staging.havo.tj/en/warnings - "TEST: strong wind", Dushanbe, orange
-gen update     # replaced: red, Dushanbe + DRS (code RRP); the original is "superseded" in /admin/cap
+gen alert      # within 5 min on https://staging.havo.tj/en/warnings - "TEST: strong wind", Dushanbe, yellow
+gen update     # replaced: orange, Dushanbe + DRS (code RRP); the original is "superseded" in /admin/cap
 gen cancel     # disappears from the site, map and /embed/alerts widget; "cancelled" in /admin/cap
 gen reset; gen alert; gen withdraw   # empty issue: withdrawn without Cancel, "withdrawn" in /admin/cap
 ```

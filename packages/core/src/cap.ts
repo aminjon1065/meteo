@@ -550,18 +550,22 @@ export const CAP_SEVERITY_RANK: Record<CapSeverity, number> = {
   Unknown: 0,
 };
 
-export type CapSeverityColorKey = "red" | "orange" | "yellow" | "none";
+export type CapSeverityColorKey = "red" | "orange" | "yellow" | "green" | "none";
 
 export interface CapSeverityStyle {
   severity: CapSeverity;
   key: CapSeverityColorKey;
-  /** Уровень цветовой шкалы портала (токены --aq-N): 2 жёлтый, 3 оранжевый, 4 красный, 0 серый. */
-  level: 0 | 2 | 3 | 4;
+  /** Уровень цветовой шкалы портала (токены --aq-N): 1 зелёный, 2 жёлтый, 3 оранжевый, 4 красный, 0 серый. */
+  level: 0 | 1 | 2 | 3 | 4;
   color: string;
   foreground: string;
 }
 
-/** Цвета как в MeteoAlarm: Minor — жёлтый, Moderate — оранжевый, Severe и Extreme — красный. */
+/**
+ * Цвета как в MeteoAlarm и в smartalert-web FMI (capmap.js): Minor - зелёный, Moderate - жёлтый,
+ * Severe - оранжевый, Extreme - красный. Редактор SmartMet Alert пишет жёлтый уровень как Moderate,
+ * оранжевый как Severe, красный как Extreme, поэтому цвет на портале совпадает с цветом у синоптика.
+ */
 export const CAP_SEVERITY_STYLES: Record<CapSeverity, CapSeverityStyle> = {
   Extreme: {
     severity: "Extreme",
@@ -572,24 +576,24 @@ export const CAP_SEVERITY_STYLES: Record<CapSeverity, CapSeverityStyle> = {
   },
   Severe: {
     severity: "Severe",
-    key: "red",
-    level: 4,
-    color: AQ_LEVEL_STYLES[4].color,
-    foreground: AQ_LEVEL_STYLES[4].foreground,
-  },
-  Moderate: {
-    severity: "Moderate",
     key: "orange",
     level: 3,
     color: AQ_LEVEL_STYLES[3].color,
     foreground: AQ_LEVEL_STYLES[3].foreground,
   },
-  Minor: {
-    severity: "Minor",
+  Moderate: {
+    severity: "Moderate",
     key: "yellow",
     level: 2,
     color: AQ_LEVEL_STYLES[2].color,
     foreground: AQ_LEVEL_STYLES[2].foreground,
+  },
+  Minor: {
+    severity: "Minor",
+    key: "green",
+    level: 1,
+    color: AQ_LEVEL_STYLES[1].color,
+    foreground: AQ_LEVEL_STYLES[1].foreground,
   },
   Unknown: {
     severity: "Unknown",

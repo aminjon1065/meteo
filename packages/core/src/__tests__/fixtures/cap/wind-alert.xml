@@ -30,7 +30,7 @@
     <web>https://meteo.tj/warnings</web>
     <parameter>
       <valueName>awareness_level</valueName>
-      <value>3; red; Severe</value>
+      <value>3; orange; Severe</value>
     </parameter>
     <parameter>
       <valueName>awareness_type</valueName>
@@ -72,7 +72,7 @@
     <web>https://meteo.tj/ru/warnings</web>
     <parameter>
       <valueName>awareness_level</valueName>
-      <value>3; red; Severe</value>
+      <value>3; orange; Severe</value>
     </parameter>
     <area>
       <areaDesc>Душанбе и районы республиканского подчинения</areaDesc>
@@ -110,7 +110,7 @@
     <web>https://meteo.tj/en/warnings</web>
     <parameter>
       <valueName>awareness_level</valueName>
-      <value>3; red; Severe</value>
+      <value>3; orange; Severe</value>
     </parameter>
     <area>
       <areaDesc>Dushanbe and Districts of Republican Subordination</areaDesc>

@@ -45,7 +45,7 @@ describe("parseCapAlert", () => {
     expect(ru?.categories).toEqual(["Met"]);
     expect(ru?.responseTypes).toEqual(["Prepare"]);
     expect(ru?.eventCodes).toEqual([{ valueName: "FMI-type", value: "wind" }]);
-    expect(ru?.parameters[0]).toEqual({ valueName: "awareness_level", value: "3; red; Severe" });
+    expect(ru?.parameters[0]).toEqual({ valueName: "awareness_level", value: "3; orange; Severe" });
     expect(ru?.onset?.toISOString()).toBe("2026-10-16T07:00:00.000Z");
     expect(ru?.expires?.toISOString()).toBe("2026-10-17T16:00:00.000Z");
     expect(ru?.headline).toContain("Сильный ветер");
@@ -206,9 +206,9 @@ describe("примитивы CAP", () => {
     expect(normalizeCapLocale(undefined)).toBeNull();
   });
   it("цвета по severity как в MeteoAlarm", () => {
-    expect(severityStyle("Minor").key).toBe("yellow");
-    expect(severityStyle("Moderate").key).toBe("orange");
-    expect(severityStyle("Severe").key).toBe("red");
+    expect(severityStyle("Minor").key).toBe("green");
+    expect(severityStyle("Moderate").key).toBe("yellow");
+    expect(severityStyle("Severe").key).toBe("orange");
     expect(severityStyle("Extreme").key).toBe("red");
     expect(severityStyle("Unknown").key).toBe("none");
     expect(severityStyle("garbage").level).toBe(0);

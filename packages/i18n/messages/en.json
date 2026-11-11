@@ -1324,7 +1324,7 @@
     "bannerTitle": "{count, plural, one {# warning in force} other {# warnings in force}}",
     "forLocation": "Warnings for this area",
     "noneForLocation": "No warnings for this area",
-    "colorHint": "Colour and number show the danger level: 1 - minor (yellow), 2 - moderate (orange), 3 - severe and 4 - extreme (red)",
+    "colorHint": "Colour and number show the danger level: 1 - minor (green), 2 - moderate (yellow), 3 - severe (orange), 4 - extreme (red)",
     "sourceNote": "Warnings are issued by the Agency for Hydrometeorology in CAP format (SmartMet Alert)",
     "dayNav": "Choose a day",
     "mapCount": "{count, plural, one {# active} other {# active}}",

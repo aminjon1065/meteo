@@ -172,7 +172,7 @@ The "Warnings" section (`/warnings`) - the Agency's severe‑weather warnings in
 
 - **Active now** and **Upcoming** - cards with headline, danger level, validity period, area, description and instructions; the "CAP XML" button opens the source message.
 - **By region and day** - a table: rows - regions (Dushanbe, RRP, Sughd, Khatlon, GBAO), columns - the coming days; a cell holds a circle with the digit of the maximum danger level. A region link filters the list.
-- Danger levels are shown by colour and digit: 1 - minor (yellow), 2 - moderate (orange), 3 - severe and 4 - extreme (red).
+- Danger levels are shown by colour and digit: 1 - minor (green), 2 - moderate (yellow), 3 - severe (orange), 4 - extreme (red).
 - The "Show on the map" link opens the home map zoomed to the warning areas.
 - If data from the warning editor has not arrived for a while, a note at the top of the section says the list may be incomplete.
 - An updated warning replaces the previous one, a cancelled one disappears; expired warnings are not shown.
@@ -392,7 +392,7 @@ Warnings - `GET /api/v1/alerts?active=1&lang=en`:
       "headline": "Strong wind up to 25 m/s in Dushanbe and RRP",
       "description": "Strong westerly wind of 18–25 m/s is expected from midday 16 October until the evening of 17 October.",
       "instruction": "Stay away from trees and unstable structures, secure loose objects.",
-      "severity": "Severe", "color": "red", "colorHex": "#D7263D",
+      "severity": "Severe", "color": "orange", "colorHex": "#EA8A2B",
       "urgency": "Expected", "certainty": "Likely",
       "onset": "2026-10-17T07:00:00.000Z", "expires": "2026-10-18T16:00:00.000Z",
       "active": true, "upcoming": false,

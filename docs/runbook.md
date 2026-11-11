@@ -1086,8 +1086,8 @@ Staging читает **тестовую** ленту, поэтому тесто�
 T=/smartmet/editor/smartalert-test
 gen() { docker run --rm -u "$(stat -c %u:%g $T)" -v $T:/out -v /opt/smartmet/alert/test-feed:/s:ro \
   node:22-alpine node /s/cap-chain.mjs --out /out --step "$1"; }
-gen alert      # через ≤ 5 мин на https://staging.havo.tj/ru/warnings - «ТЕСТ: сильный ветер», Душанбе, оранжевый
-gen update     # заменено: красный, Душанбе + РРП; в /admin/cap исходное - «заменено»
+gen alert      # через ≤ 5 мин на https://staging.havo.tj/ru/warnings - «ТЕСТ: сильный ветер», Душанбе, жёлтый
+gen update     # заменено: оранжевый, Душанбе + РРП; в /admin/cap исходное - «заменено»
 gen cancel     # исчезает с сайта, карты и виджета /embed/alerts; в /admin/cap - «отменено»
 gen reset; gen alert; gen withdraw   # пустой выпуск: снято без Cancel, в /admin/cap - «снято с выпуска»
 ```
