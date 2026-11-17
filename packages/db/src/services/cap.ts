@@ -3,15 +3,18 @@
  * выборки для портала, карты, API и админки.
  */
 import {
+  buildCapPlaceIndex,
   type CapAlert,
   type CapCertainty,
   type CapMsgType,
+  type CapPlaceName,
   type CapSeverity,
   type CapStatus,
   type CapUrgency,
   capWindow,
   isCapActive,
   isCapUpcoming,
+  matchCapAreaRegions,
 } from "@meteo/core";
 import type { I18nText } from "@meteo/i18n";
 import { and, asc, count, desc, eq, gte, inArray, isNull, lte, ne, sql } from "drizzle-orm";
@@ -97,6 +100,15 @@ export async function ingestCapAlert(
         .select({ id: s.warningRegions.id, code: s.warningRegions.code })
         .from(s.warningRegions);
       const regionByCode = new Map(regionRows.map((r) => [r.code.trim().toUpperCase(), r.id]));
+      // Области без геокода (редактор SmartMet Alert пишет контур и название района) - регион по
+      // названию района из справочника; справочник читается, только если такие области есть.
+      const placeIndex = alert.infos.some((i) => i.areas.some((a) => a.geocodes.length === 0))
+        ? buildCapPlaceIndex(await loadCapPlaceNames(tx))
+        : null;
+      // В info разных языков одни и те же области в одном порядке: название берётся на всех языках.
+      const sameAreas = alert.infos.every(
+        (i) => i.areas.length === (alert.infos[0]?.areas.length ?? 0),
+      );
       const events = [...new Set(alert.infos.map((i) => i.event.trim()).filter(Boolean))];
       if (events.length) {
         await tx
@@ -104,7 +116,7 @@ export async function ingestCapAlert(
           .values(events.map((event) => ({ event, name: {} })))
           .onConflictDoNothing();
       }
-      for (const info of alert.infos) {
+      for (const [infoIdx, info] of alert.infos.entries()) {
         const [infoRow] = await tx
           .insert(s.capInfos)
           .values({
@@ -132,14 +144,23 @@ export async function ingestCapAlert(
           })
           .returning({ id: s.capInfos.id });
         if (!infoRow) continue;
-        for (const area of info.areas) {
-          const regionIds = [
+        for (const [areaIdx, area] of info.areas.entries()) {
+          let regionIds = [
             ...new Set(
               area.geocodes
                 .map((g) => regionByCode.get(g.value.trim().toUpperCase()))
                 .filter((v): v is number => v !== undefined),
             ),
           ];
+          if (regionIds.length === 0 && placeIndex) {
+            const names = sameAreas
+              ? alert.infos.map((i) => i.areas[areaIdx]?.areaDesc ?? "")
+              : [alert.infos[infoIdx]?.areas[areaIdx]?.areaDesc ?? area.areaDesc];
+            const codes = matchCapAreaRegions(names, placeIndex) ?? [];
+            regionIds = codes
+              .map((c) => regionByCode.get(c))
+              .filter((v): v is number => v !== undefined);
+          }
           const base = {
             infoId: infoRow.id,
             areaDesc: area.areaDesc,
@@ -158,15 +179,19 @@ export async function ingestCapAlert(
               .values({ ...base, warningRegionId: null })
               .returning({ id: s.capAreas.id });
             if (areaRow && area.geometry) {
-              // Геокода нет — регионы по пересечению с геометрией (≥ 5 % меньшей из площадей).
+              // Ни геокода, ни известного названия - регионы по геометрии: регион, на который
+              // приходится не меньше 20 % контура предупреждения, или покрытый контуром наполовину.
+              // Узкие полосы на границе (контуры FMI грубее наших) регион не добавляют.
               const matched = await tx.execute<{ id: number }>(sql`
                 select wr.id
                 from ${s.warningRegions} wr, ${s.capAreas} ca
                 where ca.id = ${areaRow.id}
                   and wr.geom is not null
                   and ST_Intersects(wr.geom, ca.geom)
-                  and ST_Area(ST_Intersection(wr.geom, ca.geom))
-                      > 0.05 * least(ST_Area(wr.geom), ST_Area(ca.geom))
+                  and (
+                    ST_Area(ST_Intersection(wr.geom, ca.geom)) >= 0.2 * ST_Area(ca.geom)
+                    or ST_Area(ST_Intersection(wr.geom, ca.geom)) >= 0.5 * ST_Area(wr.geom)
+                  )
               `);
               const ids = [...matched].map((m) => Number(m.id));
               const first = ids[0];
@@ -503,7 +528,28 @@ export async function loadWarnings(
   return result;
 }
 
-/** Идентификаторы предупреждений, затрагивающих точку (геометрия области/региона) или регион по коду. */
+/** Названия районов и регионов (tg/ru/en) с кодом региона предупреждений - для областей CAP без геокода. */
+async function loadCapPlaceNames(db: Pick<Database, "select">): Promise<CapPlaceName[]> {
+  const [districtRows, regionRows] = await Promise.all([
+    db
+      .select({ name: s.districts.name, code: s.regions.code })
+      .from(s.districts)
+      .innerJoin(s.regions, eq(s.regions.id, s.districts.regionId)),
+    db.select({ name: s.warningRegions.name, code: s.warningRegions.code }).from(s.warningRegions),
+  ]);
+  return [...districtRows, ...regionRows].flatMap((r) =>
+    Object.values((r.name ?? {}) as Record<string, string | undefined>)
+      .filter((n): n is string => !!n)
+      .map((name) => ({ name, regionCode: r.code.trim().toUpperCase() })),
+  );
+}
+
+/**
+ * Идентификаторы предупреждений, затрагивающих точку: регион точки совпадает с регионом области
+ * или контур области накрывает точку. Если известны и регион точки, и регион области, решает регион:
+ * контур района FMI бывает шире района (у «Рудаки» нет «дырки» под Душанбе), и предупреждение для
+ * соседнего района не должно попадать на страницу города.
+ */
 export async function warningIdsForPoint(
   db: Database,
   point: { lon: number; lat: number; regionCode?: string | null },
@@ -517,8 +563,11 @@ export async function warningIdsForPoint(
     left join ${s.warningRegions} wr on wr.id = ca.warning_region_id
     where ca.info_id in ${infoIds}
       and (
-        ST_Intersects(coalesce(ca.geom, wr.geom), ST_SetSRID(ST_Point(${point.lon}, ${point.lat}), 4326))
-        or (${point.regionCode ?? null}::text is not null and wr.code = ${point.regionCode ?? null})
+        (${point.regionCode ?? null}::text is not null and wr.code = ${point.regionCode ?? null})
+        or (
+          ST_Intersects(coalesce(ca.geom, wr.geom), ST_SetSRID(ST_Point(${point.lon}, ${point.lat}), 4326))
+          and (${point.regionCode ?? null}::text is null or wr.code is null)
+        )
       )
   `);
   const matched = new Set([...rows].map((r) => Number(r.info_id)));

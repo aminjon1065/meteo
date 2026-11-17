@@ -6,6 +6,7 @@ export * from "./bulletin-html";
 export * from "./bulletin-phrases";
 export * from "./bulletin-text";
 export * from "./cap";
+export * from "./cap-areas";
 export * from "./csv";
 export * from "./image-meta";
 export * from "./import-mapping";

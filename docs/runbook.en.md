@@ -555,7 +555,7 @@ insert into warning_regions (code, name, geom)
 select 'TJ-SU', name, geom from regions where code = 'SU';
 ```
 
-Messages without a matching geocode are assigned by intersecting the CAP polygon with the regions.
+Messages without a matching geocode are assigned by the district name in `areaDesc` (the district and region directory, in all languages of the message); if the name is not found - by intersecting the CAP polygon with the regions (at least 20 % of the outline inside the region, or half of the region under the outline).
 
 Warning region boundaries are copied from `regions` on deployment (the reference data step) and when boundaries are
 loaded (`pnpm --filter @meteo/db boundaries`) if the warning region has no geometry of its own yet; an existing
@@ -604,7 +604,7 @@ and stations.
 
 Check: `curl -fsS "$CAP_FEED_URL" | head -20`; then a manual `cap-sync` run with `force` and `/admin/cap` →
 "Synchronisation". Messages with status `Test`/`Exercise` are visible only in the panel. Region codes in `<geocode>` must
-match `warning_regions.code` (section 8.4); otherwise assignment is by polygon intersection. The `event` translation
+match `warning_regions.code` (section 8.4); otherwise assignment is by district name, then by polygon intersection. The `event` translation
 dictionary - `/admin/cap/events`.
 
 ### 9.4. Automatic data intake from stations (ingest API, agent, SFTP/FTP/HTTP)
