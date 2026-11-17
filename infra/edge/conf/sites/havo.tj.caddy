@@ -20,3 +20,23 @@ staging.havo.tj {
 	import havo_origin_tls
 	import proxy_to meteo-staging:80
 }
+
+# Веб-карта SmartMet Alert (fmidev/smartalert-web) с боевой лентой этого сервера, как alert.meteo.tj у
+# Агентства (runbook §14.5). В каталоге данных лежат и черновики редактора (workspace, workspaceCap) —
+# наружу отдаются только файлы карты и опубликованные выпуски, только чтение.
+alert.havo.tj {
+	import havo_origin_tls
+	@public {
+		method GET HEAD
+		path / /index.html /capfeed.php /list.php /lastUpdated.php /capatom.xsl /capmap-config.js /locations.js /ethiopian_calendar.js /cap-logo.png /css/* /js/* /img/* /i18n/* /vendor/* /data/publishedCap/* /data/published/*
+	}
+	handle @public {
+		header {
+			X-Content-Type-Options nosniff
+			Referrer-Policy strict-origin-when-cross-origin
+			-X-Powered-By
+		}
+		import proxy_to smartalert-web:80
+	}
+	respond 404
+}

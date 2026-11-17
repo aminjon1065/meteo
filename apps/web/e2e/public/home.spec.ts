@@ -45,7 +45,7 @@ for (const locale of locales) {
     await expect(menu).toBeVisible();
     const nav = menu.getByRole("navigation", { name: t(locale, "common.mainNav") });
     for (const [key, path] of [
-      ["nav.meteoAlert", "/warnings"],
+      ["nav.smartmetAlert", "/warnings"],
       ["nav.forecast", "/weather"],
       ["nav.silam", "/air/silam"],
       ["nav.airMonitoring", "/air"],
@@ -59,7 +59,7 @@ for (const locale of locales) {
     await expect(
       nav.getByRole("link", { name: t(locale, "nav.map"), exact: true }),
     ).toHaveAttribute("aria-current", "page");
-    await nav.getByRole("link", { name: t(locale, "nav.meteoAlert"), exact: true }).click();
+    await nav.getByRole("link", { name: t(locale, "nav.smartmetAlert"), exact: true }).click();
     await expect(page).toHaveURL(new RegExp(`${prefix(locale)}/warnings$`));
     await expect(page.locator("footer")).toBeVisible();
     expect(violations()).toEqual([]);

@@ -41,9 +41,9 @@
     }
   },
   "nav": {
-    "meteoAlert": "MeteoAlert (SmartMet)",
+    "smartmetAlert": "SmartMet Alert",
     "forecast": "SmartMet (forecast)",
-    "silam": "SmartMet (SILAM)",
+    "silam": "SILAM (air quality forecast)",
     "airMonitoring": "Air monitoring",
     "map": "Map",
     "news": "News",
@@ -2262,8 +2262,8 @@
     "TVOC": "TVOC - volatile organic compounds: solvents, fuel"
   },
   "silamPage": {
-    "title": "SmartMet (SILAM)",
-    "metaTitle": "SmartMet (SILAM) - air quality forecast",
+    "title": "SILAM (air quality forecast)",
+    "metaTitle": "SILAM (air quality forecast)",
     "intro": "Air pollution forecast maps for Tajikistan and neighbouring countries from the SILAM model. The Finnish Meteorological Institute (FMI) computes them every day under the FINTAJ project.",
     "linkMap": "SILAM layer on the map",
     "linkStations": "Station measurements",

@@ -9,7 +9,7 @@ Meteoportal is the official website of the Agency for Hydrometeorology of the Re
 - **Address**: `https://<portal domain>` (for example `https://havo.tj`). The portal works on desktops, tablets and phones; no registration is needed.
 - **Languages**: Tajik (primary, addresses without a prefix - `/air`), Russian (`/ru/air`) and English (`/en/air`). The language switch is in the top‑right corner (globe icon).
 - **Theme**: light or dark (moon/sun icon next to the language; on a phone - in the ☰ menu).
-- **Sections** are in the ☰ menu on the left of the header (as on data.meteo.uz): MeteoAlert (SmartMet) - warnings, SmartMet (forecast) - weather, SmartMet (SILAM) - air‑quality forecast, Air monitoring, Map, News, Health, Open data · API, About; below them - "About the index", "Eco-bulletins", "Email alerts". The menu also holds the language, theme and project credits. Every page except the home page has a footer with the same links and contacts.
+- **Sections** are in the ☰ menu on the left of the header (as on data.meteo.uz): SmartMet Alert - warnings, SmartMet (forecast) - weather, SILAM (air quality forecast), Air monitoring, Map, News, Health, Open data · API, About; below them - "About the index", "Eco-bulletins", "Email alerts". The menu also holds the language, theme and project credits. Every page except the home page has a footer with the same links and contacts.
 - **Time** on the portal is shown in Dushanbe time (UTC+5); the API and CSV use UTC together with local time.
 - **Accessibility**: pollution levels are always labelled with words, not only colour; the interface works with the keyboard and screen readers.
 
@@ -118,7 +118,7 @@ The map is the portal's home page (`/`; the old address `/map` leads there too).
 - When zoomed out, nearby stations merge into a circle coloured by the worst level, with a halo; click it to zoom in.
 - Stations without recent data appear as pale rings when zoomed in; at country scale they are hidden.
 
-**Air quality · Forecast** - the SILAM model forecast: a coloured grid of public‑scale levels for the selected pollutant (`PM2.5`, `PM10`, etc.). The slider and the "‹ ›" buttons step through the forecast by hour for 5 days ahead; "▶" starts the animation. Below the slider - the level scale, the model run time and the country maximum; the "FMI maps for Tajikistan" link opens the ready‑made FMI maps ("SmartMet (SILAM)" section).
+**Air quality · Forecast** - the SILAM model forecast: a coloured grid of public‑scale levels for the selected pollutant (`PM2.5`, `PM10`, etc.). The slider and the "‹ ›" buttons step through the forecast by hour for 5 days ahead; "▶" starts the animation. Below the slider - the level scale, the model run time and the country maximum; the "FMI maps for Tajikistan" link opens the ready‑made FMI maps ("SILAM (air quality forecast)" section).
 
 **Weather · Now** - the weather symbol and the current temperature in cities (SmartMet forecast points); click a city for the weather description, the day's maximum and minimum and a link to the detailed forecast. Other places appear as you zoom in.
 
@@ -134,16 +134,16 @@ The outlines of the regions, Dushanbe and the RRP are always shown, and dashed d
 
 If the browser does not support WebGL (very old computers, hardware acceleration disabled), a message is shown instead of the map - use the station list.
 
-### 6.1. FMI maps "SmartMet (SILAM)"
+### 6.1. FMI maps "SILAM (air quality forecast)"
 
-The "SmartMet (SILAM)" section (`/air/silam`, in the ☰ menu) shows ready-made air pollution forecast maps for Tajikistan and neighbouring countries, computed every day by the Finnish Meteorological Institute (FMI) with the SILAM model under the FINTAJ project. The portal shows them unchanged.
+The "SILAM (air quality forecast)" section (`/air/silam`, in the ☰ menu) shows ready-made air pollution forecast maps for Tajikistan and neighbouring countries, computed every day by the Finnish Meteorological Institute (FMI) with the SILAM model under the FINTAJ project. The portal shows them unchanged.
 
 - **Parameter** - buttons above the map: air quality index AQI (the worst of the pollutant levels), PM2.5, PM10, NO₂, O₃, CO, SO₂ and boundary layer height (ABL - the lower it is, the more pollution accumulates near the ground).
 - **Time** - mouse wheel over the map (down for later, up for earlier) or hover over the hour strip; on a phone, swipe the map left or right; on a keyboard, use the arrow keys. "Animate" plays all 48 hours.
 - The 48-hour forecast usually starts at 00 UTC of the previous day, and new maps appear at about 07:00 Dushanbe time; when FMI publishes later, the run starts at 00 UTC of the same day - the portal accounts for this. The map gives the time in UTC ("06Z" = 11:00 in Dushanbe), the portal shows local time above it. If FMI has not updated the maps for a while, the portal says so and shows the latest run.
 - Below the map - explanations, the FMI index thresholds table and links to the SILAM layer on the portal map and to station measurements. The model shows background pollution on a grid of tens of kilometres; the official assessment is based on station data.
 
-![Figure 9. The "SmartMet (SILAM)" section: FMI forecast maps, parameter buttons and the hour strip](../img/user-silam.png)
+![Figure 9. The "SILAM (air quality forecast)" section: FMI forecast maps, parameter buttons and the hour strip](../img/user-silam.png)
 
 ## 7. Weather
 

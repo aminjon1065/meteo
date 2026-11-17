@@ -78,6 +78,9 @@ services:
   # для портала (CAP_FEED_URL=http://smartalert/capfeed.php). Редактор SmartMet Alert публикует CAP по SFTP
   # (sftp/setup-editor-sftp.sh) в /smartmet/editor/smartalert/publishedCap/<год>/<месяц>/<YYYYMMDDHHmmss>/.
   # capfeed.php — наша правка файла FMI (Cancel, битые файлы; см. alert/capfeed.php и ADR-010).
+  # Публичная веб-карта https://alert.havo.tj — через общий Caddy (сеть edge, имя smartalert-web);
+  # Caddy отдаёт только карту и опубликованные выпуски, черновики редактора (workspace*) наружу не идут
+  # (infra/edge/conf/sites/havo.tj.caddy).
   alert-web: &alert-web
     image: fmidev/smartmetalert:26.10.21
     restart: unless-stopped
@@ -92,6 +95,8 @@ services:
     networks:
       smartmet:
         aliases: [smartalert]
+      edge:
+        aliases: [smartalert-web]
     # Apache стартует от root и переходит на www-data: нужны только порт 80 и смена пользователя.
     cap_drop: [ALL]
     cap_add: [NET_BIND_SERVICE, SETUID, SETGID]
@@ -130,3 +135,6 @@ services:
 networks:
   smartmet:
     name: smartmet
+  # Сеть общего Caddy хоста (infra/edge): создаётся один раз `docker network create edge`.
+  edge:
+    external: true

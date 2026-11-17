@@ -3,7 +3,7 @@ import { trackCspViolations } from "../helpers/console";
 import { type E2eLocale, t } from "../helpers/messages";
 
 /**
- * «SmartMet (SILAM)» (/air/silam): карты FMI идут с внешнего сервера silam.fmi.fi, поэтому тест
+ * «SILAM (прогноз качества воздуха)» (/air/silam): карты FMI идут с внешнего сервера silam.fmi.fi, поэтому тест
  * принимает оба состояния — просмотр карт или сообщение о недоступности FMI; тексты, ссылки
  * и отсутствие нарушений CSP проверяются всегда.
  */

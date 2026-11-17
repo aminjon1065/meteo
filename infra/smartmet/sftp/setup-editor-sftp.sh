@@ -5,6 +5,9 @@
 #
 #   sudo sh setup-editor-sftp.sh --key-file /root/smartalert.pub [--from 203.0.113.10/32]
 #
+# В файле ключей может быть несколько открытых ключей (по одному в строке): например, рабочие станции
+# синоптиков и ключ администратора для проверки. Файл заменяет прежний список ключей целиком.
+#
 # Что делает (повторный запуск безопасен):
 #   - пользователь smartalert без пароля и без оболочки (вход только по ключу);
 #   - sshd: только internal-sftp с umask 0022, chroot в /smartmet/editor, без перенаправлений и pty;
@@ -34,8 +37,8 @@ done
 
 [ "$(id -u)" -eq 0 ] || { echo "запускать от root" >&2; exit 1; }
 [ -n "$KEY_FILE" ] && [ -s "$KEY_FILE" ] || { echo "нужен --key-file с открытым ключом синоптика" >&2; exit 2; }
-KEY=$(grep -E '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) ' "$KEY_FILE" | head -1)
-[ -n "$KEY" ] || { echo "в $KEY_FILE нет открытого ключа OpenSSH" >&2; exit 2; }
+KEYS=$(grep -E '^(ssh-ed25519|ssh-rsa|ecdsa-sha2-nistp(256|384|521)) ' "$KEY_FILE" || true)
+[ -n "$KEYS" ] || { echo "в $KEY_FILE нет открытого ключа OpenSSH" >&2; exit 2; }
 
 # 1. Пользователь без оболочки и пароля.
 if ! id "$USER_NAME" >/dev/null 2>&1; then
@@ -70,7 +73,7 @@ mkdir -p "$KEYS_DIR"
 chmod 755 "$KEYS_DIR"
 OPTS=restrict
 [ -n "$FROM" ] && OPTS="from=\"$FROM\",restrict"
-printf '%s %s\n' "$OPTS" "$KEY" > "$KEYS_DIR/$USER_NAME.tmp"
+printf '%s\n' "$KEYS" | sed "s|^|$OPTS |" > "$KEYS_DIR/$USER_NAME.tmp"
 chmod 644 "$KEYS_DIR/$USER_NAME.tmp"
 mv "$KEYS_DIR/$USER_NAME.tmp" "$KEYS_DIR/$USER_NAME"
 

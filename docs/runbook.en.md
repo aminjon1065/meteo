@@ -1038,21 +1038,38 @@ reloads `ssh`; other SSH logins are unchanged (fail2ban already protects sshd). 
 Agency's address - omit it if there is no static IP. Port 22 is already open in the Hostinger firewall; it cannot be
 restricted by IP because administrators and deployments use it.
 
-**On the Agency workstation (Windows):**
+**On the Agency workstation (Windows).** The SFTP address is the server IP `46.202.155.70`, not `havo.tj`: the
+name goes through Cloudflare, which passes only web traffic (port 22 is closed there).
 
-1. Install [WinFsp](https://winfsp.dev) and [SSHFS‑Win](https://github.com/winfsp/sshfs-win); the private key goes to
-   `C:\Users\<forecaster>\.ssh\id_ed25519`.
-2. Map a drive: Explorer → "Map network drive" → `\\sshfs.k\smartalert@havo.tj` (key login). The drive shows the
-   `smartalert` (live feed) and `smartalert-test` (staging trials) folders.
-3. In the SmartMet Alert editor settings set the publication folder to `<drive>:\smartalert` (for trial issues -
-   `<drive>:\smartalert-test`).
-4. Alternative without a mapped drive - WinSCP synchronising the editor's publication folder to the server
-   (`winscp.com /command "open sftp://smartalert@havo.tj/ -privatekey=…" "synchronize remote …" "exit"` from the
-   Windows Task Scheduler).
+1. Key (PowerShell, no passphrase - press Enter twice):
+   `ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\smartalert_ed25519`. Send `smartalert_ed25519.pub` to the server
+   administrator (it is the public key and may be forwarded); the private key stays on the computer.
+2. The editor publishes to a **local** folder: in `conf\application-configuration.xml` set `repositoryOutputFolder`
+   to `C:\smartalert`. No network drives are needed (the Java editor fails on them when started as administrator:
+   `Unable to determine if root directory exists`).
+3. Upload to the server - `infra/smartmet/sftp/sync-smartalert.ps1` (the OpenSSH client built into Windows 10/11,
+   no third-party software). Copy it to `C:\smartmet\` and test it by hand:
+   `powershell -NoProfile -ExecutionPolicy Bypass -File C:\smartmet\sync-smartalert.ps1`; on the first run it
+   remembers the server key. New issues are uploaded to a temporary folder and renamed into `publishedCap` in one
+   step, so the feed never sees a half-uploaded issue. Log - `C:\smartalert\sync-smartalert.log`.
+4. Permanent operation - a Task Scheduler task at Windows logon (normal command prompt, not as administrator):
+   `schtasks /Create /TN "SmartAlert sync" /SC ONLOGON /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\smartmet\sync-smartalert.ps1 -Loop" /F`,
+   then `schtasks /Run /TN "SmartAlert sync"`. Trial issues for the staging test feed - a second editor folder and
+   `-Local C:\smartalert-test -Feed smartalert-test`.
+5. Alternative - an SFTP network drive: [WinFsp](https://winfsp.dev) + [SSHFS‑Win](https://github.com/winfsp/sshfs-win),
+   `\\sshfs.k\smartalert@46.202.155.70`, editor publication folder `<drive>:\smartalert`. Start the editor without
+   administrator rights: an administrator session does not see mapped drives.
 
 **Check:** a trial issue in `smartalert-test` → `curl -fsS http://127.0.0.1:8182/capfeed.php` on the server lists the
 file → on staging (`https://staging.havo.tj/en/warnings`) the warning appears within 5 minutes. To revoke access,
-delete the key from `/etc/ssh/authorized_keys/smartalert`.
+delete the key from `/etc/ssh/authorized_keys/smartalert`. The key file passed to `setup-editor-sftp.sh` may hold
+several keys (one per line); it replaces the previous list entirely.
+
+**Warnings web map** `https://alert.havo.tj` - FMI smartalert-web with this server's live feed (like the Agency's
+`alert.meteo.tj`). The `alert-web` service joins the `edge` network; the shared Caddy serves only the map files and
+published issues (`/data/publishedCap/*`, `/data/published/*`), GET/HEAD only; editor drafts (`workspace*`) and the
+image's service files return 404 (`infra/edge/conf/sites/havo.tj.caddy`). DNS: record `alert` (A `46.202.155.70`,
+Cloudflare proxy on); the Origin certificate already covers `*.havo.tj`.
 
 ### 14.6. Connecting the portal
 

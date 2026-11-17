@@ -41,9 +41,9 @@
     }
   },
   "nav": {
-    "meteoAlert": "MeteoAlert (SmartMet)",
+    "smartmetAlert": "SmartMet Alert",
     "forecast": "SmartMet (пешгӯӣ)",
-    "silam": "SmartMet (SILAM)",
+    "silam": "SILAM (пешгӯии сифати ҳаво)",
     "airMonitoring": "Мониторинги ҳаво",
     "map": "Харита",
     "news": "Ахбор",
@@ -2262,8 +2262,8 @@
     "TVOC": "TVOC - пайвастагиҳои органикии бухоршаванда: ҳалкунандаҳо, сӯзишворӣ"
   },
   "silamPage": {
-    "title": "SmartMet (SILAM)",
-    "metaTitle": "SmartMet (SILAM) - пешгӯии сифати ҳаво",
+    "title": "SILAM (пешгӯии сифати ҳаво)",
+    "metaTitle": "SILAM (пешгӯии сифати ҳаво)",
     "intro": "Харитаҳои пешгӯии ифлосшавии ҳаво дар қаламрави Тоҷикистон ва кишварҳои ҳамсоя аз рӯи модели SILAM. Онҳоро Институти обуҳавошиносии Финляндия (FMI) дар доираи лоиҳаи FINTAJ ҳар рӯз ҳисоб мекунад.",
     "linkMap": "Қабати SILAM дар харита",
     "linkStations": "Ченкуниҳои истгоҳҳо",

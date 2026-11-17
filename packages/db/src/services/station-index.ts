@@ -179,7 +179,16 @@ export async function computeStationIndexes(
   for (const stationId of stationIds) {
     const byPollutant = series.get(stationId);
     if (!byPollutant) continue;
+    const hoursWithData = new Set<number>();
+    for (const points of byPollutant.values()) {
+      for (const p of points) hoursWithData.add(p.time.getTime());
+    }
     for (let t = since.getTime(); t <= until.getTime(); t += HOUR) {
+      // Индекс за час - только если в этом часе есть измерения. Иначе в часы без данных (после
+      // ввода или импорта пересчёт идёт до последнего измерения + 1 ч, задача - до текущего часа)
+      // появлялась строка только из веществ с длинным окном (CO 8 ч, суточные шкалы), и портал
+      // показывал её как текущий индекс: уровень по CO вместо PM2.5, «свежий» индекс у умолкшей станции.
+      if (!hoursWithData.has(t)) continue;
       const bucketStart = new Date(t);
       // Часовые точки — начала бакетов: окно (t − W, t] включает бакет t и исключает следующий.
       const windowEnd = bucketStart;

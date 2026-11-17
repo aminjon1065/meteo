@@ -41,9 +41,9 @@
     }
   },
   "nav": {
-    "meteoAlert": "MeteoAlert (SmartMet)",
+    "smartmetAlert": "SmartMet Alert",
     "forecast": "SmartMet (прогноз)",
-    "silam": "SmartMet (SILAM)",
+    "silam": "SILAM (прогноз качества воздуха)",
     "airMonitoring": "Мониторинг воздуха",
     "map": "Карта",
     "news": "Новости",
@@ -2262,8 +2262,8 @@
     "TVOC": "TVOC - летучие органические соединения: растворители, топливо"
   },
   "silamPage": {
-    "title": "SmartMet (SILAM)",
-    "metaTitle": "SmartMet (SILAM) - прогноз качества воздуха",
+    "title": "SILAM (прогноз качества воздуха)",
+    "metaTitle": "SILAM (прогноз качества воздуха)",
     "intro": "Карты прогноза загрязнения воздуха над Таджикистаном и соседними странами по модели SILAM. Их каждый день рассчитывает Финский метеорологический институт (FMI) в рамках проекта FINTAJ.",
     "linkMap": "Слой SILAM на карте",
     "linkStations": "Измерения станций",

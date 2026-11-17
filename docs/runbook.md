@@ -1038,21 +1038,38 @@ sh /opt/smartmet/sftp/setup-editor-sftp.sh --key-file /root/smartalert.pub --fro
 с адреса Агентства - без статического IP параметр опустить. Порт 22 в файрволе Hostinger уже открыт; ограничивать
 его по IP нельзя - им пользуются администраторы и выкатка.
 
-**На рабочей станции Агентства (Windows):**
+**На рабочей станции Агентства (Windows).** Адрес SFTP - IP сервера `46.202.155.70`, а не `havo.tj`: имя
+идёт через Cloudflare, а он пропускает только веб (порт 22 там закрыт).
 
-1. Установить [WinFsp](https://winfsp.dev) и [SSHFS‑Win](https://github.com/winfsp/sshfs-win); закрытый ключ -
-   `C:\Users\<синоптик>\.ssh\id_ed25519`.
-2. Подключить диск: Проводник → «Подключить сетевой диск» → `\\sshfs.k\smartalert@havo.tj` (вход по ключу).
-   На диске видны каталоги `smartalert` (боевая лента) и `smartalert-test` (проверка на staging).
-3. В настройках редактора SmartMet Alert указать каталог публикации `<диск>:\smartalert` (для пробных выпусков -
-   `<диск>:\smartalert-test`).
-4. Альтернатива без сетевого диска - WinSCP с синхронизацией каталога публикации редактора на сервер
-   (`winscp.com /command "open sftp://smartalert@havo.tj/ -privatekey=…" "synchronize remote …" "exit"` по
-   расписанию Windows).
+1. Ключ (PowerShell, без пароля - два раза Enter):
+   `ssh-keygen -t ed25519 -f $env:USERPROFILE\.ssh\smartalert_ed25519`. Файл `smartalert_ed25519.pub` передать
+   администратору сервера (это открытый ключ, его можно пересылать); закрытый ключ остаётся на компьютере.
+2. Редактор публикует в **локальный** каталог: в `conf\application-configuration.xml` у `repositoryOutputFolder`
+   значение `C:\smartalert`. Сетевые диски не нужны (на них Java‑редактор ломается при запуске от администратора:
+   `Unable to determine if root directory exists`).
+3. Отправка на сервер - `infra/smartmet/sftp/sync-smartalert.ps1` (встроенный в Windows 10/11 клиент OpenSSH,
+   сторонних программ нет). Скопировать в `C:\smartmet\`, проверить вручную:
+   `powershell -NoProfile -ExecutionPolicy Bypass -File C:\smartmet\sync-smartalert.ps1`; при первом запуске
+   скрипт запоминает ключ сервера. Новые выпуски загружаются во временный каталог и переименовываются в
+   `publishedCap` одним действием - лента не видит полузагруженный выпуск. Журнал - `C:\smartalert\sync-smartalert.log`.
+4. Постоянная работа - задание Планировщика при входе в Windows (обычная командная строка, не от администратора):
+   `schtasks /Create /TN "SmartAlert sync" /SC ONLOGON /TR "powershell.exe -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File C:\smartmet\sync-smartalert.ps1 -Loop" /F`,
+   затем `schtasks /Run /TN "SmartAlert sync"`. Пробные выпуски в тестовую ленту staging - вторым каталогом
+   редактора и параметрами `-Local C:\smartalert-test -Feed smartalert-test`.
+5. Альтернатива - сетевой диск SFTP: [WinFsp](https://winfsp.dev) + [SSHFS‑Win](https://github.com/winfsp/sshfs-win),
+   `\\sshfs.k\smartalert@46.202.155.70`, каталог публикации редактора `<диск>:\smartalert`. Редактор
+   запускать без прав администратора: сеанс администратора не видит подключённые диски.
 
 **Проверка:** пробный выпуск в `smartalert-test` → `curl -fsS http://127.0.0.1:8182/capfeed.php` на сервере
 перечисляет файл → на staging (`https://staging.havo.tj/ru/warnings`) предупреждение появляется в течение 5 минут.
-Отключить доступ - удалить ключ из `/etc/ssh/authorized_keys/smartalert`.
+Отключить доступ - удалить ключ из `/etc/ssh/authorized_keys/smartalert`. В файле ключей, который передаётся
+`setup-editor-sftp.sh`, может быть несколько ключей (по одному в строке); файл заменяет прежний список целиком.
+
+**Веб-карта предупреждений** `https://alert.havo.tj` - smartalert-web FMI с боевой лентой этого сервера (как
+`alert.meteo.tj` у Агентства). Сервис `alert-web` подключён к сети `edge`, общий Caddy отдаёт только файлы
+карты и опубликованные выпуски (`/data/publishedCap/*`, `/data/published/*`), только GET/HEAD; черновики
+редактора (`workspace*`) и служебные файлы образа отвечают 404 (`infra/edge/conf/sites/havo.tj.caddy`). DNS: запись
+`alert` (A `46.202.155.70`, проксирование Cloudflare включено); сертификат Origin уже выписан на `*.havo.tj`.
 
 ### 14.6. Подключение портала
 
