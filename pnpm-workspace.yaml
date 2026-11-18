@@ -30,3 +30,12 @@ minimumReleaseAgeExclude:
   - '@better-auth/telemetry@1.7.10'
   - '@vitest/mocker@5.0.5'
   - '@vitest/spy@5.0.5'
+
+# Исключения pnpm audit - только с обоснованием, по одному идентификатору (docs/security-checklist.md, п. 6.1).
+auditConfig:
+  ignoreGhsas:
+    # picomatch ≤ 4.0.7: ReDoS на подобранных шаблонах-глобах (+(*) и т. п.), исправленной версии нет (18.11.2026).
+    # В production-дерево попадает только через инструменты: better-auth → vitest (необязательный peer, в образы не
+    # входит - pnpm deploy --prod --no-optional) и next-intl → @parcel/watcher (слежение за файлами при разработке).
+    # Шаблоны задаются в коде, пользовательский ввод до picomatch не доходит. Убрать, когда выйдет исправление.
+    - GHSA-fc5q-39xc-vjpf
