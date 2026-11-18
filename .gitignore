@@ -45,7 +45,6 @@ apps/web/e2e/.auth/
 apps/web/e2e/.data/
 .lighthouseci/
 infra/perf/results/
-infra/backup/.restore-test/
 
 # Собранная документация (pnpm docs:build)
 docs/manuals/dist/

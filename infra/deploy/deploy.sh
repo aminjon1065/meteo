@@ -121,13 +121,25 @@ wait_ready() {
   done
 }
 
+# Контейнер Caddy в состоянии running ещё не обязательно слушает порт: выкатка 18.11.2026 упала на
+# первом же запросе (Connection refused), а порт открылся в ту же секунду. Поэтому до 10 попыток через 3 с;
+# ошибки отдельных попыток пишутся только в журнал на сервере.
+retry() {
+  i=1
+  until "$@" >>"$LOGF" 2>&1; do
+    [ "$i" -ge 10 ] && return 1
+    i=$((i + 1))
+    sleep 3
+  done
+}
+
 smoke() {
-  dc exec -T caddy wget -q -O /dev/null -T 10 http://127.0.0.1/api/healthz || {
+  retry dc exec -T caddy wget -q -O /dev/null -T 10 http://127.0.0.1/api/healthz || {
     log "/api/healthz через Caddy портала не отвечает"
     return 1
   }
   if [ -n "$EDGE_ALIAS" ] && docker inspect edge-caddy-1 >/dev/null 2>&1; then
-    docker exec edge-caddy-1 wget -q -O /dev/null -T 10 "http://$EDGE_ALIAS/api/healthz" || {
+    retry docker exec edge-caddy-1 wget -q -O /dev/null -T 10 "http://$EDGE_ALIAS/api/healthz" || {
       log "общий прокси не достаёт до $EDGE_ALIAS (сеть edge, EDGE_ALIAS в .env)"
       return 1
     }
@@ -171,7 +183,12 @@ echo "$(date -u +%FT%TZ) $SHA ok" >>"$DIR/deploy.log"
 # выкаток старше 90 дней. Имена релизов — SHA коммитов, поэтому разбор вывода ls безопасен.
 # shellcheck disable=SC2010
 ls -1t "$DIR/releases" | grep -v '\.tmp\.' | awk -v a="$SHA" -v b="$PREV" '$0 != a && $0 != b' |
-  tail -n +4 | while read -r r; do rm -rf "${DIR:?}/releases/$r"; done
+  tail -n +4 | while read -r r; do
+    # Уборка не должна валить выкатку, которая уже прошла: файл чужого владельца (например, журнал
+    # restore-test.sh, запущенного от root внутри релиза) оставляем и сообщаем.
+    rm -rf "${DIR:?}/releases/$r" 2>/dev/null ||
+      log "ВНИМАНИЕ: не удалось удалить releases/$r (права?) - удалите от root: rm -rf $DIR/releases/$r"
+  done
 docker image ls --format '{{.Repository}} {{.Tag}}' |
   awk -v a="$SHA" -v b="$PREV" '$1 ~ /\/meteoportal-/ && $2 != a && $2 != b { print $1 ":" $2 }' |
   while read -r img; do docker image rm "$img" >/dev/null 2>&1 || true; done

@@ -10,15 +10,16 @@
 # 4) проверки: расширения, гипертаблица, число строк в ключевых таблицах (сравнение с источником),
 # пересчёт continuous aggregate; 5) контейнер удаляется (KEEP=1 — оставить). Код выхода 0 — тест пройден.
 set -eu
-HERE="$(cd "$(dirname "$0")" && pwd)"
-WORK="$HERE/.restore-test"
+# Рабочий каталог - вне каталога релиза на сервере: файлы root внутри releases/<sha> мешают уборке выкатки.
+WORK="${RESTORE_TEST_DIR:-${TMPDIR:-/tmp}/meteo-restore-test}"
 IMAGE="${PG_IMAGE:-timescale/timescaledb-ha:pg17}"
 SOURCE_CONTAINER="${SOURCE_CONTAINER:-meteo-postgres}"
 PGUSER_SRC="${PGUSER_SRC:-meteo}"
 PGDATABASE_SRC="${PGDATABASE_SRC:-meteo}"
 STAMP="$(date -u +%Y%m%dT%H%M%SZ)"
 TARGET="meteo-restore-test-$STAMP"
-mkdir -p "$WORK"
+# В каталоге - дамп с данными портала: доступ только владельцу.
+mkdir -p "$WORK" && chmod 700 "$WORK"
 
 log() { echo "[restore-test] $*"; }
 fail() { echo "[restore-test] FAIL: $*" >&2; exit 1; }
