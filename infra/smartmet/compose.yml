@@ -77,7 +77,8 @@ services:
   # Веб-карта и CAP-лента SmartMet Alert (fmidev/smartalert-web): /capfeed.php — источник предупреждений
   # для портала (CAP_FEED_URL=http://smartalert/capfeed.php). Редактор SmartMet Alert публикует CAP по SFTP
   # (sftp/setup-editor-sftp.sh) в /smartmet/editor/smartalert/publishedCap/<год>/<месяц>/<YYYYMMDDHHmmss>/.
-  # capfeed.php — наша правка файла FMI (Cancel, битые файлы; см. alert/capfeed.php и ADR-010).
+  # capfeed.php и list.php — наши правки файлов FMI (Cancel, битые файлы, истёкшие сообщения на карте;
+  # см. alert/capfeed.php, alert/list.php и ADR-010).
   # Публичная веб-карта https://alert.havo.tj — через общий Caddy (сеть edge, имя smartalert-web);
   # Caddy отдаёт только карту и опубликованные выпуски, черновики редактора (workspace*) наружу не идут
   # (infra/edge/conf/sites/havo.tj.caddy).
@@ -87,6 +88,7 @@ services:
     volumes:
       - /smartmet/editor/smartalert:/var/www/html/data:ro
       - ./alert/capfeed.php:/var/www/html/capfeed.php:ro
+      - ./alert/list.php:/var/www/html/list.php:ro
       - ./alert/capmap-config.js:/var/www/html/capmap-config.js:ro
       - ./alert/index.html:/var/www/html/index.html:ro
       - ./alert/vendor:/var/www/html/vendor:ro
@@ -121,6 +123,7 @@ services:
     volumes:
       - /smartmet/editor/smartalert-test:/var/www/html/data:ro
       - ./alert/capfeed.php:/var/www/html/capfeed.php:ro
+      - ./alert/list.php:/var/www/html/list.php:ro
       - ./alert/capmap-config.js:/var/www/html/capmap-config.js:ro
       - ./alert/index.html:/var/www/html/index.html:ro
       - ./alert/vendor:/var/www/html/vendor:ro

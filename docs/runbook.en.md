@@ -931,6 +931,11 @@ The portal reconciles the feed with its database: a warning that disappears from
 without a CAP Cancel ("withdrawn" in the admin panel), and published again if it comes back. When updating the FMI
 image, compare the new image's `capfeed.php` with our edit (ADR‑010).
 
+**`list.php` edit** (`infra/smartmet/alert/list.php`, also mounted over the image file). The web map loads the
+latest issue's files through `list.php`, and the original does not check validity: expired warnings stay on the map
+until the forecaster publishes a new issue, although the portal and the feed have already dropped them. Our version
+skips expired messages (same rule as `capfeed.php`) and broken files. Compare this file too when the image is updated.
+
 | What | Where |
 |---|---|
 | Configuration (copy of `infra/smartmet` from the repository) | `/opt/smartmet` |

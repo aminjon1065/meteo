@@ -11,7 +11,7 @@
 | `cnf/` | `/smartmet/cnf`: область и шаги GFS, расписание |
 | `etc/` | файлы `/etc/smartmet`, заменяющие файлы образа: движки, плагины, источники данных |
 | `wms/customers/tajikistan/` | слои WMS для портала (`tajikistan:temperature` и др.) |
-| `alert/` | настройки карты SmartAlert для Таджикистана (центр, языки tg/ru/en, типы явлений); `capfeed.php` - наша правка ленты FMI (Cancel, битые файлы; ADR‑010); `vendor/` - библиотеки страницы вместо CDN |
+| `alert/` | настройки карты SmartAlert для Таджикистана (центр, языки tg/ru/en, типы явлений); `capfeed.php` и `list.php` - наши правки файлов FMI (Cancel, битые файлы, истёкшие предупреждения на карте; ADR‑010); `vendor/` - библиотеки страницы вместо CDN |
 | `alert/test-feed/` | `cap-chain.mjs` - тестовая цепочка CAP (Alert → Update → Cancel, снятие) для ленты staging |
 | `sftp/` | `setup-editor-sftp.sh` - SFTP‑доступ редактора SmartMet Alert (только ключ, chroot `/smartmet/editor`) |
 
