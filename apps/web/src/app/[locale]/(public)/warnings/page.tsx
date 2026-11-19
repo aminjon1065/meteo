@@ -2,7 +2,7 @@ import { CAP_SEVERITIES, maxSeverity } from "@meteo/core";
 import { listWarningRegions, localDateKey, localMidnightUtc } from "@meteo/db";
 import type { Locale } from "@meteo/i18n";
 import { cn } from "@meteo/ui/lib/utils";
-import { MapIcon } from "lucide-react";
+import { ExternalLinkIcon, MapIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { getFormatter, getTranslations, setRequestLocale } from "next-intl/server";
 import { PageHeader, Section } from "@/components/site/page-header";
@@ -107,6 +107,8 @@ export default async function WarningsPage({
   const activeList = isToday ? dayList.filter((w) => w.active) : dayList;
   const upcomingList = isToday ? dayList.filter((w) => !w.active) : [];
   const activeCount = warnings.filter((w) => w.active).length;
+  // Сайт ленты (alert.meteo.tj) - только когда портал реально берёт предупреждения оттуда.
+  const sourceHost = freshness.sourceSite ? new URL(freshness.sourceSite).host : null;
   const dayLabel = (d: DayColumn, i: number) =>
     i === 0
       ? t("today")
@@ -154,6 +156,17 @@ export default async function WarningsPage({
             <MapIcon className="size-4" aria-hidden="true" />
             {t("showOnMap")}
           </Link>
+          {sourceHost ? (
+            <a
+              href={freshness.sourceSite ?? undefined}
+              rel="noopener"
+              className="inline-flex items-center gap-1 font-semibold text-brand underline-offset-4 hover:underline"
+              data-testid="warnings-source-site"
+            >
+              <ExternalLinkIcon className="size-4" aria-hidden="true" />
+              {t("sourceSite", { host: sourceHost })}
+            </a>
+          ) : null}
         </div>
       </PageHeader>
 
@@ -294,6 +307,18 @@ export default async function WarningsPage({
         <p>{t("colorHint")}</p>
         <p>
           {t("sourceNote")} ·{" "}
+          {sourceHost ? (
+            <>
+              <a
+                href={freshness.sourceSite ?? undefined}
+                rel="noopener"
+                className="underline-offset-4 hover:underline"
+              >
+                {sourceHost}
+              </a>{" "}
+              ·{" "}
+            </>
+          ) : null}
           <a href="/api/v1/alerts" className="underline-offset-4 hover:underline">
             JSON API
           </a>

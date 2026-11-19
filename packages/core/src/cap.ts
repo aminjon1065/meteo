@@ -458,9 +458,33 @@ export interface CapFeedSources {
   inline: string[];
 }
 
+/**
+ * Ссылка, у которой адрес сайта ленты склеен с путём без «/»: `https://alert.meteo.tjdata//publishedCap/…`.
+ * Так пишет capfeed.php FMI сборок до 20.04.2026 (исправлено у FMI в smartalert-web db4c352e), когда лента
+ * лежит в корне сайта; такая сборка стоит на alert.meteo.tj. Вставляем «/» после адреса сайта ленты;
+ * ссылка с портом (`https://host:8443/…`) или на другой сайт не меняется.
+ */
+function repairGluedOrigin(href: string, baseUrl: string): string {
+  let origin: string;
+  try {
+    const base = new URL(baseUrl);
+    if (base.protocol !== "http:" && base.protocol !== "https:") return href;
+    origin = base.origin;
+  } catch {
+    return href;
+  }
+  if (href.length <= origin.length || href.slice(0, origin.length).toLowerCase() !== origin) {
+    return href;
+  }
+  const next = href[origin.length] ?? "";
+  return /[/?#:]/.test(next) ? href : `${origin}/${href.slice(origin.length)}`;
+}
+
 function resolveUrl(href: string, baseUrl?: string): string | null {
   try {
-    return baseUrl ? new URL(href, baseUrl).toString() : new URL(href).toString();
+    return baseUrl
+      ? new URL(repairGluedOrigin(href, baseUrl), baseUrl).toString()
+      : new URL(href).toString();
   } catch {
     return null;
   }

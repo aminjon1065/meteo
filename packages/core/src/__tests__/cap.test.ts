@@ -297,6 +297,30 @@ describe("parseCapFeed", () => {
       "http://smartalert/data/publishedCap/2026/11/20991231235959/20991231235959_0001_CANCEL_Wind.xml",
     ]);
   });
+  it("Atom SmartAlert старой сборки FMI: чинит ссылку без «/» после адреса сайта", () => {
+    // Так 19.11.2026 отдавала https://alert.meteo.tj/capfeed.php (capfeed.php до исправления FMI db4c352e).
+    const feed = `<?xml version="1.0" encoding="UTF-8" standalone="yes"?><feed xmlns="http://www.w3.org/2005/Atom">
+      <link href="https://alert.meteo.tj/capfeed.php" rel="self"/>
+      <entry><id>https://alert.meteo.tj/capfeed.php</id>
+      <link rel="related" type="application/cap+xml" href="https://alert.meteo.tjdata//publishedCap/2026/11/20261119083343/20261119083343_0000_UPDATE_2.49.0.0.762.0.TJ.261119083343.x.xml"/>
+      </entry></feed>`;
+    expect(parseCapFeed(feed, "https://alert.meteo.tj/capfeed.php").links).toEqual([
+      "https://alert.meteo.tj/data//publishedCap/2026/11/20261119083343/20261119083343_0000_UPDATE_2.49.0.0.762.0.TJ.261119083343.x.xml",
+    ]);
+    // Порт, другой сайт и обычная ссылка не меняются.
+    const other = (href: string) =>
+      parseCapFeed(
+        `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"><entry><link type="application/cap+xml" href="${href}"/></entry></feed>`,
+        "https://alert.meteo.tj/capfeed.php",
+      ).links;
+    expect(other("https://alert.meteo.tj:8443/a.xml")).toEqual([
+      "https://alert.meteo.tj:8443/a.xml",
+    ]);
+    expect(other("https://other.tj/a.xml")).toEqual(["https://other.tj/a.xml"]);
+    expect(other("https://alert.meteo.tj/data/a.xml")).toEqual([
+      "https://alert.meteo.tj/data/a.xml",
+    ]);
+  });
 
   it("одиночный CAP, RSS и HTML‑листинг", () => {
     const single = parseCapFeed(fixture("wind-alert.xml"));

@@ -599,7 +599,7 @@ and stations.
 
 | Variable | Value |
 |---|---|
-| `CAP_FEED_URL` | the SmartMet Alert feed on the portal server - `http://smartalert/capfeed.php` (§14); on staging - the test feed `http://smartalert-test/capfeed.php` (§14.6); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
+| `CAP_FEED_URL` | the Agency's SmartMet Alert feed `https://alert.meteo.tj/capfeed.php` (per the ToR; needs a valid certificate, otherwise the download fails) or the feed on the portal server - `http://smartalert/capfeed.php` (§14); the `/warnings` page links to the feed's site only when the source is https and the last download succeeded; on staging - the test feed `http://smartalert-test/capfeed.php` (§14.6); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
 | `CAP_TIMEOUT_MS` | request timeout (15000) |
 
 Check: `curl -fsS "$CAP_FEED_URL" | head -20`; then a manual `cap-sync` run with `force` and `/admin/cap` →
@@ -1095,7 +1095,7 @@ layer. To go back to the FMI sandbox, remove the variables from `.env` and run `
 | `SMARTMET_URL` | `http://smartmet:8080` |
 | `SMARTMET_PRODUCER` | `gfs` |
 | `SMARTMET_WMS_URL` | `http://smartmet:8080` |
-| `CAP_FEED_URL` | production: `http://smartalert/capfeed.php`; staging: `http://smartalert-test/capfeed.php` |
+| `CAP_FEED_URL` | production: `https://alert.meteo.tj/capfeed.php` (the Agency's feed) or the fallback `http://smartalert/capfeed.php`; staging: `http://smartalert-test/capfeed.php` |
 | `SMARTALERT_DIR` | staging only: `/smartmet/editor/smartalert-test` (which SmartMet Alert archive goes into the backup) |
 | `SMARTMET_MAX_RUN_AGE_H` | optional, 18 by default |
 

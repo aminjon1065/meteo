@@ -1332,6 +1332,7 @@
     "summaryActive": "{count, plural, one {# warning is} other {# warnings are}} currently in force from the Agency for Hydrometeorology. Below: by region for the coming days.",
     "summaryNone": "No storm warnings are in force. The table shows the coming days by region; warnings are issued by the Agency for Hydrometeorology.",
     "showOnMap": "Show on the map",
+    "sourceSite": "SmartMet Alert map ({host})",
     "freshnessNote": "The warning feed has not been updated for a while, so this information may be incomplete. Last update: {time}.",
     "freshnessNoteNever": "The warning feed is unavailable right now, so this information may be incomplete."
   },
