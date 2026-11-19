@@ -13,6 +13,7 @@
 | `wms/customers/tajikistan/` | слои WMS для портала (`tajikistan:temperature` и др.) |
 | `alert/` | настройки карты SmartAlert для Таджикистана (центр, языки tg/ru/en, типы явлений); `capfeed.php` и `list.php` - наши правки файлов FMI (Cancel, битые файлы, истёкшие предупреждения на карте; ADR‑010); `vendor/` - библиотеки страницы вместо CDN |
 | `alert/test-feed/` | `cap-chain.mjs` - тестовая цепочка CAP (Alert → Update → Cancel, снятие) для ленты staging |
+| `alert/mirror-agency.sh` | временное зеркало ленты Агентства alert.meteo.tj в наши ленты, пока у неё фейковый сертификат (cron, проверка отпечатка ключа; runbook §14.6) |
 | `sftp/` | `setup-editor-sftp.sh` - SFTP‑доступ редактора SmartMet Alert (только ключ, chroot `/smartmet/editor`) |
 
 Установка, обновление и проверки - `docs/runbook.md`, раздел 14. Решение - `docs/adr/ADR-010-smartmet-server.md`.

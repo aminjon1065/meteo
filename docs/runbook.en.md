@@ -1117,6 +1117,15 @@ gen reset; gen alert; gen withdraw   # empty issue: withdrawn without Cancel, "w
 To speed it up, run `cap-sync` manually on staging (section 7). Old test issues can be removed:
 `rm -rf /smartmet/editor/smartalert-test/publishedCap/*`.
 
+**Temporary mirror of the Agency's feed.** While alert.meteo.tj has a fake certificate and the portal cannot read
+it directly, `infra/smartmet/alert/mirror-agency.sh` (cron every 5 minutes, `/etc/cron.d/smartalert-mirror`) copies
+the Agency's latest release to `/smartmet/editor/smartalert` (havo.tj) and `/smartmet/editor/smartalert-test`
+(staging). The server is verified by its key fingerprint (`--pinnedpubkey`); cancellations arrive as an empty release.
+While the mirror runs, other editors do not publish to the production feed. Log: `journalctl -t smartalert-mirror`.
+If the key changes (error `curl: (90)`), the new fingerprint and how to switch the mirror off are at the top of the
+script. Once the certificate is valid: `CAP_FEED_URL=https://alert.meteo.tj/capfeed.php` in the production and
+staging `.env`, `dc up -d worker`, `rm /etc/cron.d/smartalert-mirror`.
+
 ### 14.7. Backup
 
 Configuration lives in the repository (`infra/smartmet`); model data is restored by the next download. The editor

@@ -1102,6 +1102,15 @@ sh /opt/smartmet/sftp/setup-editor-sftp.sh --key-file /root/smartalert.pub --fro
 Staging читает **тестовую** ленту, поэтому тестовые сообщения не попадают на havo.tj, а боевые предупреждения
 синоптиков на staging не видны.
 
+**Временное зеркало ленты Агентства.** Пока у alert.meteo.tj фейковый сертификат и портал не может читать её
+напрямую, `infra/smartmet/alert/mirror-agency.sh` (cron раз в 5 минут, `/etc/cron.d/smartalert-mirror`) копирует
+последний выпуск Агентства в `/smartmet/editor/smartalert` (havo.tj) и `/smartmet/editor/smartalert-test` (staging).
+Сервер проверяется по отпечатку ключа (`--pinnedpubkey`), отмены доходят пустым выпуском. Пока зеркало работает, с
+других редакторов в боевую ленту не публикуют. Журнал: `journalctl -t smartalert-mirror`. Ключ сменился (ошибка
+`curl: (90)`) - новый отпечаток и порядок отключения в начале скрипта. Когда сертификат станет настоящим:
+`CAP_FEED_URL=https://alert.meteo.tj/capfeed.php` в `.env` production и staging, `dc up -d worker`,
+`rm /etc/cron.d/smartalert-mirror`.
+
 **Приёмка M3 на staging** (цепочка Alert → Update → Cancel и снятие без Cancel; свежие даты, tg/ru/en):
 
 ```bash
