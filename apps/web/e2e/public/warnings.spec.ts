@@ -30,6 +30,26 @@ test("/warnings: матрица регион × день и карточка д�
   await expect(page.getByText(E2E.capHeadline.ru).first()).toBeVisible();
 });
 
+test("меню ☰ → Meteo Alert: карта alert.meteo.tj внутри портала, шапка на месте", async ({
+  page,
+}) => {
+  await page.goto("/ru/warnings");
+  await page.getByRole("button", { name: t("ru", "common.menu") }).click();
+  const nav = page
+    .getByRole("dialog", { name: t("ru", "common.menu") })
+    .getByRole("navigation", { name: t("ru", "common.mainNav") });
+  await nav.getByRole("link", { name: t("ru", "nav.meteoAlert"), exact: true }).click();
+  await expect(page).toHaveURL(/\/ru\/meteo-alert$/);
+  const frame = page.getByTestId("meteo-alert-frame");
+  await expect(frame).toHaveAttribute("src", "https://alert.meteo.tj");
+  await expect(frame).toHaveAttribute("title", t("ru", "warnings.agencyMapFrame"));
+  // Шапка портала остаётся, подвала нет: карта на весь экран, как на главной.
+  await expect(page.getByRole("button", { name: t("ru", "common.menu") })).toBeVisible();
+  await expect(page.locator("footer")).toHaveCount(0);
+  const res = await page.request.get("/ru/meteo-alert");
+  expect(res.headers()["content-security-policy"]).toContain("frame-src https://alert.meteo.tj");
+});
+
 test("/en/warnings: английский блок info выбран по локали", async ({ page }) => {
   await page.goto("/en/warnings");
   await expect(page.getByText(E2E.capHeadline.en).first()).toBeVisible();

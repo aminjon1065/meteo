@@ -4,6 +4,7 @@ import { activeNavHref, isActivePath } from "@/components/site/nav-active";
 // Меню ☰ (site-header.tsx): «Карта» — главная.
 const MENU = [
   "/warnings",
+  "/meteo-alert",
   "/weather",
   "/air/silam",
   "/air",
@@ -28,5 +29,6 @@ describe("подсветка пунктов меню", () => {
     expect(activeNavHref("/", MENU)).toBe("/");
     expect(activeNavHref("/weather/dushanbe", MENU)).toBe("/weather");
     expect(activeNavHref("/subscribe", MENU)).toBeNull();
+    expect(activeNavHref("/meteo-alert", MENU)).toBe("/meteo-alert");
   });
 });

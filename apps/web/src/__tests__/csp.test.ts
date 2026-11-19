@@ -45,6 +45,11 @@ describe("buildCsp", () => {
     expect(csp).not.toContain("upgrade-insecure-requests");
   });
 
+  it("iframe внутри портала - только карта Meteo Alert Агентства", () => {
+    expect(buildCsp(base)).toContain("frame-src https://alert.meteo.tj;");
+    expect(buildCsp({ ...base, dev: true })).toContain("frame-src 'self' https://alert.meteo.tj;");
+  });
+
   it("в разработке разрешает eval (React DevTools) и WebSocket HMR", () => {
     const csp = buildCsp({ ...base, dev: true });
     expect(csp).toContain("'unsafe-eval'");

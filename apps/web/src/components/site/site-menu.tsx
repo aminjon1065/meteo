@@ -18,6 +18,7 @@ import {
   MapIcon,
   MenuIcon,
   NewspaperIcon,
+  SirenIcon,
   TriangleAlertIcon,
   WindIcon,
 } from "lucide-react";
@@ -35,6 +36,7 @@ export interface NavItem {
 
 const ICONS: Record<string, LucideIcon> = {
   "/warnings": TriangleAlertIcon,
+  "/meteo-alert": SirenIcon,
   "/weather": CloudSunIcon,
   "/air/silam": CloudFogIcon,
   "/air": WindIcon,

@@ -15,6 +15,7 @@ const STATIC_PATHS = [
   "/air/bulletins",
   "/weather",
   "/warnings",
+  "/meteo-alert",
   "/health",
   "/news",
   "/about",

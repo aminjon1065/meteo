@@ -6,6 +6,7 @@
  * nonce для стилей не применим. Изображения data:/blob: нужны MapLibre (спрайты, растровые слои SILAM)
  * и next/image. Worker MapLibre лежит в /maplibre (same-origin), blob: оставлен для его fallback.
  * iframe-виджеты /embed/* могут встраиваться только сайтами Агентства (frame-ancestors).
+ * Сам портал встраивает только карту SmartMet Alert Агентства (страница /meteo-alert, frame-src).
  */
 export interface CspOptions {
   nonce: string;
@@ -24,6 +25,9 @@ export const DEFAULT_EMBED_ANCESTORS = [
   "https://meteo.tj",
   "https://*.meteo.tj",
 ] as const;
+
+/** Сайты, которые портал показывает у себя в iframe: карта Meteo Alert (/meteo-alert). */
+export const FRAME_SOURCES = ["https://alert.meteo.tj"] as const;
 
 const EMBED_PATH = /^(?:\/(?:tg|ru|en))?\/embed(?:\/|$)/;
 
@@ -60,7 +64,7 @@ export function buildCsp(opts: CspOptions): string {
     ["object-src", [`'none'`]],
     ["base-uri", [`'self'`]],
     ["form-action", [`'self'`]],
-    ["frame-src", opts.dev ? [`'self'`] : [`'none'`]],
+    ["frame-src", opts.dev ? [`'self'`, ...FRAME_SOURCES] : [...FRAME_SOURCES]],
     ["frame-ancestors", opts.embed ? [...opts.embedAncestors] : [`'none'`]],
   ];
   const parts = directives.map(([name, values]) => `${name} ${values.join(" ")}`);

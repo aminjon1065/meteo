@@ -42,6 +42,7 @@
   },
   "nav": {
     "smartmetAlert": "SmartMet Alert",
+    "meteoAlert": "Meteo Alert (alert.meteo.tj)",
     "forecast": "SmartMet (forecast)",
     "silam": "SILAM (air quality forecast)",
     "airMonitoring": "Air monitoring",
@@ -1333,6 +1334,9 @@
     "summaryNone": "No storm warnings are in force. The table shows the coming days by region; warnings are issued by the Agency for Hydrometeorology.",
     "showOnMap": "Show on the map",
     "sourceSite": "SmartMet Alert map ({host})",
+    "agencyMapTitle": "Meteo Alert warning map",
+    "agencyMapIntro": "Map of weather warnings of the Agency for Hydrometeorology from alert.meteo.tj",
+    "agencyMapFrame": "Warning map from alert.meteo.tj",
     "freshnessNote": "The warning feed has not been updated for a while, so this information may be incomplete. Last update: {time}.",
     "freshnessNoteNever": "The warning feed is unavailable right now, so this information may be incomplete."
   },

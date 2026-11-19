@@ -42,6 +42,7 @@
   },
   "nav": {
     "smartmetAlert": "SmartMet Alert",
+    "meteoAlert": "Meteo Alert (alert.meteo.tj)",
     "forecast": "SmartMet (пешгӯӣ)",
     "silam": "SILAM (пешгӯии сифати ҳаво)",
     "airMonitoring": "Мониторинги ҳаво",
@@ -1333,6 +1334,9 @@
     "summaryNone": "Огоҳиҳои амалкунандаи тӯфонӣ нестанд. Ҷадвал рӯзҳои наздикро аз рӯи минтақаҳо нишон медиҳад; огоҳиҳоро Агентии обуҳавошиносӣ интишор мекунад.",
     "showOnMap": "Дар харита нишон додан",
     "sourceSite": "Харитаи SmartMet Alert ({host})",
+    "agencyMapTitle": "Харитаи огоҳиҳои Meteo Alert",
+    "agencyMapIntro": "Харитаи огоҳиҳои Агентии обуҳавошиносӣ аз сомонаи alert.meteo.tj",
+    "agencyMapFrame": "Харитаи огоҳиҳо аз alert.meteo.tj",
     "freshnessNote": "Тасмаи огоҳиҳо кайҳо нав нашудааст - маълумот метавонад нопурра бошад. Навсозии охирин: {time}.",
     "freshnessNoteNever": "Тасмаи огоҳиҳо ҳоло дастрас нест - маълумот метавонад нопурра бошад."
   },

@@ -42,6 +42,7 @@
   },
   "nav": {
     "smartmetAlert": "SmartMet Alert",
+    "meteoAlert": "Meteo Alert (alert.meteo.tj)",
     "forecast": "SmartMet (прогноз)",
     "silam": "SILAM (прогноз качества воздуха)",
     "airMonitoring": "Мониторинг воздуха",
@@ -1333,6 +1334,9 @@
     "summaryNone": "Действующих штормовых предупреждений нет. Таблица показывает ближайшие дни по регионам; предупреждения выпускает Агентство по гидрометеорологии.",
     "showOnMap": "Показать на карте",
     "sourceSite": "Карта SmartMet Alert ({host})",
+    "agencyMapTitle": "Карта предупреждений Meteo Alert",
+    "agencyMapIntro": "Карта штормовых предупреждений Агентства по гидрометеорологии с сайта alert.meteo.tj",
+    "agencyMapFrame": "Карта предупреждений alert.meteo.tj",
     "freshnessNote": "Лента предупреждений давно не обновлялась - сведения могут быть неполными. Последнее обновление: {time}.",
     "freshnessNoteNever": "Лента предупреждений сейчас недоступна - сведения могут быть неполными."
   },

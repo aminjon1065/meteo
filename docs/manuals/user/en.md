@@ -9,7 +9,7 @@ Meteoportal is the official website of the Agency for Hydrometeorology of the Re
 - **Address**: `https://<portal domain>` (for example `https://havo.tj`). The portal works on desktops, tablets and phones; no registration is needed.
 - **Languages**: Tajik (primary, addresses without a prefix - `/air`), Russian (`/ru/air`) and English (`/en/air`). The language switch is in the top‑right corner (globe icon).
 - **Theme**: light or dark (moon/sun icon next to the language; on a phone - in the ☰ menu).
-- **Sections** are in the ☰ menu on the left of the header (as on data.meteo.uz): SmartMet Alert - warnings, SmartMet (forecast) - weather, SILAM (air quality forecast), Air monitoring, Map, News, Health, Open data · API, About; below them - "About the index", "Eco-bulletins", "Email alerts". The menu also holds the language, theme and project credits. Every page except the home page has a footer with the same links and contacts.
+- **Sections** are in the ☰ menu on the left of the header (as on data.meteo.uz): SmartMet Alert - warnings, Meteo Alert (alert.meteo.tj) - the Agency's warning map inside the portal, SmartMet (forecast) - weather, SILAM (air quality forecast), Air monitoring, Map, News, Health, Open data · API, About; below them - "About the index", "Eco-bulletins", "Email alerts". The menu also holds the language, theme and project credits. Every page except the home page and Meteo Alert has a footer with the same links and contacts.
 - **Time** on the portal is shown in Dushanbe time (UTC+5); the API and CSV use UTC together with local time.
 - **Accessibility**: pollution levels are always labelled with words, not only colour; the interface works with the keyboard and screen readers.
 

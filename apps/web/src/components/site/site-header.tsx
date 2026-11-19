@@ -19,6 +19,7 @@ export async function getMenuItems(): Promise<NavItem[]> {
   const t = await getTranslations("nav");
   return [
     { href: "/warnings", label: t("smartmetAlert") },
+    { href: "/meteo-alert", label: t("meteoAlert") },
     { href: "/weather", label: t("forecast") },
     { href: "/air/silam", label: t("silam") },
     { href: "/air", label: t("airMonitoring") },
