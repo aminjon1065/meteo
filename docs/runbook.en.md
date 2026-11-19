@@ -599,7 +599,7 @@ and stations.
 
 | Variable | Value |
 |---|---|
-| `CAP_FEED_URL` | the Agency's SmartMet Alert feed `https://alert.meteo.tj/capfeed.php` (per the ToR; needs a valid certificate, otherwise the download fails) or the feed on the portal server - `http://smartalert/capfeed.php` (§14); the `/warnings` page links to the feed's site only when the source is https and the last download succeeded; on staging - the test feed `http://smartalert-test/capfeed.php` (§14.6); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
+| `CAP_FEED_URL` | the Agency's SmartMet Alert feed `https://alert.meteo.tj/capfeed.php` (per the ToR; needs a valid certificate, otherwise the download fails) or the feed on the portal server - `http://smartalert/capfeed.php` (§14); on staging - the test feed `http://smartalert-test/capfeed.php` (§14.6); or the editor's Atom/RSS feed, an HTTP directory with `*.xml`, or `file:///…` (the `infra/data/cap` fixtures for testing); without a value the job is skipped and the dashboard shows "source not configured" |
 | `CAP_TIMEOUT_MS` | request timeout (15000) |
 
 Check: `curl -fsS "$CAP_FEED_URL" | head -20`; then a manual `cap-sync` run with `force` and `/admin/cap` →

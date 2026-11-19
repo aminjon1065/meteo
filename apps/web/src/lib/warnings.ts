@@ -161,27 +161,10 @@ export interface WarningsFreshness {
   stale: boolean;
   /** Последняя успешная синхронизация (null — не было). */
   lastSuccessAt: Date | null;
-  /** Публичный сайт ленты (карта SmartMet Alert, например https://alert.meteo.tj); null - не показывать. */
-  sourceSite: string | null;
 }
 
-/**
- * Сайт ленты предупреждений для ссылки «карта SmartMet Alert»: только https-источник, последняя загрузка
- * которого прошла (значит, сертификат действителен). Внутренний адрес сервера портала
- * (http://smartalert/capfeed.php) и файлы не показываются.
- */
-export function capSourceSite(
-  url: string | null | undefined,
-  status: string | undefined,
-): string | null {
-  if (!url || (status !== "ok" && status !== "not-modified" && status !== "partial")) return null;
-  try {
-    const u = new URL(url);
-    return u.protocol === "https:" && u.hostname.includes(".") ? u.origin : null;
-  } catch {
-    return null;
-  }
-}
+/** Карта SmartMet Alert Агентства: кнопка на странице «Предупреждения» (открывается в новой вкладке). */
+export const AGENCY_ALERT_SITE = "https://alert.meteo.tj";
 
 /**
  * Свежесть ленты CAP для публичных страниц (только чтение состояния, которое пишет cap-sync).
@@ -196,12 +179,11 @@ export async function loadWarningsFreshness(now = new Date()): Promise<WarningsF
     const okAt =
       cap?.at && cap.status !== "failed" && cap.status !== "disabled" ? new Date(cap.at) : null;
     const lastSuccessAt = okAt ?? (state.lastSuccessAt ? new Date(state.lastSuccessAt) : null);
-    const sourceSite = capSourceSite(cap?.url, cap?.status);
-    if (disabled) return { stale: false, lastSuccessAt, sourceSite };
+    if (disabled) return { stale: false, lastSuccessAt };
     const at = cap?.at ? new Date(cap.at) : null;
     const stale = !at || cap?.status === "failed" || now.getTime() - at.getTime() > CAP_MAX_AGE_MS;
-    return { stale, lastSuccessAt, sourceSite };
+    return { stale, lastSuccessAt };
   } catch {
-    return { stale: false, lastSuccessAt: null, sourceSite: null };
+    return { stale: false, lastSuccessAt: null };
   }
 }

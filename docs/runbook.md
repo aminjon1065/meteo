@@ -605,7 +605,7 @@ select 'TJ-SU', name, geom from regions where code = 'SU';
 
 | Переменная | Значение |
 |---|---|
-| `CAP_FEED_URL` | лента SmartMet Alert Агентства `https://alert.meteo.tj/capfeed.php` (по ТЗ; нужен действительный сертификат, иначе загрузка падает) или лента на сервере портала - `http://smartalert/capfeed.php` (§14); на странице `/warnings` ссылка на сайт ленты появляется, только если источник https и последняя загрузка прошла; в staging - тестовая лента `http://smartalert-test/capfeed.php` (§14.6); либо Atom/RSS‑фид редактора, HTTP‑каталог с `*.xml` или `file:///…` (фикстуры `infra/data/cap` для проверки); без значения задача пропускается, дашборд показывает «источник не настроен» |
+| `CAP_FEED_URL` | лента SmartMet Alert Агентства `https://alert.meteo.tj/capfeed.php` (по ТЗ; нужен действительный сертификат, иначе загрузка падает) или лента на сервере портала - `http://smartalert/capfeed.php` (§14); в staging - тестовая лента `http://smartalert-test/capfeed.php` (§14.6); либо Atom/RSS‑фид редактора, HTTP‑каталог с `*.xml` или `file:///…` (фикстуры `infra/data/cap` для проверки); без значения задача пропускается, дашборд показывает «источник не настроен» |
 | `CAP_TIMEOUT_MS` | таймаут запроса (15000) |
 
 Проверка: `curl -fsS "$CAP_FEED_URL" | head -20`; затем ручной запуск `cap-sync` с `force` и `/admin/cap` →

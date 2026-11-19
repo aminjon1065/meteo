@@ -17,6 +17,11 @@ test("/warnings: матрица регион × день и карточка д�
   await expect(cell.first()).toHaveText("3");
   // Раздел ведёт на карту: главная с ?layer=warnings показывает области предупреждений.
   await expect(page.getByTestId("warnings-on-map")).toHaveAttribute("href", "/ru?layer=warnings");
+  // Кнопка на карту SmartMet Alert Агентства открывается в новой вкладке.
+  const agency = page.getByTestId("warnings-source-site");
+  await expect(agency).toHaveText("Карта SmartMet Alert (alert.meteo.tj)");
+  await expect(agency).toHaveAttribute("href", "https://alert.meteo.tj");
+  await expect(agency).toHaveAttribute("target", "_blank");
   // Лента CAP в E2E не настроена — пометки «данные устарели» нет.
   await expect(page.getByTestId("warnings-stale")).toHaveCount(0);
   // Фильтр по региону Душанбе оставляет предупреждение на месте.
